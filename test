@@ -1,0 +1,16 @@
+print("hello world")
+i = "ciao"
+j = 0;
+while j<4:
+	print("stampa"+ i)
+	j+=1
+
+x=4;
+for i in range(1, x):
+	print("pippo")
+
+if x<1:
+	print(x," minore di 10")
+elif
+	print(x," maggiore di 1")
+
