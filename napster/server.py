@@ -11,6 +11,7 @@ print "Creato db %s" % conn
 c = conn.cursor()
 
 # Creo tabella user
+c.execute("DROP TABLE IF EXISTS user")
 c.execute('''CREATE TABLE user
              (SessionID text, IPP2P text, PP2P text)''')
 print "Tabella user creata..."
@@ -33,6 +34,14 @@ while True:
 		print "Ricevuto", data
 		if data == "LOGI":
 			print "Start login"
+			
+			#Inserimento test
+			c.execute("INSERT INTO user VALUES('789', '127.2.2.1', '8080')")
+
+			c.execute("SELECT * FROM user")
+			for row in c:
+			  print(row)
+			  
 		if data == "DELF":
 			print "Delete file"
 		if data == "FIND":
