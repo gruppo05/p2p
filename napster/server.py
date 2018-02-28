@@ -1,12 +1,22 @@
 import socket
-
+import sqlite3
 
 IP = "127.0.0.1"
 PORT = 3000
 BUFF_SIZE = 4
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# Creo DB
+conn = sqlite3.connect(':memory:')
+print "Creato db %s" % conn
+c = conn.cursor()
 
+# Creo tabella user
+c.execute('''CREATE TABLE user
+             (SessionID text, IPP2P text, PP2P text)''')
+print "Tabella user creata..."
+
+# Creo socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_address = (IP, PORT)
 print "Server attivo su %s porta %s" % server_address
 sock.bind(server_address)
