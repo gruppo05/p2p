@@ -37,6 +37,9 @@ while True:
 			IPP2P = str(connection.recv(55))
 			print "IP client:", IPP2P
 			
+			IPP = str(connection.recv(5))
+			print "Porta client:", IPP
+					
 			#Inserimento
 			c.execute("INSERT INTO user VALUES('789', '127.2.2.1', '8080')")
 
