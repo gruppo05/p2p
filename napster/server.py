@@ -32,27 +32,31 @@ while True:
 		print "Connessione da", client_address
 
 		command = str(connection.recv(4))
-		print "Ricevuto", command
+		
 		if command == "LOGI":
 			print "Start login"
 			
 			IPP2P = str(connection.recv(55))
-			print "IP client:", IPP2P
-			
 			IPP = str(connection.recv(5))
-			print "Porta client:", IPP
 			
-			SessionID = ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(16)])	
-			print SessionID
+			#Cerco IP utente
+			result = c.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
+ 			if result.fetchone() is None:
+ 				print "*************** NON TROVATO ***************"
+ 				SessionID = ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(16)])
+ 				
+ 				#Inserimento
+				c.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",
+            	(SessionID, IPP2P, IPP))
+            	
+ 			else:
+ 				print "*************** TROVATO ***************"
+ 				c.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
+				data = c.fetchone() #retrieve the first row
+				SessionID = data[0]
 				
-			#Inserimento
-			c.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",
-            (SessionID, IPP2P, IPP))
-			
-			#Stampo
-			c.execute("SELECT * FROM user")
-			for row in c:
-			  print(row)
+			print "SessionID:", SessionID		
+			#Da implementare processio di invio del SessionID...
 			  
 		if command == "DELF":
 			print "Delete file"
@@ -64,6 +68,14 @@ while True:
 			print "Log out"
 		if command == "DREG":
 			print "Download"
+		
+		# *************** DA TOGLIERE *********************
+		if command == "STAM":
+			#Stampo
+			c.execute("SELECT * FROM user")
+			for row in c:
+				print(row)
+		# *************************************************
     except:
     	print "Errore lato server"
     finally:

@@ -11,5 +11,6 @@ try:
 	message = sys.argv[1]
 	print "Inviato: ", message
 	sock.sendall(message)
+	
 finally:
     sock.close()
