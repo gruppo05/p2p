@@ -1,5 +1,7 @@
 import socket
 import sqlite3
+import random
+import string
 
 IP = "127.0.0.1"
 PORT = 3000
@@ -29,9 +31,9 @@ while True:
     try:
 		print "Connessione da", client_address
 
-		data = str(connection.recv(4))
-		print "Ricevuto", data
-		if data == "LOGI":
+		command = str(connection.recv(4))
+		print "Ricevuto", command
+		if command == "LOGI":
 			print "Start login"
 			
 			IPP2P = str(connection.recv(55))
@@ -39,23 +41,28 @@ while True:
 			
 			IPP = str(connection.recv(5))
 			print "Porta client:", IPP
-					
+			
+			SessionID = ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(16)])	
+			print SessionID
+				
 			#Inserimento
-			c.execute("INSERT INTO user VALUES('789', '127.2.2.1', '8080')")
-
+			c.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",
+            (SessionID, IPP2P, IPP))
+			
+			#Stampo
 			c.execute("SELECT * FROM user")
 			for row in c:
 			  print(row)
 			  
-		if data == "DELF":
+		if command == "DELF":
 			print "Delete file"
-		if data == "FIND":
+		if command == "FIND":
 			print "Find file name"
-		if data == "ADDF":
+		if command == "ADDF":
 			print "Add file"
-		if data == "LOGO":
+		if command == "LOGO":
 			print "Log out"
-		if data == "DREG":
+		if command == "DREG":
 			print "Download"
     except:
     	print "Errore lato server"
