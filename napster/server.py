@@ -3,7 +3,6 @@ import sqlite3
 
 IP = "127.0.0.1"
 PORT = 3000
-BUFF_SIZE = 4
 
 # Creo DB
 conn = sqlite3.connect(':memory:')
@@ -30,12 +29,15 @@ while True:
     try:
 		print "Connessione da", client_address
 
-		data = str(connection.recv(BUFF_SIZE))
+		data = str(connection.recv(4))
 		print "Ricevuto", data
 		if data == "LOGI":
 			print "Start login"
 			
-			#Inserimento test
+			IPP2P = str(connection.recv(55))
+			print "IP client:", IPP2P
+			
+			#Inserimento
 			c.execute("INSERT INTO user VALUES('789', '127.2.2.1', '8080')")
 
 			c.execute("SELECT * FROM user")
