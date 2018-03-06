@@ -41,22 +41,21 @@ class Napster(object):
 				if command == "LOGI":
 					IPP2P = connection.recv(55).decode()
 					IPP = connection.recv(5).decode()
-					print("IPP2P = ",IPP2P," IPP = ",IPP)
+					print("IPP2P = ",IPP2P," IPP = ",IPP)					
 					#Cerco IP utente
-					result = self.dbReader.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
-					if result.fetchone() is None:
+					self.dbReader.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
+					data = self.dbReader.fetchone() #retrieve the first row
+					if data is None:
 						print("*************** NON TROVATO ***************")
 						SessionID = sessionIdGenerator()
 						#Inserimento
 						self.dbReader.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(SessionID, IPP2P, IPP))
 					else:
 						print("*************** TROVATO ***************")
-						self.dbReader.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
-						data = self.dbReader.fetchone() #retrieve the first row
 						SessionID = data[0]
 					print("SessionID:", SessionID)
-					connection.sendall(("ALGI", SessionID).encode())
-					print("Inviato il session ID")
+					connection.sendall(SessionID.encode())
+					print("...Inviato il SessionID")
 					#Da implementare processio di invio del SessionID...
 				elif command == "DELF":
 					print("Delete file")
