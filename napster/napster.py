@@ -8,32 +8,31 @@ def sessionIdGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
 
 class Napster(object):
-	def start(self):
-		#Clear all the db al primo lancio??
-		
+	def __init__(self):
 		IP = "127.0.0.1"
 		PORT = 3000
-		
+
 		# Creo DB
 		conn = sqlite3.connect(':memory:')
 		print("Creato db", conn)
-		c = conn.cursor()
-		
+		self.c = conn.cursor()
+
 		# Creo tabella user
-		c.execute("DROP TABLE IF EXISTS user")
-		c.execute('''CREATE TABLE user (SessionID text, IPP2P text, PP2P text)''')
+		self.c.execute("DROP TABLE IF EXISTS user")
+		self.c.execute('''CREATE TABLE user (SessionID text, IPP2P text, PP2P text)''')
 		print("Tabella user creata...")
-		
+
 		# Creo socket
-		sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		server_address = (IP, PORT)
-		sock.bind(server_address)
+		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.server_address = (IP, PORT)
+		self.sock.bind(self.server_address)
+		print("Server attivo su porta", self.server_address)
+		self.sock.listen(1)
 		
-		print("Server attivo su porta", server_address)
-		sock.listen(1)
+	def start(self):
 		while True:
 			print("In attesa di connessione...")
-			connection, client_address = sock.accept()
+			connection, client_address = self.sock.accept()
 			
 			try:
 				print("Connessione da", client_address)
@@ -44,16 +43,16 @@ class Napster(object):
 					IPP = connection.recv(5).decode()
 					print("IPP2P = ",IPP2P," IPP = ",IPP)
 					#Cerco IP utente
-					result = c.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
+					result = self.c.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
 					if result.fetchone() is None:
 						print("*************** NON TROVATO ***************")
 						SessionID = sessionIdGenerator()
 						#Inserimento
-						c.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(SessionID, IPP2P, IPP))
+						self.c.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(SessionID, IPP2P, IPP))
 					else:
 						print("*************** TROVATO ***************")
-						c.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
-						data = c.fetchone() #retrieve the first row
+						self.c.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
+						data = self.c.fetchone() #retrieve the first row
 						SessionID = data[0]
 					print("SessionID:", SessionID)
 					connection.sendall(SessionID.encode())
