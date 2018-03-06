@@ -1,5 +1,7 @@
 import socket
 import sqlite3
+import random
+import string
 
 class Napster(object):
 	def start(self):
@@ -31,34 +33,50 @@ class Napster(object):
 			
 			try:
 				print "Connessione da", client_address
-				data = str(connection.recv(4))
-				print "Ricevuto", data
-				if data == "LOGI":
-					print "Start login"
-
+				command = str(connection.recv(4))
+				print "Ricevuto", command
+				if command == "LOGI":
+					
 					IPP2P = str(connection.recv(55))
-					print "IP client:", IPP2P
-
 					IPP = str(connection.recv(5))
-					print "Porta client:", IPP
-
-					#Inserimento
-					c.execute("INSERT INTO user VALUES('789', '127.2.2.1', '8080')")
-
+			
+					#Cerco IP utente
+					result = c.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
+ 					if result.fetchone() is None:
+ 						print "*************** NON TROVATO ***************"
+ 						SessionID = ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(16)])
+ 				
+ 						#Inserimento
+						c.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",
+            			(SessionID, IPP2P, IPP))
+            	
+ 					else:
+ 						print "*************** TROVATO ***************"
+ 						c.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
+						data = c.fetchone() #retrieve the first row
+						SessionID = data[0]
+						
+					print "SessionID:", SessionID		
+					#Da implementare processio di invio del SessionID...
+						
+				if command == "DELF":
+					print "Delete file"
+				elif command == "FIND":
+					print "Find file name"
+				elif command == "ADDF":
+					print "Add file"
+				elif command == "LOGO":
+					print "Log out"
+				elif command == "DREG":
+					print "Download"
+					
+				# *************** DA TOGLIERE *********************
+				elif command == "STAM":
+					#Stampo
 					c.execute("SELECT * FROM user")
 					for row in c:
 						print(row)
-						
-				if data == "DELF":
-					print "Delete file"
-				elif data == "FIND":
-					print "Find file name"
-				elif data == "ADDF":
-					print "Add file"
-				elif data == "LOGO":
-					print "Log out"
-				elif data == "DREG":
-					print "Download"
+				# *************************************************
 			except:
 				print "Errore lato server"
 			finally:
