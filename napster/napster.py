@@ -2,11 +2,16 @@ import socket
 import sqlite3
 import random
 import string
+from random import *
 
 class Napster(object):
+	def sessionIdGenerator():
+		return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
 	def start(self):
 		#Clear all the db al primo lancio??
-		
+		SessionID = sessionIdGenerator()
+		#SessionID = "";
+		print("SESSION ID --> ", SessionID)
 		IP = "127.0.0.1"
 		PORT = 3000
 		
@@ -33,30 +38,29 @@ class Napster(object):
 			
 			try:
 				print("Connessione da", client_address)
-				command = str(connection.recv(4))
+				command = connection.recv(4).decode()
 				print("Ricevuto", command)
 				if command == "LOGI":
-					IPP2P = str(connection.recv(55))
-					IPP = str(connection.recv(5))
-			
+					IPP2P = connection.recv(55).decode()
+					IPP = connection.recv(5).decode()
+					print("IPP2P = ",IPP2P," IPP = ",IPP)
 					#Cerco IP utente
 					result = c.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
 					if result.fetchone() is None:
 						print("*************** NON TROVATO ***************")
-						SessionID = ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(16)])
-
+						#session id ************************++
 						#Inserimento
-						c.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",
-						(SessionID, IPP2P, IPP))
+						c.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(SessionID, IPP2P, IPP))
 					else:
 						print("*************** TROVATO ***************")
 						c.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
 						data = c.fetchone() #retrieve the first row
 						SessionID = data[0]
 					print("SessionID:", SessionID)
-					connection.sendall(SessionID)	
+					connection.sendall(SessionID.encode())
+					print("Inviato il session ID")
 					#Da implementare processio di invio del SessionID...
-				if command == "DELF":
+				elif command == "DELF":
 					print("Delete file")
 				elif command == "FIND":
 					print("Find file name")
@@ -80,8 +84,9 @@ class Napster(object):
 				connection.close()
 				
 if __name__ == "__main__":
-    nasper = Napster()
-nasper.start()
+    napster = Napster()
+    sessionIdGenerator()
+napster.start()
 
 
 

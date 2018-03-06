@@ -9,9 +9,8 @@ sock.connect(server_address)
 
 try:
 	message = sys.argv[1]
+	sock.sendall(message.encode())
 	print("Inviato:", message)
-	sock.sendall(message)
-	
 finally:
     sock.close()
 
