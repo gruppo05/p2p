@@ -4,14 +4,13 @@ import random
 import string
 from random import *
 
+def sessionIdGenerator():
+	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
+
 class Napster(object):
-	def sessionIdGenerator():
-		return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
 	def start(self):
 		#Clear all the db al primo lancio??
-		SessionID = sessionIdGenerator()
-		#SessionID = "";
-		print("SESSION ID --> ", SessionID)
+		
 		IP = "127.0.0.1"
 		PORT = 3000
 		
@@ -48,7 +47,7 @@ class Napster(object):
 					result = c.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
 					if result.fetchone() is None:
 						print("*************** NON TROVATO ***************")
-						#session id ************************++
+						SessionID = sessionIdGenerator()
 						#Inserimento
 						c.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(SessionID, IPP2P, IPP))
 					else:
@@ -85,7 +84,6 @@ class Napster(object):
 				
 if __name__ == "__main__":
     napster = Napster()
-    sessionIdGenerator()
 napster.start()
 
 
