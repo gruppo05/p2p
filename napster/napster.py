@@ -11,15 +11,15 @@ class Napster(object):
 	def __init__(self):
 		IP = "127.0.0.1"
 		PORT = 3000
-
+		
 		# Creo DB
 		conn = sqlite3.connect(':memory:')
 		print("Creato db", conn)
-		self.c = conn.cursor()
+		self.dbReader = conn.cursor()
 
 		# Creo tabella user
-		self.c.execute("DROP TABLE IF EXISTS user")
-		self.c.execute('''CREATE TABLE user (SessionID text, IPP2P text, PP2P text)''')
+		self.dbReader.execute("DROP TABLE IF EXISTS user")
+		self.dbReader.execute('''CREATE TABLE user (SessionID text, IPP2P text, PP2P text)''')
 		print("Tabella user creata...")
 
 		# Creo socket
@@ -43,19 +43,19 @@ class Napster(object):
 					IPP = connection.recv(5).decode()
 					print("IPP2P = ",IPP2P," IPP = ",IPP)
 					#Cerco IP utente
-					result = self.c.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
+					result = self.dbReader.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
 					if result.fetchone() is None:
 						print("*************** NON TROVATO ***************")
 						SessionID = sessionIdGenerator()
 						#Inserimento
-						self.c.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(SessionID, IPP2P, IPP))
+						self.dbReader.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(SessionID, IPP2P, IPP))
 					else:
 						print("*************** TROVATO ***************")
-						self.c.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
-						data = self.c.fetchone() #retrieve the first row
+						self.dbReader.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
+						data = self.dbReader.fetchone() #retrieve the first row
 						SessionID = data[0]
 					print("SessionID:", SessionID)
-					connection.sendall(SessionID.encode())
+					connection.sendall(("ALGI", SessionID).encode())
 					print("Inviato il session ID")
 					#Da implementare processio di invio del SessionID...
 				elif command == "DELF":
@@ -72,8 +72,8 @@ class Napster(object):
 				# *************** DA TOGLIERE *********************
 				elif command == "STAM":
 					#Stampo
-					c.execute("SELECT * FROM user")
-					for row in c:
+					self.dbReader.execute("SELECT * FROM user")
+					for row in self.dbReader:
 						print(row)
 				# *************************************************
 			except:
@@ -84,45 +84,3 @@ class Napster(object):
 if __name__ == "__main__":
     napster = Napster()
 napster.start()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
