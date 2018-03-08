@@ -77,7 +77,7 @@ class Napster(object):
 						SessionID = "0000000000000000"
 					finally:
 						connection.sendall(("ALGI"+SessionID).encode())
-						print("...Inviato il SessionID")
+						print("Invio il SessionID --> "+SessionID)
 						
 						
 				elif command == "DELF":
@@ -146,6 +146,7 @@ class Napster(object):
 			except:
 				print("Errore lato server")
 			finally:
+				print("\n\n")
 				connection.close()
 				
 
