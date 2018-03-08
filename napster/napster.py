@@ -20,7 +20,7 @@ def setCopy(getCopy):
 
 class Napster(object):
 	def __init__(self):
-		IP = "127.0.0.1"
+		IP = "192.168.43.135"
 		PORT = 3000
 		
 		# Creo DB
@@ -31,7 +31,8 @@ class Napster(object):
 		# Creo tabella user
 		self.dbReader.execute("DROP TABLE IF EXISTS user")
 		self.dbReader.execute("CREATE TABLE user (SessionID text, IPP2P text, PP2P text)")
-		self.dbReader.execute("CREATE TABLE file (Filemd5 text, filename text, SessionID text)")
+		self.dbReader.execute("CREATE TABLE file (Filemd5 text, Filename text, SessionID text)")
+		self.dbReader.execute("CREATE TABLE download (Filemd5 text, Download text)")
 		print("Tabelle user, file create...")
 		
 		# Creo socket
@@ -39,7 +40,7 @@ class Napster(object):
 		self.server_address = (IP, PORT)
 		self.sock.bind(self.server_address)
 		print("Server attivo su porta", self.server_address)
-		self.sock.listen(1)
+		self.sock.listen(5)
 		
 	def start(self):
 		while True:
@@ -49,26 +50,32 @@ class Napster(object):
 			try:
 				print("Connessione da", client_address)
 				command = connection.recv(4).decode()
-				print("Ricevuto", command)
+				print("\nRicevuto", command)
 				if command == "LOGI":
-					IPP2P = connection.recv(55).decode()
-					IPP = connection.recv(5).decode()
-					print("IPP2P = ",IPP2P," IPP = ",IPP)					
-					#Cerco IP utente
-					self.dbReader.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
-					data = self.dbReader.fetchone() #retrieve the first row
-					if data is None:
-						print("*************** NON TROVATO ***************")
-						SessionID = sessionIdGenerator()
-						#Inserimento
-						self.dbReader.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(SessionID, IPP2P, IPP))
-					else:
-						print("*************** TROVATO ***************")
-						SessionID = data[0]
-					print("SessionID:", SessionID)
-					connection.sendall(SessionID.encode())
-					print("...Inviato il SessionID")
-					#Da implementare processio di invio del SessionID...
+					try:
+						IPP2P = connection.recv(55).decode()
+						if IPP2P != client_adrress
+							SessionID = "0000000000000000"
+						else:
+							IPP = connection.recv(5).decode()
+							print("IPP2P = ",IPP2P," IPP = ",IPP)					
+							#Cerco IP utente
+							self.dbReader.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
+							data = self.dbReader.fetchone() #retrieve the first row
+							if data is None:
+								print("*************** NUOVO UTENTE ***************")
+								SessionID = sessionIdGenerator()
+								#Inserimento
+								self.dbReader.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(SessionID, IPP2P, IPP))
+							else:
+								print("*************** BENTORNATO ***************")
+								SessionID = str(data[0])
+							print("SessionID:", SessionID)
+					except:
+						SessionID = "0000000000000000"
+					finally:
+						connection.sendall(("ALGI"+SessionID).encode())
+						print("...Inviato il SessionID")
 				elif command == "DELF":
 					print("Delete file")
 				elif command == "FIND":
@@ -78,13 +85,14 @@ class Napster(object):
 					SessionID = connection.recv(16).decode()
 					Filemd5 = connection.recv(32).decode()
 					Filename = connection.recv(100).decode()
-					
-					self.dbReader.execute("SELECT SessionID from file where Filemd5=?",(Filemd5,))
+					print(SessionID)
+					print(Filemd5)
+					print(Filename)
+					self.dbReader.execute("SELECT SessionID from file where Filemd5=? and SessionID=?",(Filemd5,SessionID,))
 					data = self.dbReader.fetchone()
 					if data is None:
 						self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) values (?, ?, ?)",(Filemd5, Filename, SessionID))
-					else:
-						self.dbReader.execute("UPDATE file SET Filename=?",(Filename,))
+					self.dbReader.execute("UPDATE file SET Filename=?",(Filename,))
 					self.dbReader.execute("SELECT COUNT(Filemd5) from file where Filemd5=?",(Filemd5,))
 					copy = self.dbReader.fetchone()
 					copy = setCopy(copy)
@@ -109,11 +117,14 @@ class Napster(object):
 					for row in self.dbReader:
 						print(row)
 				# *************************************************
+				else: 
+					print("Nessuna operazione")
 			except:
 				print("Errore lato server")
 			finally:
 				connection.close()
 				
+
 if __name__ == "__main__":
     napster = Napster()
 napster.start()
