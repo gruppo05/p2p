@@ -103,10 +103,34 @@ class Napster(object):
 					connection.sendall(("ADEL"+str(copy)).encode())
 					print("Inviato numero di copie --> ",copy)
 					
-					
+				#--------------------DA TESTARE-------------------------------------------------#	
 				elif command == "FIND":
 					print("Find file name")
+					SessionID = connection.recv(16).decode()
+					Ricerca = connection.recv(20).decode()
+					#Conto quanti file con filemd5 diverso ci sono con filename simile a ricerca
+					self.dbReader.execute("SELECT count(*) FROM file WHERE Filename LIKE ? GROUP BY Filemd5", ('%' + Ricerca + '%',))
+					idmd5 = self.dbReader.fetchone()
+					#Prendo tutti i filemd5 singolarmente
+					self.dbReader.execute("SELECT DISTINCT Filemd5 FROM file WHERE Filename LIKE ?", ('%' + Ricerca + '%',))
+					resultFilemd5 = self.dbReader.fetchall()
 					
+					#Per ogni file ciclo per cercare chi ha questi file
+					msg = "AFIN" + idmd5
+					
+					for md5 in resultFilemd5
+						self.dbReader.execute("SELECT Filename FROM file WHERE filemd5 = ?",(md5[0],))
+						resultFilename = self.dbReader.fetchone()
+						self.dbReader.execute("SELECT count(*) FROM file WHERE Filemd5=?", (Filemd5,))
+						copy = self.dbReader.fetchone()
+						self.dbReader.execute("SELECT IPP2P, PP2P FROM user JOIN file WHERE user.SessionID = file.SessionID AND filemd5 = ?", (md5[0]))
+						resultIP = self.dbReader.fetchall()
+						msg = msg + md5[0] + resultFilename + copy
+						for ip in resultIP
+							msg = msg + ip
+					
+					connection.sendall(msg.encode())
+				#---------------------------------------------------------------------------------#
 					
 				elif command == "ADDF":
 					print("Add file")
