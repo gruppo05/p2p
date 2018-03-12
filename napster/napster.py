@@ -38,19 +38,27 @@ class Napster(object):
 		# Creo tabella user
 		clearAndSetDB(self)
 		
+		# Socket ipv4
 		self.server_address = (IPv4, PORT)
-		# Creo socket ipv4
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.sock.bind(self.server_address)
-		
-		#print("Server attivo su porta", self.server_address)
 		self.sock.listen(5)
+		
+		# Socket ipv6
+		self.server_address = (IPv6, PORT)
+		self.sock6 = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+		self.sock6.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		self.sock6.bind(self.server_address6)
+		self.sock6.listen(5)
 		
 	def start(self):
 		while True:
 			print("In attesa di connessione...")
-			connection, client_address = self.sock.accept()
+			try:
+				connection, client_address = self.sock.accept()
+			except:
+				connection, client_address = self.sock6.accept()
 			
 			try:
 				print("Connessione da", client_address)
@@ -121,7 +129,15 @@ class Napster(object):
 					
 				elif command == "LOGO":
 					print("Log out")
-					
+					SessionID = connection.recv(16).decode()
+					print(SessionID)
+					#conto i file associati all'utente
+					self.dbReader.execute("SELECT COUNT(Filemd5) from file where SessionID=?",(SessionID,))
+					delete = self.dbReader.fetchone()
+					delete = setCopy(delete)
+					self.dbReader.execute("DELETE FROM file WHERE SessionID=?", (SessionID,))
+					#magari controllo se è andato a buon fine?
+					connection.sendall(("ALGO"+delete).encode())
 					
 				elif command == "DREG":
 					print("Download")
