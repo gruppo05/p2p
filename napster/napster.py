@@ -49,7 +49,7 @@ class Napster(object):
 		
 		# Creo tabella user
 		clearAndSetDB(self)
-		s
+		
 		# Socket ipv4/ipv6
 		self.server_address = (IP, PORT)
 		self.sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
