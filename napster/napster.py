@@ -49,23 +49,7 @@ class Napster(object):
 		
 		# Creo tabella user
 		clearAndSetDB(self)
-		
-		#DA CANCELLARE
-		self.dbReader.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",('cIEeEGMv7mLVLxfB', '244.255.255.289|ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff', 80))
-		self.dbReader.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(58876, 'SENDNUDES', 81))
-		self.dbReader.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(45017, 'Luca', 82))
-		self.dbReader.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(96859, '1211535435353sticazzi', 424))
-		
-		self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) values (?, ?, ?)",('12345678912345671234567891234567', 'MarioMarioMarioMarioMarioMarioMarioMarioMarioMarioMarioMarioMarioMarioMarioMarioMarioMarioMarioMario', 'cIEeEGMv7mLVLxfB'))
-		self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) values (?, ?, ?)",('primofile', 'Giorgio', 'cIEeEGMv7mLVLxfB'))
-		self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) values (?, ?, ?)",('726362762', 'Luca', 58876))
-		self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) values (?, ?, ?)",('primofile', 'Giorgio', 96859))
-		self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) values (?, ?, ?)",('123445789', 'Arabo', 45017))
-		self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) values (?, ?, ?)",('primofile', 'Giorgio', 54545))
-		self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) values (?, ?, ?)",('724662762', 'Maria', 58876))
-		self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) values (?, ?, ?)",('secondofile', 'Giorgia', 96859))
-		self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) values (?, ?, ?)",('primofile', 'Giorgia', 58876))
-
+		s
 		# Socket ipv4/ipv6
 		self.server_address = (IP, PORT)
 		self.sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
@@ -189,15 +173,16 @@ class Napster(object):
 					SessionID = connection.recv(16).decode()
 					Filemd5 = connection.recv(32).decode()
 					self.dbReader.execute("SELECT Download FROM download WHERE Filemd5 = ?",(Filemd5,))
-					download=self.dbReader.fetchone()
+					download = self.dbReader.fetchone()
+					
 					if download is None:
-						download = 1
+						download[0] = 1
 						self.dbReader.execute("INSERT INTO download (Filemd5, Download) values (?, ?)", (Filemd5, 1))
 					else:
-						download = download + 1
-						self.dbReader.execute("UPDATE download SET Download = ? WHERE Filemd5 = ?",(download, Filemd5,))
-					download = setDownload(download)
+						download[0] = download[0] + 1
+						self.dbReader.execute("UPDATE download SET Download = ? WHERE Filemd5 = ?",(download[0], Filemd5,))
 					
+					download = setDownload(download)
 					connection.sendall(("ADRE"+download).encode())
 							
 				# *************** DA TOGLIERE *********************
