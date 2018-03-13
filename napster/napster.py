@@ -46,11 +46,11 @@ class Napster(object):
 		self.sock.listen(5)
 		
 		# Socket ipv6
-		self.server_address = (IPv6, PORT)
-		self.sock6 = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-		self.sock6.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		self.sock6.bind(self.server_address6)
-		self.sock6.listen(5)
+		#self.server_address = (IPv6, PORT)
+		#self.sock6 = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+		#self.sock6.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		#self.sock6.bind(self.server_address6)
+		#self.sock6.listen(5)
 		
 	def start(self):
 		while True:
@@ -116,9 +116,13 @@ class Napster(object):
 					resultFilemd5 = self.dbReader.fetchall()
 					
 					#Per ogni file ciclo per cercare chi ha questi file
-					msg = "AFIN" + idmd5
+					#-------------->
+					#Fix_bertasi
+					idmd5 = setCopy(idmd5)
+					#<--------------
 					
-					for md5 in resultFilemd5
+					msg = "AFIN" + idmd5
+					for md5 in resultFilemd5:
 						self.dbReader.execute("SELECT Filename FROM file WHERE filemd5 = ?",(md5[0],))
 						resultFilename = self.dbReader.fetchone()
 						self.dbReader.execute("SELECT count(*) FROM file WHERE Filemd5=?", (Filemd5,))
@@ -126,7 +130,7 @@ class Napster(object):
 						self.dbReader.execute("SELECT IPP2P, PP2P FROM user JOIN file WHERE user.SessionID = file.SessionID AND filemd5 = ?", (md5[0]))
 						resultIP = self.dbReader.fetchall()
 						msg = msg + md5[0] + resultFilename + copy
-						for ip in resultIP
+						for ip in resultIP:
 							msg = msg + ip
 					
 					connection.sendall(msg.encode())
@@ -165,22 +169,41 @@ class Napster(object):
 					
 				elif command == "DREG":
 					print("Download")
+					SessionID = connection.recv(16).decode()
+					Filemd5 = connection.recv(32).decode()
+					idmd5=self.dbReader.fetchone()
 					
+					#Fix_bertasi
+					#-------------->
+					idmd5 = setCopy(idmd5)
+					#<--------------
 					
+					msg="ADRE"+idmd5
+					connection.sendall(msg.encode())
+					
+						
 				# *************** DA TOGLIERE *********************
-				elif command == "STAM":
-					#Stampo
+				
+				elif command == "STAU":
+					#Stampo user
 					self.dbReader.execute("SELECT * FROM user")
 					for row in self.dbReader:
 						print(row)
-				# *************************************************
-				# *************** DA TOGLIERE *********************
-				elif command == "DEKK":
-					#Stampo
+					
+				elif command == "STAF":
+					#Stampo file
 					self.dbReader.execute("SELECT * FROM file")
 					for row in self.dbReader:
 						print(row)
+
+				elif command == "STAD":
+					#Stampo download
+					self.dbReader.execute("SELECT * FROM download")
+					for row in self.dbReader:
+						print(row)
+						
 				# *************************************************
+				
 				else: 
 					print("Nessuna operazione")
 			except:
