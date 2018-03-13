@@ -46,19 +46,19 @@ class Napster(object):
 		self.sock.listen(5)
 		
 		# Socket ipv6
-		#self.server_address = (IPv6, PORT)
-		#self.sock6 = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-		#self.sock6.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		#self.sock6.bind(self.server_address6)
-		#self.sock6.listen(5)
+		self.server_address6 = (IPv6, PORT)
+		self.sock6 = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+		self.sock6.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		self.sock6.bind(self.server_address6)
+		self.sock6.listen(5)
 		
 	def start(self):
 		while True:
 			print("In attesa di connessione...")
-			try:
-				connection, client_address = self.sock.accept()
-			except:
-				connection, client_address = self.sock6.accept()
+			connection, client_address = self.sock.accept()
+			print(client_address)
+			connection, client_address = self.sock6.accept()
+			print(client_address)
 			
 			try:
 				print("Connessione da", client_address)
@@ -116,10 +116,7 @@ class Napster(object):
 					resultFilemd5 = self.dbReader.fetchall()
 					
 					#Per ogni file ciclo per cercare chi ha questi file
-					#-------------->
-					#Fix_bertasi
 					idmd5 = setCopy(idmd5)
-					#<--------------
 					
 					msg = "AFIN" + idmd5
 					for md5 in resultFilemd5:
@@ -127,6 +124,7 @@ class Napster(object):
 						resultFilename = self.dbReader.fetchone()
 						self.dbReader.execute("SELECT count(*) FROM file WHERE Filemd5=?", (Filemd5,))
 						copy = self.dbReader.fetchone()
+						copy = setCopy(copy)
 						self.dbReader.execute("SELECT IPP2P, PP2P FROM user JOIN file WHERE user.SessionID = file.SessionID AND filemd5 = ?", (md5[0]))
 						resultIP = self.dbReader.fetchall()
 						msg = msg + md5[0] + resultFilename + copy
@@ -171,17 +169,12 @@ class Napster(object):
 					print("Download")
 					SessionID = connection.recv(16).decode()
 					Filemd5 = connection.recv(32).decode()
+					self.dbReader.execute("SELECT COUNT(*) FROM file WHERE Filemd5 = ?",(Filemd5,))
 					idmd5=self.dbReader.fetchone()
-					
-					#Fix_bertasi
-					#-------------->
 					idmd5 = setCopy(idmd5)
-					#<--------------
-					
 					msg="ADRE"+idmd5
 					connection.sendall(msg.encode())
-					
-						
+							
 				# *************** DA TOGLIERE *********************
 				
 				elif command == "STAU":
