@@ -4,7 +4,7 @@ import sys
 if sys.argv[1] == '4':
 	print(sys.argv[1])
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	server_address = ('127.0.0.1', 3000)
+	server_address = ('192.168.43.73', 3000)
 	sock.connect(server_address)
 else:
 	print(sys.argv[1])
