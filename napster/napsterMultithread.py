@@ -56,18 +56,16 @@ class Napster(object):
 		
 	def listener(self):
 		self.sock.listen(5)
+		print("In attesa di connessione...")
 		while True:
-			print("In attesa di connessione...")
 			connection, client_address = self.sock.accept()
-			connection.settimeout(60)
+			#connection.settimeout(60)
 			threading.Thread(target = self.startClient, args = (connection,client_address)).start()
 			
 	def startClient(self, connection, client_address):
 		while True:
 			try:
-				print("\nUtilizzo socket da", client_address)
 				command = connection.recv(4).decode()
-
 				if command == "LOGI":
 					try:
 						IPP2P = connection.recv(55).decode()
@@ -87,7 +85,7 @@ class Napster(object):
 					finally:
 						connection.sendall(("ALGI"+SessionID).encode())
 						print("Invio il SessionID --> \033[33m"+SessionID+"\033[m")
-						
+					
 				elif command == "LOGO":
 					SessionID = connection.recv(16).decode()
 					print("Ricevuto \033[36m" + command + "\033[m da \033[36m"+SessionID+"\033[m")
@@ -102,7 +100,7 @@ class Napster(object):
 					connection.sendall(("ALGO"+delete).encode())
 					connection.close();
 					return false;
-					
+				
 				elif command == "DELF":
 					SessionID = connection.recv(16).decode()
 					Filemd5 = connection.recv(32).decode()
@@ -117,7 +115,7 @@ class Napster(object):
 						self.dbReader.execute("DELETE FROM file WHERE Filemd5=? AND SessionID=?", (Filemd5,SessionID,))
 					connection.sendall(("ADEL"+str(copy)).encode())
 					print("Inviato numero di copie --> ",copy)
-	
+
 				elif command == "FIND":
 					print("Find file name")
 
@@ -146,9 +144,9 @@ class Napster(object):
 						msg = msg + md5[0] + resultFilename[0] + copy
 						for ip in resultIP:
 							msg = msg + ip[0] + ip[1]
-	
+
 					connection.sendall(msg.encode())
-	
+
 				elif command == "ADDF":
 					print("Add file")
 					SessionID = connection.recv(16).decode()
@@ -166,24 +164,24 @@ class Napster(object):
 					copy = self.dbReader.fetchone()
 					copy = setCopy(copy)
 					connection.sendall(("AADD"+copy).encode())
-					
+				
 				elif command == "DREG":
 					print("Download")
 					SessionID = connection.recv(16).decode()
 					Filemd5 = connection.recv(32).decode()
 					self.dbReader.execute("SELECT Download FROM download WHERE Filemd5 = ?",(Filemd5,))
 					download = self.dbReader.fetchone()
-	
+
 					if download is None:
 						download[0] = 1
 						self.dbReader.execute("INSERT INTO download (Filemd5, Download) values (?, ?)", (Filemd5, 1))
 					else:
 						download[0] = download[0] + 1
 						self.dbReader.execute("UPDATE download SET Download = ? WHERE Filemd5 = ?",(download[0], Filemd5,))
-	
+
 					download = setDownload(download)
 					connection.sendall(("ADRE"+download).encode())
-			
+		
 				# *************** DA TOGLIERE *********************
 
 				elif command == "STAU":
@@ -191,7 +189,7 @@ class Napster(object):
 					self.dbReader.execute("SELECT * FROM user")
 					for row in self.dbReader:
 						print(row)
-	
+
 				elif command == "STAF":
 					#Stampo file
 					self.dbReader.execute("SELECT * FROM file")
@@ -203,17 +201,11 @@ class Napster(object):
 					self.dbReader.execute("SELECT * FROM download")
 					for row in self.dbReader:
 						print(row)
-		
+	
 				# *************************************************
-
-				else: 
-					print("Nessuna operazione")
 			except:
-				print("Errore lato server")
-			finally:
-				connection, client_address = self.sock.accept()
-				
-
+				connection.close()
+			
 if __name__ == "__main__":
     napster = Napster()
 napster.listener()

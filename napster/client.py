@@ -1,5 +1,4 @@
-import socket
-import sys
+import socket, sys, time
 
 if sys.argv[1] == '4':
 	print(sys.argv[1])
@@ -16,3 +15,4 @@ while True:
 	message = sys.argv[2]
 	sock.sendall(message.encode())
 	print("Inviato:", message)
+	time.sleep(3)
