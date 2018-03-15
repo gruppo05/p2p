@@ -11,10 +11,8 @@ else:
 	sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 	server_address = ('0000:0000:0000:0000:0000:0000:0000:0001', 3000)
 	sock.connect(server_address)
-try:
+	
+while True:
 	message = sys.argv[2]
 	sock.sendall(message.encode())
 	print("Inviato:", message)
-finally:
-    sock.close()
-
