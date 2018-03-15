@@ -42,9 +42,9 @@ class Napster(object):
 		PORT = 3000
 		
 		# Creo DB
-		conn = sqlite3.connect(':memory:')
+		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
-		
+		print(self.dbReader)
 		# Creo tabella user
 		clearAndSetDB(self)
 		
@@ -58,9 +58,12 @@ class Napster(object):
 		self.sock.listen(5)
 		print("In attesa di connessione...")
 		while True:
-			connection, client_address = self.sock.accept()
-			#connection.settimeout(60)
-			threading.Thread(target = self.startClient, args = (connection,client_address)).start()
+			try:
+				connection, client_address = self.sock.accept()
+				#connection.settimeout(60)
+				threading.Thread(target = self.startClient, args = (connection,client_address)).start()
+			except:
+				return False
 			
 	def startClient(self, connection, client_address):
 		while True:
@@ -71,8 +74,11 @@ class Napster(object):
 						IPP2P = connection.recv(55).decode()
 						IPP = connection.recv(5).decode()
 						print("Ricevuto \033[94m" + command + "\033[m da \033[94m"+IPP2P+"\33[m - \33[94m"+ IPP+"\33[m")
+
 						self.dbReader.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
+
 						data = self.dbReader.fetchone() #retrieve the first row
+
 						if data is None:
 							print("\033[32mNUOVO UTENTE\033[m");
 							SessionID = sessionIdGenerator()
@@ -98,8 +104,8 @@ class Napster(object):
 					#magari controllo se è andato a buon fine?
 					print("Invio \033[33mALGO"+delete+"\033[m")
 					connection.sendall(("ALGO"+delete).encode())
-					connection.close();
-					return false;
+					connection.close()
+					return False
 				
 				elif command == "DELF":
 					SessionID = connection.recv(16).decode()
@@ -205,6 +211,7 @@ class Napster(object):
 				# *************************************************
 			except:
 				connection.close()
+				return False
 			
 if __name__ == "__main__":
     napster = Napster()
