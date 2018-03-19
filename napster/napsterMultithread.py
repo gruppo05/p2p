@@ -1,4 +1,4 @@
-import socket, sqlite3, string, threading
+import socket, sqlite3, string, threading, sys
 from random import *
 
 class color:
@@ -24,7 +24,6 @@ def clearAndSetDB(self):
 def sessionIdGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
 	
-
 def setCopy(getCopy):
 	copy = int(getCopy[0])
 	if copy > 1000:
@@ -158,7 +157,7 @@ class Napster(object):
 						copy = setCopy(copy)
 						self.dbReader.execute("SELECT IPP2P, PP2P FROM user JOIN file WHERE user.SessionID = file.SessionID AND filemd5 = ?", (md5[0],))
 						resultIP = self.dbReader.fetchall()
-						msg = msg + md5[0] + resultFilename[0] + copy
+						msg = msg + md5[0] + str(resultFilename[0]).ljust(100) + copy
 						for ip in resultIP:
 							msg = msg + ip[0] + ip[1]
 					
