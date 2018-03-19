@@ -1,6 +1,17 @@
 import socket, sqlite3, string, threading
 from random import *
 
+class color:
+	HEADER = '\033[95m'
+	recv = '\033[36m'
+	green = '\033[32m'
+	send = '\033[33m'
+	fail = '\033[31m'
+	end = '\033[0m'
+	BOLD = '\033[1m'
+	UNDERLINE = '\033[4m'
+	
+	
 def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS user")
 	self.dbReader.execute("DROP TABLE IF EXISTS file")
@@ -9,8 +20,10 @@ def clearAndSetDB(self):
 	self.dbReader.execute("CREATE TABLE file (Filemd5 text, Filename text, SessionID text)")
 	self.dbReader.execute("CREATE TABLE download (Filemd5 text, Download integer)")
 	
+	
 def sessionIdGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
+	
 
 def setCopy(getCopy):
 	copy = int(getCopy[0])
@@ -21,6 +34,7 @@ def setCopy(getCopy):
 	elif copy < 10:
 		copy = "00"+str(copy)
 	return copy
+	
 
 def setDownload(getDownload):
 	download = int(getDownload[0])
@@ -35,6 +49,7 @@ def setDownload(getDownload):
 	elif download < 10:
 		download = "0000"+str(download)
 	return download
+	
 
 class Napster(object):
 	def __init__(self):
@@ -44,10 +59,8 @@ class Napster(object):
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
-		print(self.dbReader)
 		# Creo tabella user
-		clearAndSetDB(self)
-		
+		clearAndSetDB(self)		
 		# Socket ipv4/ipv6
 		self.server_address = (IP, PORT)
 		self.sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
@@ -73,28 +86,27 @@ class Napster(object):
 					try:
 						IPP2P = connection.recv(55).decode()
 						IPP = connection.recv(5).decode()
-						print("Ricevuto \033[94m" + command + "\033[m da \033[94m"+IPP2P+"\33[m - \33[94m"+ IPP+"\33[m")
-
+						print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + IPP2P + color.end + " - " + color.recv + IPP + color.end)
 						self.dbReader.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
 
 						data = self.dbReader.fetchone() #retrieve the first row
 
 						if data is None:
-							print("\033[32mNUOVO UTENTE\033[m");
+							print(color.green + "NUOVO UTENTE" + color.end);
 							SessionID = sessionIdGenerator()
 							self.dbReader.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(SessionID, IPP2P, IPP))
 						else:
-							print("\033[31mUTENTE GIÀ PRESENTE\033[m")
+							print(color.fail + "UTENTE GIÀ PRESENTE" + color.end)
 							SessionID = str(data[0])
 					except:
 						SessionID = "0000000000000000"
 					finally:
 						connection.sendall(("ALGI"+SessionID).encode())
-						print("Invio il SessionID --> \033[33m"+SessionID+"\033[m")
-					
+						print("Invio il SessionID --> "+ color.send + SessionID + color.end)
+						
 				elif command == "LOGO":
 					SessionID = connection.recv(16).decode()
-					print("Ricevuto \033[36m" + command + "\033[m da \033[36m"+SessionID+"\033[m")
+					print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
 					#conto i file associati all'utente
 					self.dbReader.execute("SELECT COUNT(Filemd5) from file where SessionID=?",(SessionID,))
 					delete = self.dbReader.fetchone()
@@ -102,7 +114,7 @@ class Napster(object):
 					self.dbReader.execute("DELETE FROM file WHERE SessionID=?", (SessionID,))
 					self.dbReader.execute("DELETE FROM user WHERE SessionID=?", (SessionID,))
 					#magari controllo se è andato a buon fine?
-					print("Invio \033[33mALGO"+delete+"\033[m")
+					print("Invio --> "+ color.send + "ALGO" + delete + color.end)
 					connection.sendall(("ALGO"+delete).encode())
 					connection.close()
 					return False
@@ -110,23 +122,22 @@ class Napster(object):
 				elif command == "DELF":
 					SessionID = connection.recv(16).decode()
 					Filemd5 = connection.recv(32).decode()
-					print("Ricevuto \033[36m " + command + "\033[m da "+SessionID)
+					print("Ricevuto "+ color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
 					self.dbReader.execute("SELECT count(*) FROM file WHERE Filemd5=?", (Filemd5,))
 					copy = self.dbReader.fetchone()
 					if copy[0] is 0:
-						print("************** NESSUN FILE TROVATO **************");
+						print(color.fail+ "NESSUN FILE TROVATO" + color.end);
 						copy = "999"
 					else:
-						print("Copie trovate ->",copy);
 						self.dbReader.execute("DELETE FROM file WHERE Filemd5=? AND SessionID=?", (Filemd5,SessionID,))
+					print("Inviato numero di copie --> " + color.send + "ADEL" + copy + color.end)
 					connection.sendall(("ADEL"+str(copy)).encode())
-					print("Inviato numero di copie --> ",copy)
 
 				elif command == "FIND":
-					print("Find file name")
-
 					SessionID = connection.recv(16).decode()
 					Ricerca = connection.recv(20).decode()
+					print("Ricevuto "+ color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
+					
 					#Conto quanti file con filemd5 diverso ci sono con filename simile a ricerca
 					self.dbReader.execute("SELECT count(*) FROM (SELECT DISTINCT Filemd5 FROM file WHERE Filename LIKE ?)", ('%' + Ricerca + '%',))
 					idmd5 = self.dbReader.fetchone()
@@ -150,30 +161,32 @@ class Napster(object):
 						msg = msg + md5[0] + resultFilename[0] + copy
 						for ip in resultIP:
 							msg = msg + ip[0] + ip[1]
-
+					
+					print("Invio --> " + color.send + msg + color.end)
 					connection.sendall(msg.encode())
 
 				elif command == "ADDF":
-					print("Add file")
 					SessionID = connection.recv(16).decode()
+					print("Ricevuto "+ color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
 					Filemd5 = connection.recv(32).decode()
 					Filename = connection.recv(100).decode()
-					print(SessionID)
-					print(Filemd5)
-					print(Filename)
+					
 					self.dbReader.execute("SELECT SessionID from file where Filemd5=? and SessionID=?",(Filemd5,SessionID,))
 					data = self.dbReader.fetchone()
+					
 					if data is None:
 						self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) values (?, ?, ?)",(Filemd5, Filename, SessionID))
 					self.dbReader.execute("UPDATE file SET Filename=?",(Filename,))
 					self.dbReader.execute("SELECT COUNT(Filemd5) from file where Filemd5=?",(Filemd5,))
 					copy = self.dbReader.fetchone()
 					copy = setCopy(copy)
+					
+					print("Invio --> " + color.send + "AADD" + copy + color.end)
 					connection.sendall(("AADD"+copy).encode())
 				
 				elif command == "DREG":
-					print("Download")
 					SessionID = connection.recv(16).decode()
+					print("Ricevuto "+ color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
 					Filemd5 = connection.recv(32).decode()
 					self.dbReader.execute("SELECT Download FROM download WHERE Filemd5 = ?",(Filemd5,))
 					download = self.dbReader.fetchone()
@@ -186,6 +199,7 @@ class Napster(object):
 						self.dbReader.execute("UPDATE download SET Download = ? WHERE Filemd5 = ?",(download[0], Filemd5,))
 
 					download = setDownload(download)
+					print("Invio --> " + color.send + "ADRE" + download + color.end)
 					connection.sendall(("ADRE"+download).encode())
 		
 				# *************** DA TOGLIERE *********************
