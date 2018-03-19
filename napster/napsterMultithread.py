@@ -176,7 +176,7 @@ class Napster(object):
 					
 					if data is None:
 						self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) values (?, ?, ?)",(Filemd5, Filename, SessionID))
-					self.dbReader.execute("UPDATE file SET Filename=?",(Filename,))
+					self.dbReader.execute("UPDATE file SET Filename=? where Filemd5=?",(Filename,Filemd5,))
 					self.dbReader.execute("SELECT COUNT(Filemd5) from file where Filemd5=?",(Filemd5,))
 					copy = self.dbReader.fetchone()
 					copy = setCopy(copy)
