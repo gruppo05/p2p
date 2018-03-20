@@ -62,11 +62,19 @@ class Napster(object):
 		self.server_address = (IP, PORT)
 		self.sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		self.sock.bind(self.server_address)
-		
+		self.sock.bind(self.server_address)		
+		print(color.recv+"  _   _                 _              _____ ___   	  "+ color.end)
+		print(color.recv+" | \ | |               | |            |  __ \__ \       "+ color.end)
+		print(color.recv+" |  \| | __ _ _ __  ___| |_ ___ _ __  | |__) | ) |_ __  "+ color.end)
+		print(color.recv+" | . ` |/ _` | '_ \/ __| __/ _ \ '__| |  ___/ / /| '_ \ "+ color.end)
+		print(color.recv+" | |\  | (_| | |_) \__ \ ||  __/ |    | |    / /_| |_) |"+ color.end)
+		print(color.recv+" |_| \_|\__,_| .__/|___/\__\___|_|    |_|   |____| .__/ "+ color.end)
+		print(color.recv+"             | |                                 | |    "+ color.end)
+		print(color.recv+"             |_|                                 |_|    "+ color.end)
+
 	def listener(self):
 		self.sock.listen(5)
-		print("In attesa di connessione...")
+		print(color.green+"\nDirectory pronta..."+ color.end)
 		while True:
 			try:
 				connection, client_address = self.sock.accept()
@@ -77,6 +85,7 @@ class Napster(object):
 			
 	def startClient(self, connection, client_address):
 		while True:
+			print("\n")
 			try:
 				command = connection.recv(4).decode()
 				if command == "LOGI":
