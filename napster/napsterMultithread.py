@@ -66,9 +66,9 @@ class Napster(object):
 		print(color.recv+"  _   _                 _              _____ ___   	  "+ color.end)
 		print(color.recv+" | \ | |               | |            |  __ \__ \       "+ color.end)
 		print(color.recv+" |  \| | __ _ _ __  ___| |_ ___ _ __  | |__) | ) |_ __  "+ color.end)
-		print(color.recv+" | . ` |/ _` | '_ \/ __| __/ _ \ '__| |  ___/ / /| '_ \ "+ color.end)
+		print(color.recv+" |     |/ _` |  _ \/ __| __/ _ \ '__| |  ___/ / /|  _ \ "+ color.end)
 		print(color.recv+" | |\  | (_| | |_) \__ \ ||  __/ |    | |    / /_| |_) |"+ color.end)
-		print(color.recv+" |_| \_|\__,_| .__/|___/\__\___|_|    |_|   |____| .__/ "+ color.end)
+		print(color.recv+" |_| \_|\__._|  __/|___/\__\___|_|    |_|   |____|  __/ "+ color.end)
 		print(color.recv+"             | |                                 | |    "+ color.end)
 		print(color.recv+"             |_|                                 |_|    "+ color.end)
 
@@ -85,7 +85,6 @@ class Napster(object):
 			
 	def startClient(self, connection, client_address):
 		while True:
-			print("\n")
 			try:
 				command = connection.recv(4).decode()
 				if command == "LOGI":
@@ -94,9 +93,7 @@ class Napster(object):
 						IPP = connection.recv(5).decode()
 						print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + IPP2P + color.end + " - " + color.recv + IPP + color.end)
 						self.dbReader.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
-
 						data = self.dbReader.fetchone() #retrieve the first row
-
 						if data is None:
 							print(color.green + "NUOVO UTENTE" + color.end);
 							SessionID = sessionIdGenerator()
@@ -120,7 +117,6 @@ class Napster(object):
 					delete = setCopy(delete)
 					self.dbReader.execute("DELETE FROM file WHERE SessionID=?", (SessionID,))
 					self.dbReader.execute("DELETE FROM user WHERE SessionID=?", (SessionID,))
-					#magari controllo se è andato a buon fine?
 					print("Invio --> "+ color.send + "ALGO" + delete + color.end)
 					connection.sendall(("ALGO"+delete).encode())
 					connection.close()
