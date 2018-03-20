@@ -19,5 +19,5 @@ while True:
 	message = sys.argv[2]
 	sock.sendall(message.encode())
 	print("Inviato:", message)
-	time.sleep(3)
+	time.sleep(10)
 	

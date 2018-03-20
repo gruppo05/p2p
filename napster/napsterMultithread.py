@@ -24,8 +24,7 @@ def clearAndSetDB(self):
 def sessionIdGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
 	
-def setCopy(getCopy):
-	copy = int(getCopy[0])
+def setCopy(copy):
 	if copy > 1000:
 		copy = 999
 	elif copy < 100 and copy > 9:
@@ -35,8 +34,7 @@ def setCopy(getCopy):
 	return copy
 	
 
-def setDownload(getDownload):
-	download = int(getDownload[0])
+def setDownload(download):
 	if download > 100000:
 		download = 99999
 	elif download < 10000 and download > 999:
@@ -109,6 +107,7 @@ class Napster(object):
 					#conto i file associati all'utente
 					self.dbReader.execute("SELECT COUNT(Filemd5) from file where SessionID=?",(SessionID,))
 					delete = self.dbReader.fetchone()
+					delete = int(delete[0])
 					delete = setCopy(delete)
 					self.dbReader.execute("DELETE FROM file WHERE SessionID=?", (SessionID,))
 					self.dbReader.execute("DELETE FROM user WHERE SessionID=?", (SessionID,))
@@ -122,13 +121,22 @@ class Napster(object):
 					SessionID = connection.recv(16).decode()
 					Filemd5 = connection.recv(32).decode()
 					print("Ricevuto "+ color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
-					self.dbReader.execute("SELECT count(*) FROM file WHERE Filemd5=?", (Filemd5,))
-					copy = self.dbReader.fetchone()
-					if copy[0] is 0:
+					
+					#verifico che l'utente abbia il file
+					self.dbReader.execute("SELECT * FROM file WHERE Filemd5=? AND SessionID=?", (Filemd5,SessionID,))
+					data = self.dbReader.fetchone()
+					
+					if data is None:
 						print(color.fail+ "NESSUN FILE TROVATO" + color.end);
 						copy = "999"
 					else:
+						self.dbReader.execute("SELECT count(*) FROM file WHERE Filemd5=?", (Filemd5,))
+						copy = self.dbReader.fetchone()
 						self.dbReader.execute("DELETE FROM file WHERE Filemd5=? AND SessionID=?", (Filemd5,SessionID,))
+						#tolgo il file
+						copy = int(copy[0]) - 1
+						copy = setCopy(copy)
+					
 					print("Inviato numero di copie --> " + color.send + "ADEL" + copy + color.end)
 					connection.sendall(("ADEL"+str(copy)).encode())
 
@@ -136,24 +144,34 @@ class Napster(object):
 					SessionID = connection.recv(16).decode()
 					Ricerca = connection.recv(20).decode()
 					print("Ricevuto "+ color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
+					Ricerca = str(Ricerca)
+					Ricerca = Ricerca.strip()
 					
-					#Conto quanti file con filemd5 diverso ci sono con filename simile a ricerca
-					self.dbReader.execute("SELECT count(*) FROM (SELECT DISTINCT Filemd5 FROM file WHERE Filename LIKE ?)", ('%' + Ricerca + '%',))
-					idmd5 = self.dbReader.fetchone()
-
-					#Prendo tutti i filemd5 singolarmente
-					self.dbReader.execute("SELECT DISTINCT Filemd5 FROM file WHERE Filename LIKE ?", ('%' + Ricerca + '%',))
-					resultFilemd5 = self.dbReader.fetchall()
+					if Ricerca == "*":						
+						self.dbReader.execute("SELECT count(*) from (SELECT DISTINCT filemd5 from file)")
+						idmd5 = self.dbReader.fetchone()
+						self.dbReader.execute("select distinct filemd5 from file")
+						resultFilemd5 = self.dbReader.fetchall()
+					else:
+						#Conto quanti file con filemd5 diverso ci sono con filename simile a ricerca
+						self.dbReader.execute("SELECT count(*) FROM (SELECT DISTINCT Filemd5 FROM file WHERE Filename LIKE ?)", ('%' + Ricerca + '%',))
+						idmd5 = self.dbReader.fetchone()
+						#Prendo tutti i filemd5 singolarmente
+						self.dbReader.execute("SELECT DISTINCT Filemd5 FROM file WHERE Filename LIKE ?", ('%' + Ricerca + '%',))
+						resultFilemd5 = self.dbReader.fetchall()
+					
 					#Per ogni file ciclo per cercare chi ha questi file
+					idmd5 = int(idmd5[0])
 					idmd5 = setCopy(idmd5)
-
 					msg = "AFIN" + idmd5
+					
 					for md5 in resultFilemd5:
 						self.dbReader.execute("SELECT Filename FROM file WHERE filemd5 = ?",(md5[0],))
 						resultFilename = self.dbReader.fetchone()
 						self.dbReader.execute("SELECT count(*) FROM file WHERE Filemd5=?", (md5[0],))
 						print("md5 i-esimo= ", md5[0])
 						copy = self.dbReader.fetchone()
+						copy = int(copy[0])
 						copy = setCopy(copy)
 						self.dbReader.execute("SELECT IPP2P, PP2P FROM user JOIN file WHERE user.SessionID = file.SessionID AND filemd5 = ?", (md5[0],))
 						resultIP = self.dbReader.fetchall()
@@ -178,6 +196,7 @@ class Napster(object):
 					self.dbReader.execute("UPDATE file SET Filename=? where Filemd5=?",(Filename,Filemd5,))
 					self.dbReader.execute("SELECT COUNT(Filemd5) from file where Filemd5=?",(Filemd5,))
 					copy = self.dbReader.fetchone()
+					copy = int(copy[0])
 					copy = setCopy(copy)
 					
 					print("Invio --> " + color.send + "AADD" + copy + color.end)
@@ -189,15 +208,13 @@ class Napster(object):
 					Filemd5 = connection.recv(32).decode()
 					self.dbReader.execute("SELECT Download FROM download WHERE Filemd5 = ?",(Filemd5,))
 					download = self.dbReader.fetchone()
-
 					if download is None:
-						download[0] = 1
-						self.dbReader.execute("INSERT INTO download (Filemd5, Download) values (?, ?)", (Filemd5, 1))
+						download = "00001"
+						self.dbReader.execute("INSERT INTO download (Filemd5, Download) values (?, ?)", (Filemd5, 1,))
 					else:
-						download[0] = download[0] + 1
-						self.dbReader.execute("UPDATE download SET Download = ? WHERE Filemd5 = ?",(download[0], Filemd5,))
-
-					download = setDownload(download)
+						download = int(download[0])+1
+						self.dbReader.execute("UPDATE download SET Download = ? WHERE Filemd5 = ?",(download, Filemd5,))
+						download = setDownload(download)
 					print("Invio --> " + color.send + "ADRE" + download + color.end)
 					connection.sendall(("ADRE"+download).encode())
 		
