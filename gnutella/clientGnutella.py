@@ -27,7 +27,7 @@ class Gnutella(object):
 		
 	def start(self):
 		
-		os.system("gnome-terminal -e 'sh -c \"python3 test.py\"'")
+		os.system("gnome-terminal -e 'sh -c \"python3 serverGnutella.py\"'")
 		
 		#os.system("gnome-terminal -x python test.py")
 		''' connection, client_address = self.sock.accept()

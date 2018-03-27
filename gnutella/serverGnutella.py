@@ -28,6 +28,7 @@ class Gnutella(object):
 	def start(self):
 		while True:
 			print("nuovo terminale")
+			print("ciao")
 		
 if __name__ == "__main__":
     gnutella = Gnutella()
