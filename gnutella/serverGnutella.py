@@ -1,4 +1,4 @@
-import socket, sqlite3, string, subprocess
+import socket, sqlite3, string, subprocess, os
 from random import *
 
 def clearAndSetDB(self):
@@ -29,6 +29,46 @@ class Gnutella(object):
 		while True:
 			print("nuovo terminale")
 			print("ciao")
+			
+			command = connection.recv(4).decode()
+			
+			if command == "RETR"
+				
+				FileMD5 = connection.recv(55).decode()
+				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
+				resultFile = self.dbReader.fetchone()
+				f = os.open(str(resultFile), os.O_RDONLY)
+				
+				filesize = os.fstat(fd)[stat.ST.SIZE]
+				nChunck = filesize / 4096
+				
+				if (filesize % 4096)!= 0:
+					nChunk = nChunk + 1
+				
+				nChunk = int(float(nChunk))
+				pacchetto = "ARET" + str(nChunk).zfill(6)
+				sock.send(pacchetto.encode())
+				print ('Trasferimento in corso di ', resultFile, '[BYTES ', filesize, ']')
+				
+				i = 0
+				
+				while i < nChunk:
+					buf = os.read(fd,4096)
+					if not buf: break
+					lbuf = len(buf)
+					lbuf = str(lBuf).zfill(5)
+					sock.send(lBuf.encode())
+					sock.send(buf)
+					i = i + 1
+					
+				os.close(fd)
+				print('Trasferimento completato.. ')
+				
+				#chiusura della connessione
+				connection.close()
+				#chiusura della socket
+				sock.close()
+
 		
 if __name__ == "__main__":
     gnutella = Gnutella()

@@ -41,8 +41,21 @@ class Gnutella(object):
 				elif command == "2":
 					print("secondo")
 				elif command == "3":
-					print("terzo")
-				
+					print("Download")
+					print("Quale file vuoi scaricare?")
+					self.dbReader.execute("SELECT * FROM File WHERE IPP2P != ?", (IP,))
+					resultFile = self.dbReader.fetchall()
+					
+					files[0] = ("0","0","0")
+					int i = 1
+					for resultFile in resultFile:
+						files[i] = (resultFile[0], resultFile[1], resultFile[2])
+						print(i + " - " + resultFile[1])
+						
+					code = input("\n ")	
+					
+					connection.sendall(("RETR" + files[code][0]).encode())
+					
 			except:
 				print("Errore lato server")
 			finally:
