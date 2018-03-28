@@ -50,6 +50,7 @@ class GnutellaServer(object):
 		PORT = 3000
 		UDP_IP = "127.0.0.1"
 		UDP_PORT = 49999
+		#MODIFICAMI CON IL TUO IP
 		self.myIPP2P = "192.168.178.026|fe80:0000:0000:0000:bd32:bb2d:19e6:c8db"
 		self.myPort = 3000
 		
@@ -63,7 +64,7 @@ class GnutellaServer(object):
 		self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('127.000.000.001|0000:0000:0000:0000:0000:0000:0000:0001', '3000')")
 		# Socket ipv4/ipv6
 		self.server_address = (IP, PORT)
-		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.sock.bind(self.server_address)
 		self.sock.listen(5)
