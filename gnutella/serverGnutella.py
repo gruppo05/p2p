@@ -9,6 +9,10 @@ def clearAndSetDB(self):
 	self.dbReader.execute("CREATE TABLE file (Filemd5 text, Filename text, SessionID text)")
 	self.dbReader.execute("CREATE TABLE download (Filemd5 text, Download integer)")
 
+def splitIp(ip):
+	splitted = ip.split(".")
+	ip = str(int(splitted[0]))+"."+str(int(splitted[1]))+"."+str(int(splitted[2]))+"."+str(int(splitted[3]))
+	
 class color:
 	HEADER = '\033[95m'
 	recv = '\033[36m'
@@ -39,26 +43,24 @@ class GnutellaServer(object):
 		
 		# socket upd ipv4 internal Server
 		self.sockUDP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		self.sockUDP.bind((UDP_IP, UDP_PORT))		
+		self.sockUDP.bind((UDP_IP, UDP_PORT))
 		
 		
 	def internalServer(self):
-		print("IN ASCOLTO PROCESSO UDP SERVER...")
+		print(color.green+"In attesa di comandi interni..."+color.end)
+		#splitIp("192.168.001.002")
 		while True:
 			data, addr = self.sockUDP.recvfrom(4)
 			print("Ricevuto comando: "+color.recv+data.decode()+color.end)
+			print("\n")
 		
 	def server(self):
-		#crea thread 
+		#crea thread interno per far comunicare client e server
 		threading.Thread(target = self.internalServer, args = '').start()
-		
-		print("IN ASCOLTO PROCESSO SERVER...")
+		print(color.green+"In attesa di connessione esterna..."+color.end)
 		connection, client_address = self.sock.accept()
+
 		while True:
-			print("ciao")
-		while True:
-			print("In attesa di connessione...")
-			
 			try:
 				if command == "QUER":
 					print("QUER")

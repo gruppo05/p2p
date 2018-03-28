@@ -14,6 +14,9 @@ class color:
 def startServer():
 	os.system("gnome-terminal -e 'sh -c \"python3 serverGnutella.py\"'")
 
+def stopServer():
+	plt.close('all')
+
 def printMenu():
 	print(color.recv+"  ____  "+ color.green+"        "+ color.send+"        "+ color.fail+" _    "+ color.recv+"       "+ color.green+" _  "+ color.send+" _  "+ color.green+"        "+ color.fail+"  ____  _____   ____  "+ color.end)
 	print(color.recv+" / ___| "+ color.green+" _ __   "+ color.send+" _   _  "+ color.fail+"| |_  "+ color.recv+"  ___  "+ color.green+"| | "+ color.send+"| | "+ color.green+"  __ _  "+ color.fail+" |  _ \ \__  \ |  _ \ "+ color.end)
@@ -39,6 +42,7 @@ class GnutellaClient(object):
 		
 		
 	def start(self):
+		os.system('cls' if os.name == 'nt' else 'clear')
 		startServer()
 		while True:
 			time.sleep(0.5)
@@ -64,6 +68,7 @@ class GnutellaClient(object):
 				print("STAMPA TUTTI I FILE TROVATI")
 				self.sock.sendto(("STMF").encode(), (self.UDP_IP, self.UDP_PORT))
 			elif cmd is "6":
+				stopServer()
 				os._exit(0)
 			print("\n")
 		
