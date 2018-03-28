@@ -3,7 +3,6 @@ import ipaddress
 
 myIPP2P = "127.000.000.001|0000:0000:0000:0000:0000:0000:0000:0001"
 myPort = "3000"
-TTL = 2
 
 def setNumber(n):
 	if n < 10:
@@ -33,9 +32,9 @@ if command is "1":
 	
 	myPktid = PktidGenerator()
 	#Prendo tutti gli utente
-	self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
-	TTL = setNumber(TTL)
-	resultUser = self.dbReader.fetchall()
+	dbReader.execute("SELECT IPP2P, PP2P FROM user")
+	TTL = setNumber(2)
+	resultUser = dbReader.fetchall()
 	msg = "NEAR" + myPktid + myIPP2P.ljust(55) + myPort.ljust(5) + TTL
 
 	for user in resultUser:
@@ -69,13 +68,13 @@ if command == "NEAR":
 	connection.sendall(msg.encode())
 	connection.close()
 	
-	if TTL == "01":
+	if int(TTL) == 1:
 		break
 	else:
 		TTL = setNumber(int(TTL) - 1)
 		msg = "NEAR" + Pktid + IPP2P.ljust(55) + str(user[1]).ljust(5) + TTL
-		self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=?", (IPP2P,))
-		resultUser = self.dbReader.fetchall()
+		dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=?", (IPP2P,))
+		resultUser = dbReader.fetchall()
 
 		for user in resultUser:
 			rnd = random.random()
@@ -91,10 +90,22 @@ if command == "NEAR":
 			print("Invio --> " + color.send + msg + color.end)
 			connection.sendall(msg.encode())
 			connection.close()
-	#Inserisco il nuovo utente
-	dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, IPP))
+	
 
+if command == "ANEA":
+	
+	Pktid = connection.recv(16).decode()
+	IPP2P = connection.recv(55).decode()
+	PP2P = connection.recv(5).decode()
 
+	#verifico se l'utente è già salvato nel db oppure lo aggiungo
+	dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
+	data = dbReader.fetchone() #retrieve the first row
+	if data is None:
+		dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, IPP))
+		print(color.green + "Aggiunto nuovo user" + color.end);
+	else:
+		print(color.fail + "User già presente" + color.end);
 		
 		
 	
