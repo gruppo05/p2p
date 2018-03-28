@@ -34,7 +34,7 @@ def printMenu():
 
 class GnutellaClient(object):
 	def __init__(self):
-		self.UDP_IP = "192.168.178.26"
+		self.UDP_IP = "127.0.0.1"
 		self.UDP_PORT = 49999
 		
 		# Socket UDP ipv4 interna

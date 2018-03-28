@@ -39,12 +39,12 @@ class color:
 
 class GnutellaServer(object):
 	def __init__(self):
-		IP = "192.168.178.26"
+		IP = "127.0.0.1"
 		PORT = 3000
-		UDP_IP = "192.168.178.26"
+		UDP_IP = "127.0.0.1"
 		UDP_PORT = 49999
 		#MODIFICAMI CON IL TUO IP
-		self.myIPP2P = "192.168.178.026|fe80:0000:0000:0000:bd32:bb2d:19e6:c8db"
+		self.myIPP2P = "127.0.0.1|0000:0000:0000:0000:0000:0000:0000:0001"
 		self.myPort = 3000
 		
 		# Creo DB
@@ -92,7 +92,7 @@ class GnutellaServer(object):
 						print("Connetto con IPv4:", IPP2P)
 						peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 						peer_socket.connect((IPP2P,PP2P))
-						#connection=creazioneSocketIPv4(IPP2P,user[1])
+						
 					else:
 						IPP2P = user[0][16:55]
 						print("Connetto con IPv6:", IPP2P)
