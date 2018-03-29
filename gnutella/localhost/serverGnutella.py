@@ -114,9 +114,18 @@ class GnutellaServer(object):
 	def server(self):
 		#crea thread interno per far comunicare client e server
 		threading.Thread(target = self.internalServer, args = '').start()
+		
 		print(color.green+"In attesa di connessione esterna..."+color.end)
-		connection, client_address = self.sock.accept()
-
+		
+		while True:
+			try:
+				connection, client_address = self.sock.accept()
+				#connection.settimeout(60)
+				threading.Thread(target = self.startServer, args = (connection,client_address)).start()
+			except:
+				return False
+			
+	def startServer(self, connection, client_address):
 		while True:
 			command = connection.recv(4).decode()
 			try:
