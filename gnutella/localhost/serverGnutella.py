@@ -39,12 +39,12 @@ class color:
 
 class GnutellaServer(object):
 	def __init__(self):
-		IP = "192.168.178.26"
+		IP = "127.0.0.1"
 		PORT = 3000
-		UDP_IP = "192.168.178.26"
+		UDP_IP = "127.0.0.1"
 		UDP_PORT = 49999
 		#MODIFICAMI CON IL TUO IP
-		self.myIPP2P = "192.168.178.026|0000:0000:0000:0000:0000:0000:0000:0001"
+		self.myIPP2P = "127.000.000.001|0000:0000:0000:0000:0000:0000:0000:0001"
 		self.myPort = 3000
 		
 		# Creo DB
@@ -54,7 +54,7 @@ class GnutellaServer(object):
 		# Creo tabella user
 		clearAndSetDB(self)
 		#inserisco l'utente root
-		self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('127.000.000.001|0000:0000:0000:0000:0000:0000:0000:0001', '3000')")
+		self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('192.168.178.026|0000:0000:0000:0000:0000:0000:0000:0001', '3000')")
 		# Socket ipv4/ipv6
 		self.server_address = (IP, PORT)
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -195,46 +195,6 @@ class GnutellaServer(object):
 					print("QUER")
 				elif command == "RETR":
 					print("RETR")
-					
-					#inviare un file che ho
-					#leggo il filemd5 dal client o dalla connessione?
-					FileMD5 = connection.recv(55).decode()
-					
-					
-					self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
-					resultFile = self.dbReader.fetchone()
-					f = os.open(str(resultFile), os.O_RDONLY)
-
-					filesize = os.fstat(fd)[stat.ST.SIZE]
-					nChunck = filesize / 4096
-
-					if (filesize % 4096)!= 0:
-						nChunk = nChunk + 1
-
-					nChunk = int(float(nChunk))
-					pacchetto = "ARET" + str(nChunk).zfill(6)
-					sock.send(pacchetto.encode())
-					print ('Trasferimento in corso di ', resultFile, '[BYTES ', filesize, ']')
-
-					i = 0
-
-					while i < nChunk:
-						buf = os.read(fd,4096)
-						if not buf: break
-						lbuf = len(buf)
-						lbuf = str(lBuf).zfill(5)
-						sock.send(lBuf.encode())
-						sock.send(buf)
-						i = i + 1
-
-					os.close(fd)
-					print('Trasferimento completato.. ')
-
-					#chiusura della connessione
-					connection.close()
-					#chiusura della socket
-					sock.close()
-					
 			except:
 				connection.close()
 				return False
