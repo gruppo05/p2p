@@ -60,6 +60,22 @@ class GnutellaClient(object):
 			elif cmd is "3":
 				print("INIZIO DOWNLOAD")
 				self.sock.sendto(("RETR").encode(), (self.UDP_IP, self.UDP_PORT))
+				print("Quale file vuoi scaricare?")
+				self.dbReader.execute("SELECT * FROM File WHERE IPP2P != ?", (IP,))
+				resultFile = self.dbReader.fetchall()
+
+				files[0] = ("0","0","0")
+				int i = 1
+				for resultFile in resultFile:
+					files[i] = (resultFile[0], resultFile[1], resultFile[2])
+					print(i + " - " + resultFile[1])
+
+				code = input("\n ")	
+				
+				#la connessione avviene sul client o sul server??
+				self.sock.sendto(("RETR").encode(), (self.UDP_IP, self.UDP_PORT))
+				connection.sendall(("RETR" + files[code][0]).encode())
+			
 			elif cmd is "4":
 				print("STAMPA TUTTI I VICINI")
 				self.sock.sendto(("STMV").encode(), (self.UDP_IP, self.UDP_PORT))
