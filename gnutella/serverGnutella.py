@@ -50,6 +50,7 @@ class GnutellaServer(object):
 		self.myPort = 3000
 		self.myPortAnear = 50001
 		
+		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
