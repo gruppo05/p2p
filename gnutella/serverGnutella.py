@@ -438,6 +438,7 @@ class GnutellaServer(object):
 					print(color.green + "Aggiunto nuovo user" + color.end)
 				else:
 					print(color.fail + "User già presente" + color.end)	
+		
 		except:
 			connection.close()
 			return False
