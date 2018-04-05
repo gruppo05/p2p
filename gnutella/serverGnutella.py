@@ -40,21 +40,19 @@ class color:
 
 class GnutellaServer(object):
 	def __init__(self):
-		IP = "192.168.43.135"
+		IP = "192.168.43.73"
 		self.PORT = 3000
 		
 		UDP_IP = "127.0.0.1"
 		UDP_PORT = 49999
 		#MODIFICAMI CON IL TUO IP
-		self.myIPP2P = "192.168.043.135|0000:0000:0000:0000:0000:0000:0000:0001"
-		self.myPort = 3000
-		self.myPortAnear = 50001
-		
+		self.myIPP2P = "192.168.043.073|0000:0000:0000:0000:0000:0000:0000:0001"
+		self.myPort = 5000		
 		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
-
+		
 		# Creo tabella user
 		clearAndSetDB(self)
 		#inserisco l'utente root
@@ -71,12 +69,7 @@ class GnutellaServer(object):
 		self.sockUDP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.sockUDP.bind((UDP_IP, UDP_PORT))
 		
-		# Socket ipv4/ipv6 port 50001
-		self.server5k1 = (IP, self.myPortAnear)
-		self.sock5k1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		self.sock5k1.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		self.sock5k1.bind(self.server5k1)
-		self.sock5k1.listen(5)		
+		
 
 	'''def attesaDownload(self):
 		
@@ -189,7 +182,7 @@ class GnutellaServer(object):
 				TTL = setNumber(2)
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
 				resultUser = self.dbReader.fetchall()
-				msg = "NEAR" + myPktid + self.myIPP2P + str(self.myPortAnear).ljust(5) + TTL
+				msg = "NEAR" + myPktid + self.myIPP2P + str(self.myPort).ljust(5) + TTL
 				print(msg)
 				for user in resultUser:
 					#rnd = random()
@@ -433,7 +426,7 @@ class GnutellaServer(object):
 					self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, PP2P))
 					print(color.green + "Aggiunto nuovo user" + color.end)
 				else:
-					print(color.fail + "User già presente" + color.end)	
+					print(color.fail + "User già presente" + color.end)
 		
 		except:
 			connection.close()
