@@ -83,8 +83,7 @@ class GnutellaServer(object):
 		while True:
 			connection, client_address = self.sock5k1.accept()
 			print ("Ricevo " + connection.rev(4).decode())
-	'''			
-	'''def attesaVicini(self):
+		def attesaVicini(self):
 		#dovrebbe durare 300s
 		#drop near db
 		while True:
@@ -290,9 +289,6 @@ class GnutellaServer(object):
 				print("Ricevuto comando dal client: "+color.recv+command+color.end)
 			print("\n")
 	
-	
-	
-		
 	def server(self):
 		#crea thread interno per far comunicare client e server
 		threading.Thread(target = self.internalServer, args = '').start()
