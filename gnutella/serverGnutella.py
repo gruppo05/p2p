@@ -121,15 +121,18 @@ class GnutellaServer(object):
 					if(rnd<0.5):
 						IPP2P = user[0][0:15]
 						IPP2P = splitIp(IPP2P)
-		
+
+						PP2P=int(user[1])
+						
 						#fix problem ipv4
 						#IPP2P = ipaddress.ip_address(IPP2P)
-						#PP2P=int(user[1])
+						
+						
 				
 						print(color.green+"Connessione IPv4:"+IPP2P+color.end)
 						
 						peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-						peer_socket.connect((IPP2P,self.PORT))
+						peer_socket.connect((IPP2P,PP2P))
 						print(color.green+"Connessione stabilita"+color.end);
 		
 					else:
@@ -178,7 +181,7 @@ class GnutellaServer(object):
 		while True:
 			try:
 				connection, client_address = self.sock.accept()
-				print("ciaciceoijwieoo")
+				print("SONO NEL SERVER PRINCIPALE")
 				#connection.settimeout(60)
 				threading.Thread(target = self.startServer, args = (connection,client_address)).start()
 			except:
@@ -187,7 +190,7 @@ class GnutellaServer(object):
 	def startServer(self, connection, client_address):
 		while True:
 			command = connection.recv(4).decode()
-			print("ciao")
+			print("SONO NEL SERVER CHE GESTISCE LE CONNESSIONI ESTERNE (richieste)")
 			try:
 				if command == "NEAR":
 					Pktid = connection.recv(16).decode()
@@ -198,10 +201,16 @@ class GnutellaServer(object):
 					#rispondo 
 					msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.myPort).ljust(5)
 					print("Invio --> " + color.send + msg + color.end)
-					connection.sendall(msg.encode())
-					connection.close()
+
+					peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+					peer_socket.connect((IPP2P,PP2P))
+					peer_socket.sendall(msg.encode())
+					peer_socket.close()
 					
+					
+					'''
 					if int(TTL) == 1:
+						#return
 						break
 					else:
 						TTL = setNumber(int(TTL) - 1)
@@ -234,7 +243,7 @@ class GnutellaServer(object):
 						peer_socket.sendall(msg.encode())
 						peer_socket.close()
 					
-					
+					'''
 					
 		
 				
