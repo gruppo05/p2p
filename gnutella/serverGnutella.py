@@ -41,7 +41,7 @@ class color:
 class GnutellaServer(object):
 	def __init__(self):
 		IP = "192.168.43.73"
-		PORT = 3000
+		self.PORT = 3000
 		UDP_IP = "127.0.0.1"
 		UDP_PORT = 49999
 		#MODIFICAMI CON IL TUO IP
@@ -60,7 +60,7 @@ class GnutellaServer(object):
 		self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('192.168.043.135|0000:0000:0000:0000:0000:0000:0000:0001', '3000')")
 		
 		# Socket ipv4/ipv6 port 3000
-		self.server_address = (IP, PORT)
+		self.server_address = (IP, self.PORT)
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.sock.bind(self.server_address)
@@ -108,7 +108,7 @@ class GnutellaServer(object):
 			command = data.decode()
 			print("Ricevuto comando dal client: "+color.recv+command+color.end)
 			if command == "NEAR":
-				threading.Thread(target = self.attesaVicini, args = (data,addr)).start()
+				threading.Thread(target = self.attesaVicini, args = '').start()
 				myPktid = PktidGenerator()
 				TTL = setNumber(2)
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
@@ -126,10 +126,11 @@ class GnutellaServer(object):
 						#IPP2P = ipaddress.ip_address(IPP2P)
 						#PP2P=int(user[1])
 				
-						print("Connetto con IPv4:",IPP2P+"  PORT -> ",PP2P)
-				
+						print(color.green+"Connessione IPv4:"+IPP2P+color.end)
+						
 						peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-						peer_socket.connect((IPP2P,PORT))
+						peer_socket.connect((IPP2P,self.PORT))
+						print(color.green+"Connessione stabilita"+color.end);
 		
 					else:
 						IPP2P = user[0][16:55]
