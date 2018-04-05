@@ -161,20 +161,20 @@ class GnutellaServer(object):
 					
 					
 				if command == "RETR":
-					print("Ricevuto comando dal client: "+color.recv+command+color.end)
+					'''print("Ricevuto comando dal client: "+color.recv+command+color.end)
 					self.dbReader.execute("SELECT * FROM File WHERE IPP2P != ?", (IP,))
 					resultFile = self.dbReader.fetchall()
 
 					i = 0
 					if len(resultFile) == 1:
 						lunghezza = "0" + str(len(resultFile))
-					else
+					else:
 						lunghezza = str(len(resultFile))
 					
 					for result in resultFile:
 						
 						if i == 0:
-							self.sock.sendto(lunghezza).encode, (selfUDP_IP, selfUDP_PORT))
+							self.sock.sendto(lunghezza).encode(), (selfUDP_IP, selfUDP_PORT))
 							
 						files[i] = (result[0], result[1], result[2])
 						print(i + " - " + result[1])
@@ -215,7 +215,7 @@ class GnutellaServer(object):
 						
 					print("Invio --> "+ color.send + msg + color.end)	
 					peer_socket.sendall((msg).encode)
-					peer_socket.close()
+					peer_socket.close()'''
 					
 			if command == "RETR":
 				print("Ricevuto comando dal client: "+color.recv+command+color.end)
