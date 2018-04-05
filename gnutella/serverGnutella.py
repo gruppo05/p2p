@@ -41,7 +41,7 @@ class color:
 class GnutellaServer(object):
 	def __init__(self):
 		IP = "192.168.43.73"
-		self.PORT = 3000
+		self.PORT = 5000
 		
 		UDP_IP = "127.0.0.1"
 		UDP_PORT = 49999
@@ -183,7 +183,7 @@ class GnutellaServer(object):
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
 				resultUser = self.dbReader.fetchall()
 				msg = "NEAR" + myPktid + self.myIPP2P + str(self.myPort).ljust(5) + TTL
-				print(msg)
+				print(color.recv+"  "+msg+color.end)
 				for user in resultUser:
 					#rnd = random()
 					rnd = 0.1
