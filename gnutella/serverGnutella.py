@@ -40,7 +40,7 @@ class color:
 
 class GnutellaServer(object):
 	def __init__(self):
-		IP = "192.168.43.73"
+		IP = "192.168.43.135"
 		self.PORT = 3000
 		
 		UDP_IP = "127.0.0.1"
@@ -193,113 +193,112 @@ class GnutellaServer(object):
 				return False
 			
 	def startServer(self, connection, client_address):
-		while True:
-			command = connection.recv(4).decode()
-			print("SONO NEL SERVER CHE GESTISCE LE CONNESSIONI ESTERNE (richieste)")
-			try:
-				if command == "NEAR":
-					Pktid = connection.recv(16).decode()
-					IPP2P = connection.recv(55).decode()
-					IPP2P_IPv4 = IPP2P[0:15]
-					IPP2P_IPv6 = IPP2P[16:55]
-					IPP2P_IPv4 = splitIp(IPP2P_IPv4)
-					print(IPP2P)
-					PP2P = connection.recv(5).decode()
-					PP2P=int(PP2P)
-					print(PP2P)
-					TTL = connection.recv(2).decode()
-					
-					#rispondo 
-					msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.myPort).ljust(5)
-					print("Invio --> " + color.send + msg + color.end)
-					
-					peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-					peer_socket.connect((IPP2P_IPv4,PP2P))
-					peer_socket.sendall(msg.encode())
-					peer_socket.close()
-					
-					if int(TTL) > 1:
-						TTL = setNumber(int(TTL) - 1)
-						msg = "NEAR" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
-						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=?", (IPP2P,))
-						resultUser = self.dbReader.fetchall()
-						
-						for user in resultUser:
-							#rnd = random()
-							rnd = 0.1
-							if(rnd<0.5):
-								IPP2P = user[0][0:15]
-								IPP2P = splitIp(IPP2P)
-
-								PP2P=int(user[1])
-						
-								#fix problem ipv4
-								#IPP2P = ipaddress.ip_address(IPP2P)
-								
-								print(color.green+"Connessione IPv4:"+IPP2P+color.end)
-						
-								peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-								peer_socket.connect((IPP2P,PP2P))
-								print(color.green+"Connessione stabilita"+color.end);
-		
-							else:
-								IPP2P = user[0][16:55]
-								print("Connetto con IPv6:", IPP2P)
-								break
-								#da testare
-								connection=creazioneSocketIPv6(IPP2P,user[1])
-			
-							print("Invio --> " + color.send + msg + color.end)
-							peer_socket.sendall(msg.encode())
-							peer_socket.close()
+		command = connection.recv(4).decode()
+		try:
+			if command == "NEAR":
+				Pktid = connection.recv(16).decode()
+				IPP2P = connection.recv(55).decode()
+				IPP2P_IPv4 = IPP2P[0:15]
+				IPP2P_IPv6 = IPP2P[16:55]
+				IPP2P_IPv4 = splitIp(IPP2P_IPv4)
+				print(IPP2P)
+				PP2P = connection.recv(5).decode()
+				PP2P=int(PP2P)
+				print(PP2P)
+				TTL = connection.recv(2).decode()
 				
-				elif command == "QUER":
-					print("QUER")
-				elif command == "RETR":
-					print("RETR")
+				#rispondo 
+				msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.myPort).ljust(5)
+				print("Invio --> " + color.send + msg + color.end)
+				
+				peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+				peer_socket.connect((IPP2P_IPv4,PP2P))
+				peer_socket.sendall(msg.encode())
+				peer_socket.close()
+				
+				if int(TTL) > 1:
+					TTL = setNumber(int(TTL) - 1)
+					msg = "NEAR" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
+					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=?", (IPP2P,self.myIPP2P,))
+					resultUser = self.dbReader.fetchall()
 					
-					#inviare un file che ho
-					#leggo il filemd5 dal client o dalla connessione?
-					FileMD5 = connection.recv(55).decode()
+					for user in resultUser:
+						#rnd = random()
+						rnd = 0.1
+						if(rnd<0.5):
+							IPP2P = user[0][0:15]
+							IPP2P = splitIp(IPP2P)
+
+							PP2P=int(user[1])
 					
+							#fix problem ipv4
+							#IPP2P = ipaddress.ip_address(IPP2P)
+							
+							print(color.green+"Connessione IPv4:"+IPP2P+color.end)
 					
-					self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
-					resultFile = self.dbReader.fetchone()
-					f = os.open(str(resultFile), os.O_RDONLY)
+							peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+							peer_socket.connect((IPP2P,PP2P))
+							print(color.green+"Connessione stabilita"+color.end);
+	
+						else:
+							IPP2P = user[0][16:55]
+							print("Connetto con IPv6:", IPP2P)
+							break
+							#da testare
+							connection=creazioneSocketIPv6(IPP2P,user[1])
+		
+						print("Invio --> " + color.send + msg + color.end)
+						peer_socket.sendall(msg.encode())
+						peer_socket.close()
+			
+			elif command == "QUER":
+				print("QUER")
+			elif command == "RETR":
+				print("RETR")
+				
+				#inviare un file che ho
+				#leggo il filemd5 dal client o dalla connessione?
+				FileMD5 = connection.recv(55).decode()
+				
+				
+				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
+				resultFile = self.dbReader.fetchone()
+				f = os.open(str(resultFile), os.O_RDONLY)
 
-					filesize = os.fstat(fd)[stat.ST.SIZE]
-					nChunck = filesize / 4096
+				filesize = os.fstat(fd)[stat.ST.SIZE]
+				nChunck = filesize / 4096
 
-					if (filesize % 4096)!= 0:
-						nChunk = nChunk + 1
+				if (filesize % 4096)!= 0:
+					nChunk = nChunk + 1
 
-					nChunk = int(float(nChunk))
-					pacchetto = "ARET" + str(nChunk).zfill(6)
-					sock.send(pacchetto.encode())
-					print ('Trasferimento in corso di ', resultFile, '[BYTES ', filesize, ']')
+				nChunk = int(float(nChunk))
+				pacchetto = "ARET" + str(nChunk).zfill(6)
+				sock.send(pacchetto.encode())
+				print ('Trasferimento in corso di ', resultFile, '[BYTES ', filesize, ']')
 
-					i = 0
+				i = 0
 
-					while i < nChunk:
-						buf = os.read(fd,4096)
-						if not buf: break
-						lbuf = len(buf)
-						lbuf = str(lBuf).zfill(5)
-						sock.send(lBuf.encode())
-						sock.send(buf)
-						i = i + 1
+				while i < nChunk:
+					buf = os.read(fd,4096)
+					if not buf: break
+					lbuf = len(buf)
+					lbuf = str(lBuf).zfill(5)
+					sock.send(lBuf.encode())
+					sock.send(buf)
+					i = i + 1
 
-					os.close(fd)
-					print('Trasferimento completato.. ')
+				os.close(fd)
+				print('Trasferimento completato.. ')
 
-					#chiusura della connessione
-					connection.close()
-					#chiusura della socket
-					sock.close()
-					
-			except:
+				#chiusura della connessione
 				connection.close()
-				return False
+				#chiusura della socket
+				sock.close()
+				
+		except:
+			connection.close()
+			return False
+				
 		
 if __name__ == "__main__":
     gnutella = GnutellaServer()
