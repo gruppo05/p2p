@@ -77,33 +77,103 @@ class GnutellaServer(object):
 		self.sock5k1.bind(self.server5k1)
 		self.sock5k1.listen(5)		
 
-	def attesaDownload(self):
+	'''def attesaDownload(self):
 		
 		while True:
 			connection, client_address = self.sock5k1.accept()
 			print ("Ricevo " + connection.rev(4).decode())
-				
+	'''			
 	def attesaVicini(self):
 		#dovrebbe durare 300s
 		#drop near db
 		while True:
 			try:
 				connection, client_address = self.sock5k1.accept()
-				print("RICEVO "+connection.recv(4).decode())
+				cmd=connection.recv(4).decode()
+				print("RICEVO "+cmd)
+				
+				if cmd == "NEAR":
+					Pktid = connection.recv(16).decode()
+					IPP2P = connection.recv(55).decode()
+					IPP2P_IPv4 = IPP2P[0:15]
+					IPP2P_IPv6 = IPP2P[16:55]
+					IPP2P_IPv4 = splitIp(IPP2P_IPv4)
+					print(IPP2P)
+					PP2P = connection.recv(5).decode()
+					PP2P=int(PP2P)
+					print(PP2P)
+					TTL = connection.recv(2).decode()
+				
+					self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
+				
+					data = self.dbReader.fetchone() #retrieve the first row
+					if data is None:
+						self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, PP2P))
+						print(color.green + "Aggiunto nuovo user" + color.end)
+					else:
+						print(color.fail + "User già presente" + color.end)
+				
+					#rispondo 
+					msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.myPort).ljust(5)
+					print("Invio --> " + color.send + msg + color.end)
+				
+					peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+					peer_socket.connect((IPP2P_IPv4,PP2P))
+					peer_socket.sendall(msg.encode())
+					peer_socket.close()
+				
+					TTL = setNumber(int(TTL) - 1)
+					if int(TTL) > 0:
+
+						msg = "NEAR" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
+						print("STAMPO IL MIE")
+						print(msg)
+						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=?", (IPP2P,self.myIPP2P,))
+						resultUser = self.dbReader.fetchall()
+					
+						for user in resultUser:
+							#rnd = random()
+							rnd = 0.1
+							if(rnd<0.5):
+								IPP2P = user[0][0:15]
+								IPP2P = splitIp(IPP2P)
+
+								PP2P=int(user[1])
+					
+								#fix problem ipv4
+								#IPP2P = ipaddress.ip_address(IPP2P)
+							
+								print(color.green+"Connessione IPv4:"+IPP2P+color.end)
+					
+								peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+								peer_socket.connect((IPP2P,PP2P))
+								print(color.green+"Connessione stabilita"+color.end);
+	
+							else:
+								IPP2P = user[0][16:55]
+								print("Connetto con IPv6:", IPP2P)
+								break
+								#da testare
+								connection=creazioneSocketIPv6(IPP2P,user[1])
+		
+							print("Invio --> " + color.send + msg + color.end)
+							peer_socket.sendall(msg.encode())
+							peer_socket.close()
 			
-				Pktid = connection.recv(16).decode()
-				IPP2P = connection.recv(55).decode()
-				PP2P = connection.recv(5).decode()
+				if cmd == "ANEA":
+					Pktid = connection.recv(16).decode()
+					IPP2P = connection.recv(55).decode()
+					PP2P = connection.recv(5).decode()
 				
-				#verifico se l'utente è già salvato nel db oppure lo aggiungo
-				self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
+					#verifico se l'utente è già salvato nel db oppure lo aggiungo
+					self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
 				
-				data = self.dbReader.fetchone() #retrieve the first row
-				if data is None:
-					self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, PP2P))
-					print(color.green + "Aggiunto nuovo user" + color.end)
-				else:
-					print(color.fail + "User già presente" + color.end)
+					data = self.dbReader.fetchone() #retrieve the first row
+					if data is None:
+						self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, PP2P))
+						print(color.green + "Aggiunto nuovo user" + color.end)
+					else:
+						print(color.fail + "User già presente" + color.end)
 			except:
 				print("erroreee")
 				
@@ -272,8 +342,10 @@ class GnutellaServer(object):
 				
 				TTL = setNumber(int(TTL) - 1)
 				if int(TTL) > 0:
-					
+
 					msg = "NEAR" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
+					print("STAMPO IL MIE")
+					print(msg)
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=?", (IPP2P,self.myIPP2P,))
 					resultUser = self.dbReader.fetchall()
 					
