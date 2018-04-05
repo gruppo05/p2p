@@ -40,8 +40,10 @@ class color:
 
 class GnutellaServer(object):
 	def __init__(self):
+
 		IP = "192.168.43.73"
 		self.PORT = 3000
+		
 		UDP_IP = "127.0.0.1"
 		UDP_PORT = 49999
 		#MODIFICAMI CON IL TUO IP
@@ -142,9 +144,26 @@ class GnutellaServer(object):
 					print("Invio --> " + color.send + msg + color.end)
 					peer_socket.sendall(msg.encode())
 					peer_socket.close()
-				
-			if command == "QUER":
-				print("Ricevuto comando dal client: "+color.recv+command+color.end)
+					
+				if command == "QUER":
+					print("Ricevuto comando dal client: "+color.recv+command+color.end)
+				if command == "RETR":
+					print("Ricevuto comando dal client: "+color.recv+command+color.end)
+					print("Download")
+					print("Quale file vuoi scaricare?")
+					self.dbReader.execute("SELECT * FROM File WHERE IPP2P != ?", (IP,))
+					resultFile = self.dbReader.fetchall()
+
+					files[0] = ("0","0","0")
+					i = 1
+					for resultFile in resultFile:
+						files[i] = (resultFile[0], resultFile[1], resultFile[2])
+						print(i + " - " + resultFile[1])
+
+					code = input("\n ")	
+
+					connection.sendall(("RETR" + files[code][0]).encode)
+					
 			if command == "RETR":
 				print("Ricevuto comando dal client: "+color.recv+command+color.end)
 			print("\n")
@@ -225,6 +244,46 @@ class GnutellaServer(object):
 					print("QUER")
 				elif command == "RETR":
 					print("RETR")
+					
+					#inviare un file che ho
+					#leggo il filemd5 dal client o dalla connessione?
+					FileMD5 = connection.recv(55).decode()
+					
+					
+					self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
+					resultFile = self.dbReader.fetchone()
+					f = os.open(str(resultFile), os.O_RDONLY)
+
+					filesize = os.fstat(fd)[stat.ST.SIZE]
+					nChunck = filesize / 4096
+
+					if (filesize % 4096)!= 0:
+						nChunk = nChunk + 1
+
+					nChunk = int(float(nChunk))
+					pacchetto = "ARET" + str(nChunk).zfill(6)
+					sock.send(pacchetto.encode())
+					print ('Trasferimento in corso di ', resultFile, '[BYTES ', filesize, ']')
+
+					i = 0
+
+					while i < nChunk:
+						buf = os.read(fd,4096)
+						if not buf: break
+						lbuf = len(buf)
+						lbuf = str(lBuf).zfill(5)
+						sock.send(lBuf.encode())
+						sock.send(buf)
+						i = i + 1
+
+					os.close(fd)
+					print('Trasferimento completato.. ')
+
+					#chiusura della connessione
+					connection.close()
+					#chiusura della socket
+					sock.close()
+					
 			except:
 				connection.close()
 				return False
