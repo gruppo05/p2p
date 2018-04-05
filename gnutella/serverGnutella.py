@@ -99,9 +99,7 @@ class GnutellaServer(object):
 				self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
 				
 				data = self.dbReader.fetchone() #retrieve the first row
-				print("dodododo")
 				if data is None:
-					print("zibibbo")
 					dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, IPP))
 					print(color.green + "Aggiunto nuovo user" + color.end)
 				else:
@@ -253,6 +251,15 @@ class GnutellaServer(object):
 				PP2P=int(PP2P)
 				print(PP2P)
 				TTL = connection.recv(2).decode()
+				
+				self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
+				
+				data = self.dbReader.fetchone() #retrieve the first row
+				if data is None:
+					dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, IPP))
+					print(color.green + "Aggiunto nuovo user" + color.end)
+				else:
+					print(color.fail + "User già presente" + color.end)
 				
 				#rispondo 
 				msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.myPort).ljust(5)
