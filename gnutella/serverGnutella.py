@@ -306,7 +306,7 @@ class GnutellaServer(object):
 				threading.Thread(target = self.startServer, args = (connection,client_address)).start()
 			except:
 				return False
-			
+	'''		
 	def startServer(self, connection, client_address):
 		command = connection.recv(4).decode()
 		try:
@@ -425,7 +425,7 @@ class GnutellaServer(object):
 		except:
 			connection.close()
 			return False
-				
+			'''	
 		
 if __name__ == "__main__":
     gnutella = GnutellaServer()
