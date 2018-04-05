@@ -50,6 +50,7 @@ class GnutellaServer(object):
 		self.myPort = 3000
 		self.myPortAnear = 50001
 		
+		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
@@ -83,7 +84,7 @@ class GnutellaServer(object):
 			connection, client_address = self.sock5k1.accept()
 			print ("Ricevo " + connection.rev(4).decode())
 	'''			
-	def attesaVicini(self):
+	'''def attesaVicini(self):
 		#dovrebbe durare 300s
 		#drop near db
 		while True:
@@ -176,7 +177,7 @@ class GnutellaServer(object):
 						print(color.fail + "User già presente" + color.end)
 			except:
 				print("erroreee")
-				
+				'''
 	def internalServer(self):
 		print(color.green+"In attesa di comandi interni..."+color.end)
 		while True:
@@ -184,7 +185,7 @@ class GnutellaServer(object):
 			command = data.decode()
 			print("Ricevuto comando dal client: "+color.recv+command+color.end)
 			if command == "NEAR":
-				threading.Thread(target = self.attesaVicini, args = '').start()
+				#threading.Thread(target = self.attesaVicini, args = '').start()
 				myPktid = PktidGenerator()
 				TTL = setNumber(2)
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
@@ -436,6 +437,21 @@ class GnutellaServer(object):
 				#chiusura della socket
 				sock.close()
 				
+			elif command == "ANEA":
+				#verifica che la differnza del time stamp del packet id sia minore di 300
+				Pktid = connection.recv(16).decode()
+				IPP2P = connection.recv(55).decode()
+				PP2P = connection.recv(5).decode()
+			
+				#verifico se l'utente è già salvato nel db oppure lo aggiungo
+				self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
+			
+				data = self.dbReader.fetchone() #retrieve the first row
+				if data is None:
+					self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, PP2P))
+					print(color.green + "Aggiunto nuovo user" + color.end)
+				else:
+					print(color.fail + "User già presente" + color.end)	
 		except:
 			connection.close()
 			return False
