@@ -39,12 +39,12 @@ class color:
 
 class GnutellaServer(object):
 	def __init__(self):
-		IP = "192.168.43.135"
+		IP = "192.168.178.26"
 		PORT = 3000
-		UDP_IP = "127.0.0.1"
+		UDP_IP = "192.168.178.26"
 		UDP_PORT = 49999
 		#MODIFICAMI CON IL TUO IP
-		self.myIPP2P = "192.168.043.135|0000:0000:0000:0000:0000:0000:0000:0001"
+		self.myIPP2P = "192.168.178.026|0000:0000:0000:0000:0000:0000:0000:0001"
 		self.myPort = 3000
 		
 		# Creo DB
