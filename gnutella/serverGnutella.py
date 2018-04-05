@@ -40,7 +40,7 @@ class color:
 
 class GnutellaServer(object):
 	def __init__(self):
-		IP = "192.168.43.73"
+		IP = ""
 		PORT = 3000
 		UDP_IP = "127.0.0.1"
 		UDP_PORT = 49999
@@ -152,7 +152,7 @@ class GnutellaServer(object):
 					resultFile = self.dbReader.fetchall()
 
 					files[0] = ("0","0","0")
-					int i = 1
+					i = 1
 					for resultFile in resultFile:
 						files[i] = (resultFile[0], resultFile[1], resultFile[2])
 						print(i + " - " + resultFile[1])
