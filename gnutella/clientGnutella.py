@@ -57,6 +57,9 @@ class GnutellaClient(object):
 			elif cmd is "2":
 				print("INIZIO RICERCA FILE")
 				self.sock.sendto(("QUER").encode(), (self.UDP_IP, self.UDP_PORT))
+				fileDaCercare = input("Inserisci file che vuoi cercare:")
+				self.sock.sendto((fileDaCercare.ljust(20)).encode(),(self.UDP_IP, self.UDP_PORT))
+
 			elif cmd is "3":
 				print("INIZIO DOWNLOAD")
 				self.sock.sendto(("RETR").encode(), (self.UDP_IP, self.UDP_PORT))
