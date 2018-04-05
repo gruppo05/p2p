@@ -100,7 +100,7 @@ class GnutellaServer(object):
 				
 				data = self.dbReader.fetchone() #retrieve the first row
 				if data is None:
-					dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, IPP))
+					dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, PP2P))
 					print(color.green + "Aggiunto nuovo user" + color.end)
 				else:
 					print(color.fail + "User già presente" + color.end)
@@ -256,7 +256,7 @@ class GnutellaServer(object):
 				
 				data = self.dbReader.fetchone() #retrieve the first row
 				if data is None:
-					dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, IPP))
+					dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, PP2P))
 					print(color.green + "Aggiunto nuovo user" + color.end)
 				else:
 					print(color.fail + "User già presente" + color.end)
