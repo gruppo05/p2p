@@ -3,10 +3,10 @@ from random import *
 
 def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS user")
-	self.dbReader.execute("DROP TABLE IF EXISTS file")
+	#self.dbReader.execute("DROP TABLE IF EXISTS file")
 	#self.dbReader.execute("DROP TABLE IF EXISTS download")
 	self.dbReader.execute("CREATE TABLE user (IPP2P text, PP2P text)")
-	self.dbReader.execute("CREATE TABLE file (Filemd5 text, Filename text, IPP2P text)")
+	#self.dbReader.execute("CREATE TABLE file (Filemd5 text, Filename text, SessionID text)")
 	#self.dbReader.execute("CREATE TABLE download (Filemd5 text, Download integer)")
 
 def PktidGenerator():
@@ -40,16 +40,16 @@ class color:
 
 class GnutellaServer(object):
 	def __init__(self):
-		IP = "192.168.43.73"
-		PORT = 3000
+		IP = "192.168.43.135"
+		self.PORT = 3000
+		
 		UDP_IP = "127.0.0.1"
 		UDP_PORT = 49999
 		#MODIFICAMI CON IL TUO IP
-		self.myIPP2P = "192.168.043.073|0000:0000:0000:0000:0000:0000:0000:0001"
+		self.myIPP2P = "192.168.043.135|0000:0000:0000:0000:0000:0000:0000:0001"
 		self.myPort = 3000
-		
 		self.myPortAnear = 50001
-		self.myPortQuer = 50002
+		
 		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -61,7 +61,7 @@ class GnutellaServer(object):
 		self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('192.168.043.135|0000:0000:0000:0000:0000:0000:0000:0001', '3000')")
 		
 		# Socket ipv4/ipv6 port 3000
-		self.server_address = (IP, PORT)
+		self.server_address = (IP, self.PORT)
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.sock.bind(self.server_address)
@@ -76,54 +76,107 @@ class GnutellaServer(object):
 		self.sock5k1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.sock5k1.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.sock5k1.bind(self.server5k1)
-		self.sock5k1.listen(5)
-	
+		self.sock5k1.listen(5)		
+
+	'''def attesaDownload(self):
 		
-	def attesaVicini(self):
+		while True:
+			connection, client_address = self.sock5k1.accept()
+			print ("Ricevo " + connection.rev(4).decode())
+		def attesaVicini(self):
 		#dovrebbe durare 300s
 		#drop near db
 		while True:
-			connection, client_address = self.sock5k1.accept()
-			print("RICEVO "+connection.recv(4).decode())
-			
-			Pktid = connection.recv(16).decode()
-			IPP2P = connection.recv(55).decode()
-			PP2P = connection.recv(5).decode()
-			
-			#verifico se l'utente è già salvato nel db oppure lo aggiungo
-			dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
-			data = dbReader.fetchone() #retrieve the first row
-			if data is None:
-				dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, IPP))
-				print(color.green + "Aggiunto nuovo user" + color.end)
-			else:
-				print(color.fail + "User già presente" + color.end)
-			
-	
-	'''def attesaRicerca(self)
-		while True:
-			connection, client_address = self.sock5k1.accept()
-			#ricevo AQUE
-			print("RICEVO: "+connection.recv(4).decode())
+			try:
+				connection, client_address = self.sock5k1.accept()
+				cmd=connection.recv(4).decode()
+				print("RICEVO "+cmd)
+				
+				if cmd == "NEAR":
+					Pktid = connection.recv(16).decode()
+					IPP2P = connection.recv(55).decode()
+					IPP2P_IPv4 = IPP2P[0:15]
+					IPP2P_IPv6 = IPP2P[16:55]
+					IPP2P_IPv4 = splitIp(IPP2P_IPv4)
+					print(IPP2P)
+					PP2P = connection.recv(5).decode()
+					PP2P=int(PP2P)
+					print(PP2P)
+					TTL = connection.recv(2).decode()
+				
+					self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
+				
+					data = self.dbReader.fetchone() #retrieve the first row
+					if data is None:
+						self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, PP2P))
+						print(color.green + "Aggiunto nuovo user" + color.end)
+					else:
+						print(color.fail + "User già presente" + color.end)
+				
+					#rispondo 
+					msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.myPort).ljust(5)
+					print("Invio --> " + color.send + msg + color.end)
+				
+					peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+					peer_socket.connect((IPP2P_IPv4,PP2P))
+					peer_socket.sendall(msg.encode())
+					peer_socket.close()
+				
+					TTL = setNumber(int(TTL) - 1)
+					if int(TTL) > 0:
 
-			pktid = connection.recv(16).decode()
-			IPP2P = connection.recv(55).decode()
-			PP2P = connection.recv(5).decode()
-			filemd5 = connection.recv(16).decode()
-			filename = connection.recv(100).decode()
+						msg = "NEAR" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
+						print("STAMPO IL MIE")
+						print(msg)
+						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=?", (IPP2P,self.myIPP2P,))
+						resultUser = self.dbReader.fetchall()
+					
+						for user in resultUser:
+							#rnd = random()
+							rnd = 0.1
+							if(rnd<0.5):
+								IPP2P = user[0][0:15]
+								IPP2P = splitIp(IPP2P)
 
-			dbReader.execute("INSERT INTO File (Filemd5, Filename, IPP2P) values (?,?,?)",(filemd5,filename,IPP2P))
-			#verifico se l'utente che mi ha risposto lo conosco, altrimenti lo aggiungo nel db
-			dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?",(IPP2P,))
-			data = dbReader.fetchone()
-			if data in None:
-				dbReader.execute("INSERT INTO user (IPP2P,PP2P) values (?,?)",(IPP2P,PP2P))
-				print(color.green + "Aggiunto nuovo user" + color.end)
-			else:
-				print(color.fail + "User già presente" + color.end)
-	'''				
+								PP2P=int(user[1])
+					
+								#fix problem ipv4
+								#IPP2P = ipaddress.ip_address(IPP2P)
+							
+								print(color.green+"Connessione IPv4:"+IPP2P+color.end)
+					
+								peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+								peer_socket.connect((IPP2P,PP2P))
+								print(color.green+"Connessione stabilita"+color.end);
 	
-	
+							else:
+								IPP2P = user[0][16:55]
+								print("Connetto con IPv6:", IPP2P)
+								break
+								#da testare
+								connection=creazioneSocketIPv6(IPP2P,user[1])
+		
+							print("Invio --> " + color.send + msg + color.end)
+							peer_socket.sendall(msg.encode())
+							peer_socket.close()
+			
+				if cmd == "ANEA":
+					Pktid = connection.recv(16).decode()
+					IPP2P = connection.recv(55).decode()
+					PP2P = connection.recv(5).decode()
+				
+					#verifico se l'utente è già salvato nel db oppure lo aggiungo
+					self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
+				
+					data = self.dbReader.fetchone() #retrieve the first row
+					if data is None:
+						self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, PP2P))
+						print(color.green + "Aggiunto nuovo user" + color.end)
+					else:
+						print(color.fail + "User già presente" + color.end)
+			except:
+				print("erroreee")
+				'''
 	def internalServer(self):
 		print(color.green+"In attesa di comandi interni..."+color.end)
 		while True:
@@ -131,7 +184,7 @@ class GnutellaServer(object):
 			command = data.decode()
 			print("Ricevuto comando dal client: "+color.recv+command+color.end)
 			if command == "NEAR":
-				threading.Thread(target = self.attesaVicini, args = (data,addr)).start()
+				#threading.Thread(target = self.attesaVicini, args = '').start()
 				myPktid = PktidGenerator()
 				TTL = setNumber(2)
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
@@ -144,15 +197,19 @@ class GnutellaServer(object):
 					if(rnd<0.5):
 						IPP2P = user[0][0:15]
 						IPP2P = splitIp(IPP2P)
-		
+
+						PP2P=int(user[1])
+						
 						#fix problem ipv4
 						#IPP2P = ipaddress.ip_address(IPP2P)
-						#PP2P=int(user[1])
+						
+						
 				
-						print("Connetto con IPv4:",IPP2P+"  PORT -> ",PP2P)
-				
+						print(color.green+"Connessione IPv4:"+IPP2P+color.end)
+						
 						peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-						peer_socket.connect((IPP2P,PORT))
+						peer_socket.connect((IPP2P,PP2P))
+						print(color.green+"Connessione stabilita"+color.end);
 		
 					else:
 						IPP2P = user[0][16:55]
@@ -165,70 +222,73 @@ class GnutellaServer(object):
 					peer_socket.sendall(msg.encode())
 					peer_socket.close()
 					
-				'''if command == "QUER":
+				if command == "QUER":
 					print("Ricevuto comando dal client: "+color.recv+command+color.end)
-					threading.Thread(target = self.attesaRicerca, args = (data,addr)).start()					#leggo la ricerca che mi arriva dal client					
+					threading.Thread(target = self.attesaRicerca, args = (data,addr)).start()
 					ricerca = self.sockUDP.recvfrom(20)
-					myPktid = PktidGenerator()
-					TTL = setNumber(2)
-					dbReader.execute("SELECT * FROM user")
-					resultUser = self.dbReader.fetchall()
 					
-					for user in resultUser:
-						#rnd = random()
-						rnd = 0.1
-						if(rnd<0.5):
-							IPP2P = user[0][0:15]
-							IPP2P = splitIp(IPP2P)
-		
-							#fix problem ipv4
-							#IPP2P = ipaddress.ip_address(IPP2P)
-							#PP2P=int(user[1])
-				
-							print("Connetto con IPv4:",IPP2P+"  PORT -> ",PP2P)
-				
-							peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-							peer_socket.connect((IPP2P,PORT))
-		
-						else:
-							IPP2P = user[0][16:55]
-							print("Connetto con IPv6:", IPP2P)
-							break
-							#da testare
-							connection=creazioneSocketIPv6(IPP2P,user[1])
-
-						msg="QUER" + myPktid + self.myIPP2P + str(self.myPortQuer).ljust(5) + TTL + ricerca
-						print("Invio --> " + color.send + msg + color.end)
-						peer_socket.sendall(msg.encode())
-						peer_socket.close()
-
-				'''
-
-
+					
 				if command == "RETR":
-					print("Ricevuto comando dal client: "+color.recv+command+color.end)
-					print("Download")
-					print("Quale file vuoi scaricare?")
+					'''print("Ricevuto comando dal client: "+color.recv+command+color.end)
 					self.dbReader.execute("SELECT * FROM File WHERE IPP2P != ?", (IP,))
 					resultFile = self.dbReader.fetchall()
 
-					files[0] = ("0","0","0")
-					int i = 1
-					for resultFile in resultFile:
-						files[i] = (resultFile[0], resultFile[1], resultFile[2])
-						print(i + " - " + resultFile[1])
-
-					code = input("\n ")	
-
-					connection.sendall(("RETR" + files[code][0]).encode)
+					i = 0
+					if len(resultFile) == 1:
+						lunghezza = "0" + str(len(resultFile))
+					else:
+						lunghezza = str(len(resultFile))
+					
+					for result in resultFile:
+						
+						if i == 0:
+							self.sock.sendto(lunghezza).encode(), (selfUDP_IP, selfUDP_PORT))
+							
+						files[i] = (result[0], result[1], result[2])
+						print(i + " - " + result[1])
+						self.sock.sendto((result[1]).encode(), (self.UDP_IP, self.UDP_PORT))
+	
+					code = self.sockUDP.recvfrom(2)
+					
+					if code == -1:
+						print("Download annullato.")
+						break
+					if len(resultFile[code][0]) == 0:
+						print("Codice sbagliato.")
+						break
+					
+					threading.Thread(target = self.attesaDownload, args = (data,addr)).start()
+					
+					msg = "RETR" + 	resultFile[code][0]
+					
+					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P = ?", (IPP2P,))
+					utente = self.dbReader.fetchone()
+					#rnd = random()
+					rnd = 0.1
+					if rnd < 0.5
+						IPP2P = utente[0][0:15]
+						IPP2P = splitIp(IPP2P)
+						PP2P = int(utente[1])
+						
+						print("connetto con ipv4 " + IPP2P + " PORT ->" +PP2P )
+						
+						peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+						peer_socket.connect((IPP2P,PP2P))
+						
+					else:
+						IPP2P = utente[0][16:55]
+						print("Connetto con ipv6 " + IPP2P)
+						#da finire
+						
+						
+					print("Invio --> "+ color.send + msg + color.end)	
+					peer_socket.sendall((msg).encode)
+					peer_socket.close()'''
 					
 			if command == "RETR":
 				print("Ricevuto comando dal client: "+color.recv+command+color.end)
 			print("\n")
 	
-	
-	
-		
 	def server(self):
 		#crea thread interno per far comunicare client e server
 		threading.Thread(target = self.internalServer, args = '').start()
@@ -238,204 +298,149 @@ class GnutellaServer(object):
 		while True:
 			try:
 				connection, client_address = self.sock.accept()
-				print("ciaciceoijwieoo")
+				print("SONO NEL SERVER PRINCIPALE")
 				#connection.settimeout(60)
 				threading.Thread(target = self.startServer, args = (connection,client_address)).start()
 			except:
 				return False
 			
 	def startServer(self, connection, client_address):
-		while True:
-			command = connection.recv(4).decode()
-			print("ciao")
-			try:
-				if command == "NEAR":
-					Pktid = connection.recv(16).decode()
-					IPP2P = connection.recv(55).decode()
-					PP2P = connection.recv(5).decode()
-					TTL = connection.recv(2).decode()
-					
-					#rispondo 
-					msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.myPort).ljust(5)
-					print("Invio --> " + color.send + msg + color.end)
-					connection.sendall(msg.encode())
-					connection.close()
-					
-					if int(TTL) == 1:
-						break
-					else:
-						TTL = setNumber(int(TTL) - 1)
-						
+		command = connection.recv(4).decode()
+		try:
+			if command == "NEAR":
+				Pktid = connection.recv(16).decode()
+				IPP2P = connection.recv(55).decode()
+				IPP2P_IPv4 = IPP2P[0:15]
+				IPP2P_IPv6 = IPP2P[16:55]
+				IPP2P_IPv4 = splitIp(IPP2P_IPv4)
+				print(IPP2P)
+				PP2P = connection.recv(5).decode()
+				PP2P=int(PP2P)
+				print(PP2P)
+				TTL = connection.recv(2).decode()
+				
+				self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
+				
+				data = self.dbReader.fetchone() #retrieve the first row
+				if data is None:
+					self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, PP2P))
+					print(color.green + "Aggiunto nuovo user" + color.end)
+				else:
+					print(color.fail + "User già presente" + color.end)
+				
+				#rispondo 
+				msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.myPort).ljust(5)
+				print("Invio --> " + color.send + msg + color.end)
+				
+				peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+				peer_socket.connect((IPP2P_IPv4,PP2P))
+				peer_socket.sendall(msg.encode())
+				peer_socket.close()
+				
+				TTL = setNumber(int(TTL) - 1)
+				if int(TTL) > 0:
+
 					msg = "NEAR" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
-					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=?", (IPP2P,))
+					print("STAMPO IL MIE")
+					print(msg)
+					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=?", (IPP2P,self.myIPP2P,))
 					resultUser = self.dbReader.fetchall()
 					
 					for user in resultUser:
 						#rnd = random()
-						#rnd = 0.1
+						rnd = 0.1
 						if(rnd<0.5):
 							IPP2P = user[0][0:15]
-							print(IPP2P)
+							IPP2P = splitIp(IPP2P)
+
+							PP2P=int(user[1])
+					
 							#fix problem ipv4
 							#IPP2P = ipaddress.ip_address(IPP2P)
-							PP2P=int(user[1])
-							print("Connetto con IPv4:", IPP2P)
+							
+							print(color.green+"Connessione IPv4:"+IPP2P+color.end)
+					
 							peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 							peer_socket.connect((IPP2P,PP2P))
-						
+							print(color.green+"Connessione stabilita"+color.end);
+	
 						else:
 							IPP2P = user[0][16:55]
 							print("Connetto con IPv6:", IPP2P)
 							break
 							#da testare
 							connection=creazioneSocketIPv6(IPP2P,user[1])
-	
+		
 						print("Invio --> " + color.send + msg + color.end)
 						peer_socket.sendall(msg.encode())
 						peer_socket.close()
-					
-					
-					
-		
-				'''
-				elif command == "QUER":
-					print("QUER")
-					pktid = connection.recv(16).decode()
-					ipp2p = connection.recv(39).decode()
-					pp2p = connection.recv(5).decode()
-					ttl = connection.recv(2).decode()
-					ricerca = = connection.recv(20).decode()
-
-					print "[QUER] Ricevuta da: " + ipp2p + " , con Pktid: " + pktid + " , con TTL: " + ttl + " , ricerca: " + ricerca + " ."
-					#controllo che il pacchetto che mi è arrivato non l'ho già ricevuto
-					dbReader.execute("SELECT * FROM pacchetto WHERE PacketId = ?", (pktid,))
-        				data = dbReader.fetchOne()
-					
-					if data is None:
-					    #non ho mai ricevuto il pacchetto, prima di andarlo a considerare, lo memorizzo
-					    self.dbReader.execute("INSERT INTO pacchetto (PacketId)", (pktid,))
-
-					    #ora vado avanti con il resto
-
-					    #ttl > 1 : decremento ttl poi ripropago (devo fare in modo di non rimandare il pkt a chi ha fatto la richiesta se l'ho tra i vicini
-					    #ttl = 0 : rispondo solo io alla richiesta se possibile
-					    if int(ttl)>1:
-						ttl = ttl - 1
-
-						#prendo la lista vicini per poi andare a mandare il pacchetto da ritrasmettere
-						self.dbReader.execute( "SELECT * FROM vicini " )
-						data = self.dbReader.fetchAll()
-
-						for n in data:
-						    if data[n][0] != ipp2p and data[n][1] != pp2p: # rimando il pacchetto a tutti tranne quelli che me lo hanno rimandato
-
-							#rnd=random()
-							rnd=0.1
-							if(rnd < 0.5):
-								#ipv4
-								print("Connetto ad IPv4: "+data[0][0:15]+" , "+ int(data[1]))
-								peer_socket=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-								peer_socket.connect((data[0][0:15],data[1]))
-							else:
-								print("Connetto con IPv6: "+data[0][16:55]+" , "+data[1])
-								peer_socket=socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-								peer_socket.connect((data[0][16:55],data[1]))
 			
-							msg="QUER"+pktid+ipp2p+pp2p+ttl+ricerca
-							print("Invio: "+msg)
-							peer_socket.sendall((msg).encode())
-							peer_socket.close()
-							    
-					    #ora che ho rimandato il pacchetto, sia in un caso (ttl=1) che l'altro (ttl=0), devo fare la ricerca in mezzo ai miei di file
-					    
-					    #ricerco se tra i miei file c'è quello desiderato
-					    self.dbReader.execute("SELECT * FROM file WHERE Filename LIKE ?", ('%' + ricerca + '%',))
-					    data = self.dbReader.fetchAll()
-					    #se NON ho risultati...
-					    if data in None:
-						print "Nessun dato nel mio fileSystem che contiene: " + ricerca
-						return false
-					    else
-						for n in data:
-			
-							#rnd=random()
-							rnd=0.1
-							if(rnd < 0.5):
-								print("Connetto ad IPv4: "+ipp2p+" , "+ int(pp2p))
-								peer_socket=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-								peer_socket.connect((ipp2p,int(pp2p)))
-							else:
-								print("Connetto con IPv6: "+ipp2p+" , "+int(pp2p))
-								peer_socket=socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-								peer_socket.connect((ipp2p,int(pp2p)))
-			
-							msg="AQUE"+pktid+ self.myIPP2P.ljust(55) + str(self.myPort).ljust(5) + filemd5 + ricerca
-							print("Invio: "+msg)
-							peer_socket.sendall((msg).encode())
-							peer_socket.close()
+			elif command == "QUER":
+				print("QUER")
+			elif command == "RETR":
+				print("RETR")
 				
-					else:
-					    print "Già ricevuto PKT con Pktid: " + pktid + " , non rispondo"
+				#inviare un file che ho
+				#leggo il filemd5 dal client o dalla connessione?
+				FileMD5 = connection.recv(55).decode()
+				
+				
+				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
+				resultFile = self.dbReader.fetchone()
+				f = os.open(str(resultFile), os.O_RDONLY)
 
-			'''
-	
-				elif command == "RETR":
-					print("RETR")
-					
-					#inviare un file che ho
-					#leggo il filemd5 dal client o dalla connessione?
-					FileMD5 = connection.recv(55).decode()
-					
-					
-					self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
-					resultFile = self.dbReader.fetchone()
-					f = os.open(str(resultFile), os.O_RDONLY)
+				filesize = os.fstat(fd)[stat.ST.SIZE]
+				nChunck = filesize / 4096
 
-					filesize = os.fstat(fd)[stat.ST.SIZE]
-					nChunck = filesize / 4096
+				if (filesize % 4096)!= 0:
+					nChunk = nChunk + 1
 
-					if (filesize % 4096)!= 0:
-						nChunk = nChunk + 1
+				nChunk = int(float(nChunk))
+				pacchetto = "ARET" + str(nChunk).zfill(6)
+				sock.send(pacchetto.encode())
+				print ('Trasferimento in corso di ', resultFile, '[BYTES ', filesize, ']')
 
-					nChunk = int(float(nChunk))
-					pacchetto = "ARET" + str(nChunk).zfill(6)
-					sock.send(pacchetto.encode())
-					print ('Trasferimento in corso di ', resultFile, '[BYTES ', filesize, ']')
+				i = 0
 
-					i = 0
+				while i < nChunk:
+					buf = os.read(fd,4096)
+					if not buf: break
+					lbuf = len(buf)
+					lbuf = str(lBuf).zfill(5)
+					sock.send(lBuf.encode())
+					sock.send(buf)
+					i = i + 1
 
-					while i < nChunk:
-						buf = os.read(fd,4096)
-						if not buf: break
-						lbuf = len(buf)
-						lbuf = str(lBuf).zfill(5)
-						sock.send(lBuf.encode())
-						sock.send(buf)
-						i = i + 1
+				os.close(fd)
+				print('Trasferimento completato.. ')
 
-					os.close(fd)
-					print('Trasferimento completato.. ')
-
-					#chiusura della connessione
-					connection.close()
-					#chiusura della socket
-					sock.close()
-					
-			except:
+				#chiusura della connessione
 				connection.close()
-				return False
+				#chiusura della socket
+				sock.close()
+				
+			elif command == "ANEA":
+				#verifica che la differnza del time stamp del packet id sia minore di 300
+				Pktid = connection.recv(16).decode()
+				IPP2P = connection.recv(55).decode()
+				PP2P = connection.recv(5).decode()
+			
+				#verifico se l'utente è già salvato nel db oppure lo aggiungo
+				self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
+			
+				data = self.dbReader.fetchone() #retrieve the first row
+				if data is None:
+					self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, PP2P))
+					print(color.green + "Aggiunto nuovo user" + color.end)
+				else:
+					print(color.fail + "User già presente" + color.end)	
+		
+		except:
+			connection.close()
+			return False
+				
 		
 if __name__ == "__main__":
     gnutella = GnutellaServer()
 gnutella.server()
-
-
-
-
-
-
-
-
-
-
 
