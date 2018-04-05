@@ -41,15 +41,15 @@ class color:
 class GnutellaServer(object):
 	def __init__(self):
 
-		IP = "192.168.43.135"
-		self.PORT = 3000
+		IP = "192.168.43.131"
+		self.PORT = 4000
 
 		UDP_IP = "127.0.0.1"
 		UDP_PORT = 49999
 		
 		#MODIFICAMI CON IL TUO IP
-		self.myIPP2P = "192.168.043.135|0000:0000:0000:0000:0000:0000:0000:0001"
-		self.myPort = 3000		
+		self.myIPP2P = "192.168.043.131|0000:0000:0000:0000:0000:0000:0000:0001"
+		self.myPort = 4000		
 
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -281,7 +281,26 @@ class GnutellaServer(object):
 			if command == "RETR":
 				print("Ricevuto comando dal client: "+color.recv+command+color.end)
 			print("\n")
-	
+			if command == "STMF":
+				#stampo i file 
+				self.dbReader.execute("SELECT * FROM File")
+
+				files = self.dbReader.fetchall()
+
+				for f in files:
+					print("Filemd5: " + f[0] + " Filename: " + f[1] + " IPP2P: " + f[3])
+
+			if command == "STMV":
+				#stampo i vicini
+				print("ciao")
+				self.dbReader.execute("SELECT * FROM user")
+
+				vicini = self.dbReader.fetchall()
+
+				for v in vicini:
+					print("IPP2P: " + v[0] + " PORT: " + v[1])
+
+
 	def server(self):
 		#crea thread interno per far comunicare client e server
 		threading.Thread(target = self.internalServer, args = '').start()
@@ -429,24 +448,7 @@ class GnutellaServer(object):
 				else:
 					print(color.fail + "User già presente" + color.end)	
 			
-			elif command == "STMF":
-				#stampo i file 
-				self.dbReader.execute("SELECT * FROM File")
-				
-				files = self.dbReader.fetchall()
-				
-				for f in files:
-					print("Filemd5: " + f[0] + " Filename: " + f[1] + " IPP2P: " + f[3])
-			
-			elif command == "STMV":
-				#stampo i vicini
-				self.dbReader.execute("SELECT * FROM User")
-				
-				vicini = self.dbReader.fetchall()
-				
-				for v in vicini:
-					print("IPP2P: " + v[0] + " PORT: " + v[1])
-		
+					
 		except:
 			connection.close()
 			return False
