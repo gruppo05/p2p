@@ -14,9 +14,6 @@ class color:
 def startServer():
 	os.system("gnome-terminal -e 'sh -c \"python3 serverGnutella.py\"'")
 
-def stopServer():
-	plt.close('all')
-
 def printMenu():
 	print(color.recv+"  ____  "+ color.green+"        "+ color.send+"        "+ color.fail+" _    "+ color.recv+"       "+ color.green+" _  "+ color.send+" _  "+ color.green+"        "+ color.fail+"  ____  _____   ____  "+ color.end)
 	print(color.recv+" / ___| "+ color.green+" _ __   "+ color.send+" _   _  "+ color.fail+"| |_  "+ color.recv+"  ___  "+ color.green+"| | "+ color.send+"| | "+ color.green+"  __ _  "+ color.fail+" |  _ \ \__  \ |  _ \ "+ color.end)
@@ -60,6 +57,22 @@ class GnutellaClient(object):
 			elif cmd is "3":
 				print("INIZIO DOWNLOAD")
 				self.sock.sendto(("RETR").encode(), (self.UDP_IP, self.UDP_PORT))
+				'''print("Quale file vuoi scaricare?")
+				self.dbReader.execute("SELECT * FROM File WHERE IPP2P != ?", (IP,))
+				resultFile = self.dbReader.fetchall()
+
+				files[0] = ("0","0","0")
+				i = 1
+				for resultFile in resultFile:
+					files[i] = (resultFile[0], resultFile[1], resultFile[2])
+					print(i + " - " + resultFile[1])
+
+				code = input("\n ")	
+				
+				#la connessione avviene sul client o sul server??
+				self.sock.sendto(("RETR").encode(), (self.UDP_IP, self.UDP_PORT))
+				connection.sendall(("RETR" + files[code][0]).encode())'''
+			
 			elif cmd is "4":
 				print("STAMPA TUTTI I VICINI")
 				self.sock.sendto(("STMV").encode(), (self.UDP_IP, self.UDP_PORT))
@@ -67,7 +80,7 @@ class GnutellaClient(object):
 				print("STAMPA TUTTI I FILE TROVATI")
 				self.sock.sendto(("STMF").encode(), (self.UDP_IP, self.UDP_PORT))
 			elif cmd is "6":
-				stopServer()
+				#stopServer()
 				os._exit(0)
 			print("\n")
 			
