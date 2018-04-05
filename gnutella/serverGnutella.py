@@ -75,9 +75,14 @@ class GnutellaServer(object):
 		self.sock5k1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.sock5k1.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.sock5k1.bind(self.server5k1)
-		self.sock5k1.listen(5)
-	
+		self.sock5k1.listen(5)		
+
+	def attesaDownload(self):
 		
+		while True:
+			connection, client_address = self.sock5k1.accept()
+			print ("Ricevo " + connection.rev(4).decode())
+				
 	def attesaVicini(self):
 		#dovrebbe durare 300s
 		#drop near db
@@ -103,9 +108,7 @@ class GnutellaServer(object):
 					print(color.fail + "User già presente" + color.end)
 			except:
 				print("erroreee")
-			
-	
-	
+				
 	def internalServer(self):
 		print(color.green+"In attesa di comandi interni..."+color.end)
 		while True:
@@ -153,22 +156,66 @@ class GnutellaServer(object):
 					
 				if command == "QUER":
 					print("Ricevuto comando dal client: "+color.recv+command+color.end)
+					threading.Thread(target = self.attesaRicerca, args = (data,addr)).start()
+					ricerca = self.sockUDP.recvfrom(20)
+					
+					
 				if command == "RETR":
 					print("Ricevuto comando dal client: "+color.recv+command+color.end)
-					print("Download")
-					print("Quale file vuoi scaricare?")
 					self.dbReader.execute("SELECT * FROM File WHERE IPP2P != ?", (IP,))
 					resultFile = self.dbReader.fetchall()
 
-					files[0] = ("0","0","0")
-					i = 1
-					for resultFile in resultFile:
-						files[i] = (resultFile[0], resultFile[1], resultFile[2])
-						print(i + " - " + resultFile[1])
-
-					code = input("\n ")	
-
-					connection.sendall(("RETR" + files[code][0]).encode)
+					i = 0
+					if len(resultFile) == 1:
+						lunghezza = "0" + str(len(resultFile))
+					else
+						lunghezza = str(len(resultFile))
+					
+					for result in resultFile:
+						
+						if i == 0:
+							self.sock.sendto(lunghezza).encode, (selfUDP_IP, selfUDP_PORT))
+							
+						files[i] = (result[0], result[1], result[2])
+						print(i + " - " + result[1])
+						self.sock.sendto((result[1]).encode(), (self.UDP_IP, self.UDP_PORT))
+	
+					code = self.sockUDP.recvfrom(2)
+					
+					if code == -1:
+						print("Download annullato.")
+						break
+					if len(resultFile[code][0]) == 0:
+						print("Codice sbagliato.")
+						break
+					
+					threading.Thread(target = self.attesaDownload, args = (data,addr)).start()
+					
+					msg = "RETR" + 	resultFile[code][0]
+					
+					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P = ?", (IPP2P,))
+					utente = self.dbReader.fetchone()
+					#rnd = random()
+					rnd = 0.1
+					if rnd < 0.5
+						IPP2P = utente[0][0:15]
+						IPP2P = splitIp(IPP2P)
+						PP2P = int(utente[1])
+						
+						print("connetto con ipv4 " + IPP2P + " PORT ->" +PP2P )
+						
+						peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+						peer_socket.connect((IPP2P,PP2P))
+						
+					else:
+						IPP2P = utente[0][16:55]
+						print("Connetto con ipv6 " + IPP2P)
+						#da finire
+						
+						
+					print("Invio --> "+ color.send + msg + color.end)	
+					peer_socket.sendall((msg).encode)
+					peer_socket.close()
 					
 			if command == "RETR":
 				print("Ricevuto comando dal client: "+color.recv+command+color.end)
