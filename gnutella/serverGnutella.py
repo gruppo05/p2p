@@ -40,7 +40,7 @@ class color:
 
 class GnutellaServer(object):
 	def __init__(self):
-		IP = "192.168.43.135"
+		IP = "192.168.43.73"
 		self.PORT = 3000
 		
 		UDP_IP = "127.0.0.1"
@@ -200,8 +200,9 @@ class GnutellaServer(object):
 				if command == "NEAR":
 					Pktid = connection.recv(16).decode()
 					IPP2P = connection.recv(55).decode()
-					IPP2P = IPP2P[0:15]
-					IPP2P = splitIp(IPP2P)
+					IPP2P_IPv4 = IPP2P[0:15]
+					IPP2P_IPv6 = IPP2P[16:55]
+					IPP2P_IPv4 = splitIp(IPP2P_IPv4)
 					print(IPP2P)
 					PP2P = connection.recv(5).decode()
 					PP2P=int(PP2P)
@@ -213,51 +214,44 @@ class GnutellaServer(object):
 					print("Invio --> " + color.send + msg + color.end)
 					
 					peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-					
-					peer_socket.connect((IPP2P,PP2P))
+					peer_socket.connect((IPP2P_IPv4,PP2P))
 					peer_socket.sendall(msg.encode())
-					
 					peer_socket.close()
-					sleep(5)
 					
-					'''
-					if int(TTL) == 1:
-						#return
-						break
-					else:
+					if int(TTL) > 1:
 						TTL = setNumber(int(TTL) - 1)
+						msg = "NEAR" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
+						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=?", (IPP2P,))
+						resultUser = self.dbReader.fetchall()
 						
-					msg = "NEAR" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
-					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=?", (IPP2P,))
-					resultUser = self.dbReader.fetchall()
-					
-					for user in resultUser:
-						#rnd = random()
-						#rnd = 0.1
-						if(rnd<0.5):
-							IPP2P = user[0][0:15]
-							print(IPP2P)
-							#fix problem ipv4
-							#IPP2P = ipaddress.ip_address(IPP2P)
-							PP2P=int(user[1])
-							print("Connetto con IPv4:", IPP2P)
-							peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-							peer_socket.connect((IPP2P,PP2P))
+						for user in resultUser:
+							#rnd = random()
+							rnd = 0.1
+							if(rnd<0.5):
+								IPP2P = user[0][0:15]
+								IPP2P = splitIp(IPP2P)
+
+								PP2P=int(user[1])
 						
-						else:
-							IPP2P = user[0][16:55]
-							print("Connetto con IPv6:", IPP2P)
-							break
-							#da testare
-							connection=creazioneSocketIPv6(IPP2P,user[1])
-	
-						print("Invio --> " + color.send + msg + color.end)
-						peer_socket.sendall(msg.encode())
-						peer_socket.close()
-					
-					'''
-					
+								#fix problem ipv4
+								#IPP2P = ipaddress.ip_address(IPP2P)
+								
+								print(color.green+"Connessione IPv4:"+IPP2P+color.end)
+						
+								peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+								peer_socket.connect((IPP2P,PP2P))
+								print(color.green+"Connessione stabilita"+color.end);
 		
+							else:
+								IPP2P = user[0][16:55]
+								print("Connetto con IPv6:", IPP2P)
+								break
+								#da testare
+								connection=creazioneSocketIPv6(IPP2P,user[1])
+			
+							print("Invio --> " + color.send + msg + color.end)
+							peer_socket.sendall(msg.encode())
+							peer_socket.close()
 				
 				elif command == "QUER":
 					print("QUER")
