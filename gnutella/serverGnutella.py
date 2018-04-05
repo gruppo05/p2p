@@ -104,6 +104,7 @@ class GnutellaServer(object):
 					print(color.green + "Aggiunto nuovo user" + color.end)
 				else:
 					print(color.fail + "User già presente" + color.end)
+			
 			except:
 				print("erroreee")
 				
@@ -241,6 +242,7 @@ class GnutellaServer(object):
 		command = connection.recv(4).decode()
 		try:
 			if command == "NEAR":
+			
 				Pktid = connection.recv(16).decode()
 				IPP2P = connection.recv(55).decode()
 				IPP2P_IPv4 = IPP2P[0:15]
@@ -261,6 +263,7 @@ class GnutellaServer(object):
 				else:
 					print(color.fail + "User già presente" + color.end)
 				
+				
 				#rispondo 
 				msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.myPort).ljust(5)
 				print("Invio --> " + color.send + msg + color.end)
@@ -269,10 +272,10 @@ class GnutellaServer(object):
 				peer_socket.connect((IPP2P_IPv4,PP2P))
 				peer_socket.sendall(msg.encode())
 				peer_socket.close()
-				
+				print("\n TIME TO LIVE: " + TTL)
 				TTL = setNumber(int(TTL) - 1)
 				if int(TTL) > 0:
-					
+					print("\n TIME TO LIVE: " + TTL)
 					msg = "NEAR" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=?", (IPP2P,self.myIPP2P,))
 					resultUser = self.dbReader.fetchall()
