@@ -40,21 +40,30 @@ class color:
 
 class GnutellaServer(object):
 	def __init__(self):
+<<<<<<< HEAD
 		IP = "192.168.43.131"
+=======
+		IP = "192.168.43.73"
+>>>>>>> 05769e973eb1c1889553cf7a7db4ff7e2d02a14f
 		self.PORT = 3000
 		
 		UDP_IP = "127.0.0.1"
 		UDP_PORT = 49999
 		#MODIFICAMI CON IL TUO IP
+<<<<<<< HEAD
 		self.myIPP2P = "192.168.043.131|0000:0000:0000:0000:0000:0000:0000:0001"
 		self.myPort = 3000
 		#self.myPort = 50001
 		
+=======
+		self.myIPP2P = "192.168.043.073|0000:0000:0000:0000:0000:0000:0000:0001"
+		self.myPort = 5000		
+>>>>>>> 05769e973eb1c1889553cf7a7db4ff7e2d02a14f
 		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
-
+		
 		# Creo tabella user
 		clearAndSetDB(self)
 		#inserisco l'utente root
@@ -69,7 +78,13 @@ class GnutellaServer(object):
 		
 		# socket upd ipv4 internal Server
 		self.sockUDP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+<<<<<<< HEAD
 		self.sockUDP.bind((UDP_IP, UDP_PORT))	
+=======
+		self.sockUDP.bind((UDP_IP, UDP_PORT))
+		
+		
+>>>>>>> 05769e973eb1c1889553cf7a7db4ff7e2d02a14f
 
 	'''def attesaDownload(self):
 		
