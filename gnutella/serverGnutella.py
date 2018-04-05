@@ -3,10 +3,10 @@ from random import *
 
 def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS user")
-	#self.dbReader.execute("DROP TABLE IF EXISTS file")
+	self.dbReader.execute("DROP TABLE IF EXISTS file")
 	#self.dbReader.execute("DROP TABLE IF EXISTS download")
 	self.dbReader.execute("CREATE TABLE user (IPP2P text, PP2P text)")
-	#self.dbReader.execute("CREATE TABLE file (Filemd5 text, Filename text, SessionID text)")
+	self.dbReader.execute("CREATE TABLE file (Filemd5 text, Filename text, IPP2P text)")
 	#self.dbReader.execute("CREATE TABLE download (Filemd5 text, Download integer)")
 
 def PktidGenerator():
@@ -229,7 +229,7 @@ class GnutellaServer(object):
 					
 					
 				if command == "RETR":
-					'''print("Ricevuto comando dal client: "+color.recv+command+color.end)
+					print("Ricevuto comando dal client: "+color.recv+command+color.end)
 					self.dbReader.execute("SELECT * FROM File WHERE IPP2P != ?", (IP,))
 					resultFile = self.dbReader.fetchall()
 
@@ -242,7 +242,7 @@ class GnutellaServer(object):
 					for result in resultFile:
 						
 						if i == 0:
-							self.sock.sendto(lunghezza).encode(), (selfUDP_IP, selfUDP_PORT))
+							self.sock.sendto((lunghezza).encode(), (selfUDP_IP, selfUDP_PORT))
 							
 						files[i] = (result[0], result[1], result[2])
 						print(i + " - " + result[1])
@@ -265,7 +265,7 @@ class GnutellaServer(object):
 					utente = self.dbReader.fetchone()
 					#rnd = random()
 					rnd = 0.1
-					if rnd < 0.5
+					if rnd < 0.5:
 						IPP2P = utente[0][0:15]
 						IPP2P = splitIp(IPP2P)
 						PP2P = int(utente[1])
@@ -283,10 +283,22 @@ class GnutellaServer(object):
 						
 					print("Invio --> "+ color.send + msg + color.end)	
 					peer_socket.sendall((msg).encode)
-					peer_socket.close()'''
+					peer_socket.close()
 					
-			if command == "RETR":
+			if command == "STMV":
 				print("Ricevuto comando dal client: "+color.recv+command+color.end)
+				self.dbReader.execute("SELECT * FROM user")
+				vicini = self.dbReader.fetchall()
+				for v in vicini:
+					print("Utente IP: " + v[0] + " PORTA: " + v[1])
+					
+			if command == "STMF":
+				print("Ricevuto comando dal client "+color.recv+command+color.end)
+				self.dbReader.execute("SELECT * FROM File")
+				files = self.dbReader.fetchall()
+				for f in files:
+						print("Filemd5: " + files[0] + " Filename: " + files[1] + " IPP2P: " + files[2])
+					
 			print("\n")
 	
 	
@@ -307,7 +319,7 @@ class GnutellaServer(object):
 			except:
 				return False
 			
-	def startServer(self, connection, client_address):
+	'''def startServer(self, connection, client_address):
 		command = connection.recv(4).decode()
 		try:
 			if command == "NEAR":
@@ -427,7 +439,7 @@ class GnutellaServer(object):
 		except:
 			connection.close()
 			return False
-				
+	'''			
 		
 if __name__ == "__main__":
     gnutella = GnutellaServer()
