@@ -40,7 +40,7 @@ class color:
 
 class GnutellaServer(object):
 	def __init__(self):
-		IP = "192.168.43.73"
+		IP = "192.168.43.135"
 		self.PORT = 3000
 		
 		UDP_IP = "127.0.0.1"
@@ -195,18 +195,25 @@ class GnutellaServer(object):
 				if command == "NEAR":
 					Pktid = connection.recv(16).decode()
 					IPP2P = connection.recv(55).decode()
+					IPP2P = IPP2P[0:15]
+					IPP2P = splitIp(IPP2P)
+					print(IPP2P)
 					PP2P = connection.recv(5).decode()
+					PP2P=int(PP2P)
+					print(PP2P)
 					TTL = connection.recv(2).decode()
 					
 					#rispondo 
 					msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.myPort).ljust(5)
 					print("Invio --> " + color.send + msg + color.end)
-
+					
 					peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+					
 					peer_socket.connect((IPP2P,PP2P))
 					peer_socket.sendall(msg.encode())
-					peer_socket.close()
 					
+					peer_socket.close()
+					sleep(5)
 					
 					'''
 					if int(TTL) == 1:
