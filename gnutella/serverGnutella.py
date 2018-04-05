@@ -270,8 +270,9 @@ class GnutellaServer(object):
 				peer_socket.sendall(msg.encode())
 				peer_socket.close()
 				
-				if int(TTL) > 1:
-					TTL = setNumber(int(TTL) - 1)
+				TTL = setNumber(int(TTL) - 1)
+				if int(TTL) > 0:
+					
 					msg = "NEAR" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=?", (IPP2P,self.myIPP2P,))
 					resultUser = self.dbReader.fetchall()
