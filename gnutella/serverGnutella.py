@@ -326,7 +326,7 @@ class GnutellaServer(object):
 				print("Invio --> " + color.send + msg + color.end)
 				
 				peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-				peer_socket.connect(("192.168.43.73",PP2P))
+				peer_socket.connect((IPP2P_IPv4,PP2P))
 				peer_socket.sendall(msg.encode())
 				peer_socket.close()
 				
@@ -411,11 +411,14 @@ class GnutellaServer(object):
 				sock.close()
 				
 			elif command == "ANEA":
+				print("Ricevuto ANEA")
+				'''********************************************************************************
 				#verifica che la differnza del time stamp del packet id sia minore di 300
+				********************************************************************************'''
 				Pktid = connection.recv(16).decode()
 				IPP2P = connection.recv(55).decode()
 				PP2P = connection.recv(5).decode()
-			
+				
 				#verifico se l'utente è già salvato nel db oppure lo aggiungo
 				self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
 			
