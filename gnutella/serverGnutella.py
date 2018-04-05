@@ -26,6 +26,7 @@ def setNumber(n):
 def splitIp(ip):
 	splitted = ip.split(".")
 	ip = str(int(splitted[0]))+"."+str(int(splitted[1]))+"."+str(int(splitted[2]))+"."+str(int(splitted[3]))
+	return ip
 	
 class color:
 	HEADER = '\033[95m'
@@ -39,13 +40,15 @@ class color:
 
 class GnutellaServer(object):
 	def __init__(self):
-		IP = "192.168.43.135"
+		IP = "192.168.43.73"
 		PORT = 3000
 		UDP_IP = "127.0.0.1"
 		UDP_PORT = 49999
 		#MODIFICAMI CON IL TUO IP
-		self.myIPP2P = "192.168.043.135|0000:0000:0000:0000:0000:0000:0000:0001"
+		self.myIPP2P = "192.168.043.073|0000:0000:0000:0000:0000:0000:0000:0001"
 		self.myPort = 3000
+		
+		self.myPortAnear = 50001
 		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -54,8 +57,9 @@ class GnutellaServer(object):
 		# Creo tabella user
 		clearAndSetDB(self)
 		#inserisco l'utente root
-		self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('127.000.000.001|0000:0000:0000:0000:0000:0000:0000:0001', '3000')")
-		# Socket ipv4/ipv6
+		self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('192.168.043.135|0000:0000:0000:0000:0000:0000:0000:0001', '3000')")
+		
+		# Socket ipv4/ipv6 port 3000
 		self.server_address = (IP, PORT)
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -66,41 +70,74 @@ class GnutellaServer(object):
 		self.sockUDP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.sockUDP.bind((UDP_IP, UDP_PORT))
 		
+		# Socket ipv4/ipv6 port 50001
+		self.server5k1 = (IP, self.myPortAnear)
+		self.sock5k1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.sock5k1.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		self.sock5k1.bind(self.server5k1)
+		self.sock5k1.listen(5)
+	
 		
+	def attesaVicini(self):
+		#dovrebbe durare 300s
+		#drop near db
+		while True:
+			connection, client_address = self.sock5k1.accept()
+			print("RICEVO "+connection.recv(4).decode())
+			
+			Pktid = connection.recv(16).decode()
+			IPP2P = connection.recv(55).decode()
+			PP2P = connection.recv(5).decode()
+			
+			#verifico se l'utente è già salvato nel db oppure lo aggiungo
+			dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
+			data = dbReader.fetchone() #retrieve the first row
+			if data is None:
+				dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, IPP))
+				print(color.green + "Aggiunto nuovo user" + color.end)
+			else:
+				print(color.fail + "User già presente" + color.end)
+			
+			
+	
+	
 	def internalServer(self):
 		print(color.green+"In attesa di comandi interni..."+color.end)
-		#splitIp("192.168.001.002")
 		while True:
 			data, addr = self.sockUDP.recvfrom(4)
 			command = data.decode()
 			print("Ricevuto comando dal client: "+color.recv+command+color.end)
 			if command == "NEAR":
+				threading.Thread(target = self.attesaVicini, args = (data,addr)).start()
 				myPktid = PktidGenerator()
 				TTL = setNumber(2)
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
 				resultUser = self.dbReader.fetchall()
-				msg = "NEAR" + myPktid + self.myIPP2P + str(self.myPort).ljust(5) + TTL
+				msg = "NEAR" + myPktid + self.myIPP2P + str(self.myPortAnear).ljust(5) + TTL
 				print(msg)
 				for user in resultUser:
 					#rnd = random()
 					rnd = 0.1
 					if(rnd<0.5):
 						IPP2P = user[0][0:15]
-						
+						IPP2P = splitIp(IPP2P)
+		
 						#fix problem ipv4
 						#IPP2P = ipaddress.ip_address(IPP2P)
-						PP2P=int(user[1])
-						print("Connetto con IPv4:", IPP2P)
+						#PP2P=int(user[1])
+				
+						print("Connetto con IPv4:",IPP2P+"  PORT -> ",PP2P)
+				
 						peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-						peer_socket.connect((IPP2P,PP2P))
-						
+						peer_socket.connect((IPP2P,PORT))
+		
 					else:
 						IPP2P = user[0][16:55]
 						print("Connetto con IPv6:", IPP2P)
 						break
 						#da testare
 						connection=creazioneSocketIPv6(IPP2P,user[1])
-	
+			
 					print("Invio --> " + color.send + msg + color.end)
 					peer_socket.sendall(msg.encode())
 					peer_socket.close()
@@ -124,7 +161,12 @@ class GnutellaServer(object):
 
 					connection.sendall(("RETR" + files[code][0]).encode)
 					
+			if command == "RETR":
+				print("Ricevuto comando dal client: "+color.recv+command+color.end)
 			print("\n")
+	
+	
+	
 		
 	def server(self):
 		#crea thread interno per far comunicare client e server
@@ -135,6 +177,7 @@ class GnutellaServer(object):
 		while True:
 			try:
 				connection, client_address = self.sock.accept()
+				print("ciaciceoijwieoo")
 				#connection.settimeout(60)
 				threading.Thread(target = self.startServer, args = (connection,client_address)).start()
 			except:
@@ -143,6 +186,7 @@ class GnutellaServer(object):
 	def startServer(self, connection, client_address):
 		while True:
 			command = connection.recv(4).decode()
+			print("ciao")
 			try:
 				if command == "NEAR":
 					Pktid = connection.recv(16).decode()
@@ -190,20 +234,7 @@ class GnutellaServer(object):
 						peer_socket.close()
 					
 					
-				elif command == "ANEA":
-					print("sono dentro ANEA")
-					Pktid = connection.recv(16).decode()
-					IPP2P = connection.recv(55).decode()
-					PP2P = connection.recv(5).decode()
-
-					#verifico se l'utente è già salvato nel db oppure lo aggiungo
-					dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
-					data = dbReader.fetchone() #retrieve the first row
-					if data is None:
-						dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, IPP))
-						print(color.green + "Aggiunto nuovo user" + color.end);
-					else:
-						print(color.fail + "User già presente" + color.end);
+					
 		
 				
 				elif command == "QUER":
