@@ -3,10 +3,10 @@ from random import *
 
 def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS user")
-	self.dbReader.execute("DROP TABLE IF EXISTS file")
+	#self.dbReader.execute("DROP TABLE IF EXISTS file")
 	#self.dbReader.execute("DROP TABLE IF EXISTS download")
 	self.dbReader.execute("CREATE TABLE user (IPP2P text, PP2P text)")
-	self.dbReader.execute("CREATE TABLE file (Filemd5 text, Filename text, IPP2P text)")
+	#self.dbReader.execute("CREATE TABLE file (Filemd5 text, Filename text, SessionID text)")
 	#self.dbReader.execute("CREATE TABLE download (Filemd5 text, Download integer)")
 
 def PktidGenerator():
@@ -48,7 +48,7 @@ class GnutellaServer(object):
 		#MODIFICAMI CON IL TUO IP
 		self.myIPP2P = "192.168.043.131|0000:0000:0000:0000:0000:0000:0000:0001"
 		self.myPort = 3000
-		self.myPortAnear = 50001
+		#self.myPort = 50001
 		
 		
 		# Creo DB
@@ -69,14 +69,7 @@ class GnutellaServer(object):
 		
 		# socket upd ipv4 internal Server
 		self.sockUDP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		self.sockUDP.bind((UDP_IP, UDP_PORT))
-		
-		# Socket ipv4/ipv6 port 50001
-		self.server5k1 = (IP, self.myPortAnear)
-		self.sock5k1 = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		self.sock5k1.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		self.sock5k1.bind(self.server5k1)
-		self.sock5k1.listen(5)		
+		self.sockUDP.bind((UDP_IP, UDP_PORT))	
 
 	'''def attesaDownload(self):
 		
@@ -189,7 +182,7 @@ class GnutellaServer(object):
 				TTL = setNumber(2)
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
 				resultUser = self.dbReader.fetchall()
-				msg = "NEAR" + myPktid + self.myIPP2P + str(self.myPortAnear).ljust(5) + TTL
+				msg = "NEAR" + myPktid + self.myIPP2P + str(self.myPort).ljust(5) + TTL
 				print(msg)
 				for user in resultUser:
 					#rnd = random()
@@ -229,7 +222,7 @@ class GnutellaServer(object):
 					
 					
 				if command == "RETR":
-					print("Ricevuto comando dal client: "+color.recv+command+color.end)
+					'''print("Ricevuto comando dal client: "+color.recv+command+color.end)
 					self.dbReader.execute("SELECT * FROM File WHERE IPP2P != ?", (IP,))
 					resultFile = self.dbReader.fetchall()
 
@@ -242,7 +235,7 @@ class GnutellaServer(object):
 					for result in resultFile:
 						
 						if i == 0:
-							self.sock.sendto((lunghezza).encode(), (selfUDP_IP, selfUDP_PORT))
+							self.sock.sendto(lunghezza).encode(), (selfUDP_IP, selfUDP_PORT))
 							
 						files[i] = (result[0], result[1], result[2])
 						print(i + " - " + result[1])
@@ -265,7 +258,7 @@ class GnutellaServer(object):
 					utente = self.dbReader.fetchone()
 					#rnd = random()
 					rnd = 0.1
-					if rnd < 0.5:
+					if rnd < 0.5
 						IPP2P = utente[0][0:15]
 						IPP2P = splitIp(IPP2P)
 						PP2P = int(utente[1])
@@ -283,22 +276,10 @@ class GnutellaServer(object):
 						
 					print("Invio --> "+ color.send + msg + color.end)	
 					peer_socket.sendall((msg).encode)
-					peer_socket.close()
+					peer_socket.close()'''
 					
-			if command == "STMV":
+			if command == "RETR":
 				print("Ricevuto comando dal client: "+color.recv+command+color.end)
-				self.dbReader.execute("SELECT * FROM user")
-				vicini = self.dbReader.fetchall()
-				for v in vicini:
-					print("Utente IP: " + v[0] + " PORTA: " + v[1])
-					
-			if command == "STMF":
-				print("Ricevuto comando dal client "+color.recv+command+color.end)
-				self.dbReader.execute("SELECT * FROM File")
-				files = self.dbReader.fetchall()
-				for f in files:
-						print("Filemd5: " + files[0] + " Filename: " + files[1] + " IPP2P: " + files[2])
-					
 			print("\n")
 	
 	def server(self):
@@ -316,11 +297,10 @@ class GnutellaServer(object):
 			except:
 				return False
 			
-	'''def startServer(self, connection, client_address):
+	def startServer(self, connection, client_address):
 		command = connection.recv(4).decode()
 		try:
 			if command == "NEAR":
-			
 				Pktid = connection.recv(16).decode()
 				IPP2P = connection.recv(55).decode()
 				IPP2P_IPv4 = IPP2P[0:15]
@@ -341,7 +321,6 @@ class GnutellaServer(object):
 				else:
 					print(color.fail + "User già presente" + color.end)
 				
-				
 				#rispondo 
 				msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.myPort).ljust(5)
 				print("Invio --> " + color.send + msg + color.end)
@@ -350,7 +329,7 @@ class GnutellaServer(object):
 				peer_socket.connect((IPP2P_IPv4,PP2P))
 				peer_socket.sendall(msg.encode())
 				peer_socket.close()
-				print("\n TIME TO LIVE: " + TTL)
+				
 				TTL = setNumber(int(TTL) - 1)
 				if int(TTL) > 0:
 
@@ -448,11 +427,29 @@ class GnutellaServer(object):
 					print(color.green + "Aggiunto nuovo user" + color.end)
 				else:
 					print(color.fail + "User già presente" + color.end)	
+			
+			elif command == "STMF":
+				#stampo i file 
+				self.dbReader.execute("SELECT * FROM File")
+				
+				files = self.dbReader.fetchall()
+				
+				for f in files:
+					print("Filemd5: " + f[0] + " Filename: " + f[1] + " IPP2P: " + f[3])
+			
+			elif command == "STMV":
+				#stampo i vicini
+				self.dbReader.execute("SELECT * FROM User")
+				
+				vicini = self.dbReader.fetchall()
+				
+				for v in vicini:
+					print("IPP2P: " + v[0] + " PORT: " + v[1])
 		
 		except:
 			connection.close()
 			return False
-	'''			
+				
 		
 if __name__ == "__main__":
     gnutella = GnutellaServer()
