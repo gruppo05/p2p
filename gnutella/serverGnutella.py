@@ -40,14 +40,14 @@ class color:
 
 class GnutellaServer(object):
 	def __init__(self):
-		IP = "192.168.43.73"
+		IP = "192.168.43.135"
 		self.PORT = 3000
 		
 		UDP_IP = "127.0.0.1"
 		UDP_PORT = 49999
 		#MODIFICAMI CON IL TUO IP
-		self.myIPP2P = "192.168.043.073|0000:0000:0000:0000:0000:0000:0000:0001"
-		self.myPort = 5000		
+		self.myIPP2P = "192.168.043.135|0000:0000:0000:0000:0000:0000:0000:0001"
+		self.myPort = 3000		
 		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -196,8 +196,6 @@ class GnutellaServer(object):
 						#fix problem ipv4
 						#IPP2P = ipaddress.ip_address(IPP2P)
 						
-						
-				
 						print(color.green+"Connessione IPv4:"+IPP2P+color.end)
 						
 						peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -212,8 +210,10 @@ class GnutellaServer(object):
 						connection=creazioneSocketIPv6(IPP2P,user[1])
 			
 					print("Invio --> " + color.send + msg + color.end)
+					print(IPP2P)
+					print(PP2P)
 					peer_socket.sendall(msg.encode())
-					peer_socket.close()
+					#peer_socket.close()
 					
 				if command == "QUER":
 					print("Ricevuto comando dal client: "+color.recv+command+color.end)
@@ -306,7 +306,7 @@ class GnutellaServer(object):
 				IPP2P_IPv4 = IPP2P[0:15]
 				IPP2P_IPv6 = IPP2P[16:55]
 				IPP2P_IPv4 = splitIp(IPP2P_IPv4)
-				print(IPP2P)
+				print(IPP2P_IPv4)
 				PP2P = connection.recv(5).decode()
 				PP2P=int(PP2P)
 				print(PP2P)
@@ -326,7 +326,7 @@ class GnutellaServer(object):
 				print("Invio --> " + color.send + msg + color.end)
 				
 				peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-				peer_socket.connect((IPP2P_IPv4,PP2P))
+				peer_socket.connect(("192.168.43.73",PP2P))
 				peer_socket.sendall(msg.encode())
 				peer_socket.close()
 				
@@ -334,8 +334,6 @@ class GnutellaServer(object):
 				if int(TTL) > 0:
 
 					msg = "NEAR" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
-					print("STAMPO IL MIE")
-					print(msg)
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=?", (IPP2P,self.myIPP2P,))
 					resultUser = self.dbReader.fetchall()
 					
