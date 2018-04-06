@@ -223,9 +223,7 @@ class GnutellaServer(object):
 				PP2P = connection.recv(5).decode()
 				TTL = connection.recv(2).decode()
 				
-				
 				#se non esiste il pktid, lo inserisco e propago il messaggio altrimenti lo ignoro in quanto l'ho già ricevuto e ritrasmesso
-				
 				self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (Pktid,))
 				t = self.dbReader.fetchone()
 				
