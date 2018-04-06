@@ -57,8 +57,10 @@ class GnutellaServer(object):
 		# Creo tabella user
 		clearAndSetDB(self)
 		#inserisco l'utente root
-		self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('192.168.043.078|0000:0000:0000:0000:0000:0000:0000:0001', '3000')")
-		
+		if self.myIPP2P != var.Settings.root_IP:
+			dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('"+var.Settings.root_IP+"', '"+int(var.Settings.root_PORT)+"')")
+		else:
+			print("Loggato come root")
 		# Socket ipv4/ipv6 port 3000
 		self.server_address = (IP, self.PORT)
 		self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
