@@ -37,23 +37,26 @@ class color:
 	UNDERLINE = '\033[4m'
 
 def setConnection(ip, port, msg):
-	rnd = random()
-	rnd = 0.1
-	if(rnd<0.5):
-		ip = splitIp(ip[0:15])						
-		print(color.green+"Connessione IPv4:"+ip+color.end)
-		peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-		peer_socket.connect((ip,port))
+	try:
+		rnd = random()
+		rnd = 0.1
+		if(rnd<0.5):
+			ip = splitIp(ip[0:15])						
+			print(color.green+"Connessione IPv4:"+ip+color.end)
+			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+			peer_socket.connect((ip,port))
 		
-	else:
-		ip = ip[16:55]
-		print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
-		peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-		peer_socket.connect((ip, port))
+		else:
+			ip = ip[16:55]
+			print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
+			peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+			peer_socket.connect((ip, port))
 		
-	print("Invio --> "+color.send+msg+color.end)
-	peer_socket.sendall(msg.encode())
-	peer_socket.close()
+		print("Invio --> "+color.send+msg+color.end)
+		peer_socket.sendall(msg.encode())
+		peer_socket.close()
+	except:
+		print("Nessun vicino trovato!")
 
 
 class GnutellaServer(object):
@@ -61,9 +64,12 @@ class GnutellaServer(object):
 		IP = ""
 		self.PORT = var.Settings.PORT
 		self.myIPP2P = var.Settings.myIPP2P
-		UDP_IP = "127.0.0.1"
-		UDP_PORT = 49999
-	
+		self.UDP_IP = "127.0.0.1"
+		UDP_PORT_SERVER = 49999
+		self.UDP_PORT_CLIENT = 50000
+		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
@@ -85,13 +91,16 @@ class GnutellaServer(object):
 		self.sock.listen(5)
 		
 		# socket upd ipv4 internal Server
-		self.sockUDP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-		self.sockUDP.bind((UDP_IP, UDP_PORT))
+		self.sockUDPServer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		self.sockUDPServer.bind((self.UDP_IP, UDP_PORT_SERVER))
+		
+		# socket upd ipv4 client in uscita
+		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	
 	def internalServer(self):
 		print(color.green+"In attesa di comandi interni..."+color.end)
 		while True:
-			data, addr = self.sockUDP.recvfrom(4)
+			data, addr = self.sockUDPServer.recvfrom(4)
 			command = data.decode()
 			print("\n\nRicevuto comando dal client: "+color.recv+command+color.end)
 			if command == "NEAR":
@@ -103,87 +112,90 @@ class GnutellaServer(object):
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
 					
-				if command == "QUER":
-					print("\n\nRicevuto comando dal client: "+color.recv+command+color.end)
-					threading.Thread(target = self.attesaRicerca, args = (data,addr)).start()
-					ricerca = self.sockUDP.recvfrom(20)
-					
-					
-				if command == "RETR":
-					'''print("Ricevuto comando dal client: "+color.recv+command+color.end)
-					self.dbReader.execute("SELECT * FROM File WHERE IPP2P != ?", (IP,))
-					resultFile = self.dbReader.fetchall()
-
-					i = 0
-					if len(resultFile) == 1:
-						lunghezza = "0" + str(len(resultFile))
-					else:
-						lunghezza = str(len(resultFile))
-					
-					for result in resultFile:
-						
-						if i == 0:
-							self.sock.sendto(lunghezza).encode(), (selfUDP_IP, selfUDP_PORT))
-							
-						files[i] = (result[0], result[1], result[2])
-						print(i + " - " + result[1])
-						self.sock.sendto((result[1]).encode(), (self.UDP_IP, self.UDP_PORT))
-	
-					code = self.sockUDP.recvfrom(2)
-					
-					if code == -1:
-						print("Download annullato.")
-						break
-					if len(resultFile[code][0]) == 0:
-						print("Codice sbagliato.")
-						break
-					
-					threading.Thread(target = self.attesaDownload, args = (data,addr)).start()
-					
-					msg = "RETR" + 	resultFile[code][0]
-					
-					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P = ?", (IPP2P,))
-					utente = self.dbReader.fetchone()
-					#rnd = random()
-					rnd = 0.1
-					if rnd < 0.5
-						IPP2P = utente[0][0:15]
-						IPP2P = splitIp(IPP2P)
-						PP2P = int(utente[1])
-						
-						print("connetto con ipv4 " + IPP2P + " PORT ->" +PP2P )
-						
-						peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-						peer_socket.connect((IPP2P,PP2P))
-						
-					else:
-						IPP2P = utente[0][16:55]
-						print("Connetto con ipv6 " + IPP2P)
-						#da finire
-						
-						
-					print("Invio --> "+ color.send + msg + color.end)	
-					peer_socket.sendall((msg).encode)
-					peer_socket.close()'''
-					
-			if command == "RETR":
+			elif command == "QUER":
 				print("\n\nRicevuto comando dal client: "+color.recv+command+color.end)
-			print("\n")
-			if command == "STMF":
-				#stampo i file 
-				self.dbReader.execute("SELECT * FROM File")
-
-				files = self.dbReader.fetchall()
-
-				for f in files:
-					print("Filemd5: " + f[0] + " Filename: " + f[1] + " IPP2P: " + f[3])
-
-			if command == "STMV":
-				self.dbReader.execute("SELECT * FROM user")
-				vicini = self.dbReader.fetchall()
+				threading.Thread(target = self.attesaRicerca, args = (data,addr)).start()
+				ricerca = self.sockUDPServer.recvfrom(20)
 				
-				for v in vicini:
-					print("IPP2P: " + v[0] + " PORT: " + v[1])
+				
+			elif command == "RETR":
+				'''print("Ricevuto comando dal client: "+color.recv+command+color.end)
+				self.dbReader.execute("SELECT * FROM File WHERE IPP2P != ?", (IP,))
+				resultFile = self.dbReader.fetchall()
+
+				i = 0
+				if len(resultFile) == 1:
+					lunghezza = "0" + str(len(resultFile))
+				else:
+					lunghezza = str(len(resultFile))
+				
+				for result in resultFile:
+					
+					if i == 0:
+						self.sock.sendto(lunghezza).encode(), (self.UDP_IP, selfUDP_PORT))
+						
+					files[i] = (result[0], result[1], result[2])
+					print(i + " - " + result[1])
+					self.sock.sendto((result[1]).encode(), (self.UDP_IP, self.UDP_PORT))
+
+				code = self.sockUDPServer.recvfrom(2)
+				
+				if code == -1:
+					print("Download annullato.")
+					break
+				if len(resultFile[code][0]) == 0:
+					print("Codice sbagliato.")
+					break
+				
+				threading.Thread(target = self.attesaDownload, args = (data,addr)).start()
+				
+				msg = "RETR" + 	resultFile[code][0]
+				
+				self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P = ?", (IPP2P,))
+				utente = self.dbReader.fetchone()
+				#rnd = random()
+				rnd = 0.1
+				if rnd < 0.5
+					IPP2P = utente[0][0:15]
+					IPP2P = splitIp(IPP2P)
+					PP2P = int(utente[1])
+					
+					print("connetto con ipv4 " + IPP2P + " PORT ->" +PP2P )
+					
+					peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+					peer_socket.connect((IPP2P,PP2P))
+					
+				else:
+					IPP2P = utente[0][16:55]
+					print("Connetto con ipv6 " + IPP2P)
+					#da finire
+					
+					
+				print("Invio --> "+ color.send + msg + color.end)	
+				peer_socket.sendall((msg).encode)
+				peer_socket.close()'''
+					
+			elif command == "RETR":
+				print("\n\nRicevuto comando dal client: "+color.recv+command+color.end)
+			
+			
+			
+			elif command == "STMF":
+				self.dbReader.execute("SELECT * FROM File")
+				files = self.dbReader.fetchall()
+				for f in files:
+					self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.sockUDPClient.sendto((self.endUDP2).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				
+			elif command == "STMV":
+				if False: #questo è da rimuovere
+					self.dbReader.execute("SELECT * FROM user")
+					vicini = self.dbReader.fetchall()
+					for v in vicini:
+						self.sockUDPClient.sendto((v[0]+"-"+v[1]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.sockUDPClient.sendto((self.endUDP1).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				
+			print("\n")
 
 
 	def server(self):
