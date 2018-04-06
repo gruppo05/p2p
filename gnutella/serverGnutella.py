@@ -343,7 +343,7 @@ class GnutellaServer(object):
 			elif command == "ANEA":
 				print("Ricevuto ANEA")
 				'''********************************************************************************
-				#verifica che la differnza del time stamp del packet id sia minore di 300
+				#verifica che la differenza del time stamp del packet id sia minore di 300
 				********************************************************************************'''
 				Pktid = connection.recv(16).decode()
 				IPP2P = connection.recv(55).decode()
