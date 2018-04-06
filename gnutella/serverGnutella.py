@@ -1,16 +1,13 @@
-import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time
-
-
+import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime
 import settings as var
-
 from random import *
 
 def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS user")
-	#self.dbReader.execute("DROP TABLE IF EXISTS file")
+	self.dbReader.execute("DROP TABLE IF EXISTS Pktid")
 	#self.dbReader.execute("DROP TABLE IF EXISTS download")
 	self.dbReader.execute("CREATE TABLE user (IPP2P text, PP2P text)")
-	#self.dbReader.execute("CREATE TABLE file (Filemd5 text, Filename text, SessionID text)")
+	self.dbReader.execute("CREATE TABLE pktid (Pktid text, Timestamp DATETIME)")
 	#self.dbReader.execute("CREATE TABLE download (Filemd5 text, Download integer)")
 
 def PktidGenerator():
@@ -55,7 +52,20 @@ def setConnection(ip, port, msg):
 	peer_socket.sendall(msg.encode())
 	peer_socket.close()
 
+def getTime(t):
+	a = str(datetime.datetime.now())
 
+	ht = int(t.split(" ")[1].split(":")[0]) * 60 * 60
+	mt = int(t.split(" ")[1].split(":")[1]) * 60
+	st = int(t.split(" ")[1].split(":")[2].split(".")[0])
+	time1 = ht + mt + st
+	
+	ha = int(a.split(" ")[1].split(":")[0]) * 60 * 60
+	ma = int(a.split(" ")[1].split(":")[1]) * 60
+	sa = int(a.split(" ")[1].split(":")[2].split(".")[0])
+	time2 = ha + ma + sa
+	return time2 - time1
+	
 class GnutellaServer(object):
 	def __init__(self):
 		IP = ""
@@ -96,6 +106,9 @@ class GnutellaServer(object):
 			print("\n\nRicevuto comando dal client: "+color.recv+command+color.end)
 			if command == "NEAR":
 				myPktid = PktidGenerator()
+				
+				#Inserisco il Pktip nel db
+				self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)",(myPktid,datetime.datetime.now()))
 				TTL = setNumber(2)
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
 				resultUser = self.dbReader.fetchall()
@@ -210,35 +223,35 @@ class GnutellaServer(object):
 				PP2P = connection.recv(5).decode()
 				TTL = connection.recv(2).decode()
 				
-				self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
-				data = self.dbReader.fetchone()
-				if data is None:
-					self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, PP2P))
-					print(color.green + "Aggiunto nuovo user" + color.end)
-				else:
-					print(color.fail + "User già presente" + color.end)
 				
-				msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
-				setConnection(IPP2P, int(PP2P), msg)
+				#se non esiste il pktid, lo inserisco e propago il messaggio altrimenti lo ignoro in quanto l'ho già ricevuto e ritrasmesso
 				
+				self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (Pktid,))
+				t = self.dbReader.fetchone()
 				
-				
-				
-				
-				TTL = setNumber(int(TTL) - 1)
-				if int(TTL) > 0:
-					msg = "NEAR" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
-					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=?", (IPP2P,self.myIPP2P,))
-					resultUser = self.dbReader.fetchall()
+				if t is None:
+					self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)",(myPktid,datetime.datetime.now()))
 					
-					for user in resultUser:
-						setConnection(user[0], int(user[1]), msg)
+					self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
+					data = self.dbReader.fetchone()
+					if data is None:
+						self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, PP2P))
+						print(color.green + "Aggiunto nuovo user" + color.end)
+					else:
+						print(color.fail + "User già presente" + color.end)
+			
+					msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
+					setConnection(IPP2P, int(PP2P), msg)
+			
+					TTL = setNumber(int(TTL) - 1)
+					if int(TTL) > 0:
+						msg = "NEAR" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
+						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=?", (IPP2P,self.myIPP2P,))
+						resultUser = self.dbReader.fetchall()
 				
-				
-				
-				
-				
-				
+						for user in resultUser:
+							setConnection(user[0], int(user[1]), msg)
+			
 			elif command == "QUER":
 				print("QUER")
 			elif command == "RETR":
@@ -285,23 +298,27 @@ class GnutellaServer(object):
 				
 			elif command == "ANEA":
 				print("Ricevuto ANEA")
-				'''********************************************************************************
-				#verifica che la differenza del time stamp del packet id sia minore di 300
-				********************************************************************************'''
+				
 				Pktid = connection.recv(16).decode()
 				IPP2P = connection.recv(55).decode()
 				PP2P = connection.recv(5).decode()
 				
-				#verifico se l'utente è già salvato nel db oppure lo aggiungo
-				self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
+				#verifico se c'è il pktid			
+				self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (Pktid,))
+				t = self.dbReader.fetchone() #retrieve the first row
+				
+				if getTime(t[0]) < 300:
+					#verifico se l'utente è già salvato nel db oppure lo aggiungo
+					self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
 			
-				data = self.dbReader.fetchone() #retrieve the first row
-				if data is None:
-					self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, PP2P))
-					print(color.green + "Aggiunto nuovo user" + color.end)
+					data = self.dbReader.fetchone() #retrieve the first row
+					if data is None:
+						self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, PP2P))
+						print(color.green + "Aggiunto nuovo user" + color.end)
+					else:
+						print(color.fail + "User già presente" + color.end)	
 				else:
-					print(color.fail + "User già presente" + color.end)	
-			
+					print("ricevuto pacchetto dopo 300s")
 					
 		except:
 			connection.close()
