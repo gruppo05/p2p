@@ -1,4 +1,8 @@
 import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time
+
+
+import settings as var
+
 from random import *
 
 def clearAndSetDB(self):
@@ -40,17 +44,12 @@ class color:
 
 class GnutellaServer(object):
 	def __init__(self):
-
-		IP = "192.168.43.73"
-		self.PORT = 5000
-
+		IP = var.Settings.IP
+		self.PORT = var.Settings.PORT
+		self.myIPP2P = var.Settings.myIPP2P
 		UDP_IP = "127.0.0.1"
 		UDP_PORT = 49999
 		
-		#MODIFICAMI CON IL TUO IP
-		self.myIPP2P = "192.168.043.073|0000:0000:0000:0000:0000:0000:0000:0001"
-		self.myPort = 5000		
-
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
@@ -70,7 +69,7 @@ class GnutellaServer(object):
 		# socket upd ipv4 internal Server
 		self.sockUDP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.sockUDP.bind((UDP_IP, UDP_PORT))
-
+		
 	'''def attesaDownload(self):
 		
 		while True:
@@ -107,7 +106,7 @@ class GnutellaServer(object):
 						print(color.fail + "User già presente" + color.end)
 				
 					#rispondo 
-					msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.myPort).ljust(5)
+					msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
 					print("Invio --> " + color.send + msg + color.end)
 				
 					peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -182,7 +181,7 @@ class GnutellaServer(object):
 				TTL = setNumber(2)
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
 				resultUser = self.dbReader.fetchall()
-				msg = "NEAR" + myPktid + self.myIPP2P + str(self.myPort).ljust(5) + TTL
+				msg = "NEAR" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
 				print(color.recv+"  "+msg+color.end)
 				for user in resultUser:
 					#rnd = random()
@@ -281,7 +280,26 @@ class GnutellaServer(object):
 			if command == "RETR":
 				print("Ricevuto comando dal client: "+color.recv+command+color.end)
 			print("\n")
-	
+			if command == "STMF":
+				#stampo i file 
+				self.dbReader.execute("SELECT * FROM File")
+
+				files = self.dbReader.fetchall()
+
+				for f in files:
+					print("Filemd5: " + f[0] + " Filename: " + f[1] + " IPP2P: " + f[3])
+
+			if command == "STMV":
+				#stampo i vicini
+				print("ciao")
+				self.dbReader.execute("SELECT * FROM user")
+
+				vicini = self.dbReader.fetchall()
+
+				for v in vicini:
+					print("IPP2P: " + v[0] + " PORT: " + v[1])
+
+
 	def server(self):
 		#crea thread interno per far comunicare client e server
 		threading.Thread(target = self.internalServer, args = '').start()
@@ -322,7 +340,7 @@ class GnutellaServer(object):
 					print(color.fail + "User già presente" + color.end)
 				
 				#rispondo 
-				msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.myPort).ljust(5)
+				msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
 				print("Invio --> " + color.send + msg + color.end)
 				
 				peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -411,11 +429,14 @@ class GnutellaServer(object):
 				sock.close()
 				
 			elif command == "ANEA":
+				print("Ricevuto ANEA")
+				'''********************************************************************************
 				#verifica che la differnza del time stamp del packet id sia minore di 300
+				********************************************************************************'''
 				Pktid = connection.recv(16).decode()
 				IPP2P = connection.recv(55).decode()
 				PP2P = connection.recv(5).decode()
-			
+				
 				#verifico se l'utente è già salvato nel db oppure lo aggiungo
 				self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
 			
@@ -426,24 +447,7 @@ class GnutellaServer(object):
 				else:
 					print(color.fail + "User già presente" + color.end)	
 			
-			elif command == "STMF":
-				#stampo i file 
-				self.dbReader.execute("SELECT * FROM File")
-				
-				files = self.dbReader.fetchall()
-				
-				for f in files:
-					print("Filemd5: " + f[0] + " Filename: " + f[1] + " IPP2P: " + f[3])
-			
-			elif command == "STMV":
-				#stampo i vicini
-				self.dbReader.execute("SELECT * FROM User")
-				
-				vicini = self.dbReader.fetchall()
-				
-				for v in vicini:
-					print("IPP2P: " + v[0] + " PORT: " + v[1])
-		
+					
 		except:
 			connection.close()
 			return False
