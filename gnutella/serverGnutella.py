@@ -41,15 +41,15 @@ class color:
 class GnutellaServer(object):
 	def __init__(self):
 
-		IP = "192.168.43.135"
-		self.PORT = 3000
+		IP = "192.168.43.73"
+		self.PORT = 5000
 
 		UDP_IP = "127.0.0.1"
 		UDP_PORT = 49999
 		
 		#MODIFICAMI CON IL TUO IP
-		self.myIPP2P = "192.168.043.135|0000:0000:0000:0000:0000:0000:0000:0001"
-		self.myPort = 3000		
+		self.myIPP2P = "192.168.043.073|0000:0000:0000:0000:0000:0000:0000:0001"
+		self.myPort = 5000		
 
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -326,7 +326,7 @@ class GnutellaServer(object):
 				print("Invio --> " + color.send + msg + color.end)
 				
 				peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-				peer_socket.connect(("192.168.43.73",PP2P))
+				peer_socket.connect((IPP2P_IPv4,PP2P))
 				peer_socket.sendall(msg.encode())
 				peer_socket.close()
 				
