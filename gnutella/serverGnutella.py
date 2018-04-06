@@ -1,4 +1,8 @@
 import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time
+
+
+import settings as var
+
 from random import *
 
 def clearAndSetDB(self):
@@ -40,17 +44,12 @@ class color:
 
 class GnutellaServer(object):
 	def __init__(self):
-
-		IP = "192.168.43.135"
-		self.PORT = 4000
-
+		IP = var.Settings.IP
+		self.PORT = var.Settings.PORT
+		self.myIPP2P = var.Settings.myIPP2P
 		UDP_IP = "127.0.0.1"
 		UDP_PORT = 49999
-		
-		#MODIFICAMI CON IL TUO IP
-		self.myIPP2P = "192.168.043.135|0000:0000:0000:0000:0000:0000:0000:0001"
-		self.myPort = 4000		
-
+	
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
@@ -58,7 +57,7 @@ class GnutellaServer(object):
 		# Creo tabella user
 		clearAndSetDB(self)
 		#inserisco l'utente root
-		self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('192.168.043.135|0000:0000:0000:0000:0000:0000:0000:0001', '3000')")
+		self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('192.168.043.078|0000:0000:0000:0000:0000:0000:0000:0001', '3000')")
 		
 		# Socket ipv4/ipv6 port 3000
 		self.server_address = (IP, self.PORT)
@@ -70,7 +69,7 @@ class GnutellaServer(object):
 		# socket upd ipv4 internal Server
 		self.sockUDP = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.sockUDP.bind((UDP_IP, UDP_PORT))
-
+		
 	'''def attesaDownload(self):
 		
 		while True:
@@ -107,7 +106,7 @@ class GnutellaServer(object):
 						print(color.fail + "User già presente" + color.end)
 				
 					#rispondo 
-					msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.myPort).ljust(5)
+					msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
 					print("Invio --> " + color.send + msg + color.end)
 				
 					peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -182,7 +181,7 @@ class GnutellaServer(object):
 				TTL = setNumber(2)
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
 				resultUser = self.dbReader.fetchall()
-				msg = "NEAR" + myPktid + self.myIPP2P + str(self.myPort).ljust(5) + TTL
+				msg = "NEAR" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
 				print(color.recv+"  "+msg+color.end)
 				for user in resultUser:
 					#rnd = random()
@@ -341,7 +340,7 @@ class GnutellaServer(object):
 					print(color.fail + "User già presente" + color.end)
 				
 				#rispondo 
-				msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.myPort).ljust(5)
+				msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
 				print("Invio --> " + color.send + msg + color.end)
 				
 				peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
