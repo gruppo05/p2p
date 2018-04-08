@@ -132,8 +132,10 @@ class GnutellaServer(object):
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
 				resultUser = self.dbReader.fetchall()
 				
-				ricerca = self.sockUDPServer.recvfrom(20)
-				msg = "NEAR" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL + ricerca
+				ricerca, useless = self.sockUDPServer.recvfrom(20)
+				filename = ricerca.decode()
+				print(filename)
+				msg = "QUER" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL + str(filename)
 				
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
@@ -219,7 +221,6 @@ class GnutellaServer(object):
 				IPP2P = connection.recv(55).decode()
 				PP2P = connection.recv(5).decode()
 				TTL = connection.recv(2).decode()
-				print("pno")
 				#se non esiste il pktid, lo inserisco e propago il messaggio altrimenti lo ignoro in quanto l'ho già ricevuto e ritrasmesso
 				self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (Pktid,))
 				t = self.dbReader.fetchone()
