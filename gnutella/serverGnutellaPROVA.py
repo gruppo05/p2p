@@ -124,8 +124,21 @@ class GnutellaServer(object):
 				msg = "NEAR" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
-					
+			elif command == "ADDF":
+				
+				filename, useless = self.sockUDPServer.recvfrom(20)
+				filename = filename.decode()
+				fd = os.open(filename, os._OWRONLY | os.O_CREAT, 777)
+				if fd is None:
+					#calcolare md5
+					#self.dbReader.execute("INSERT INTO File (filemd5, filename, IPP2P) values (?, ?, ?)", (filemd5, filename, self.myIPP2P))
+					msg = "0"
+				else:
+					msg == "1"
+				#self.sockUDPClient.sendto((msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+						
 			elif command == "QUER":
+				
 				myPktid = PktidGenerator()
 				self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)", (myPktid, datetime.datetime.now()))
 				TTL = setNumber(5)
@@ -136,6 +149,7 @@ class GnutellaServer(object):
 				filename = ricerca.decode()
 				print(filename)
 				msg = "QUER" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL + str(filename)
+
 				
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
@@ -262,21 +276,32 @@ class GnutellaServer(object):
 				if t is None:
 					print("Rispondo alla quer di un peer")
 					self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)", (Pktid, datetime.datetime.now()))
+					self.dbReader.execute("INSERT INTO File (Filemd5, filename, IPP2P) values (?,?,?)", ("Funzionaaaaaaaaaaaaaaaaaaaaaaaaa", ricerca, self.myIPP2P))
 					#prendo i file che ho io cioè quelli che puntano al mio indirizzo ip
 					self.dbReader.execute("SELECT * FROM File WHERE IPP2P = ? AND Filename LIKE ?", (self.myIPP2P, "%"+ricerca+"%"))
+					print(ricerca)
 					resultFile = self.dbReader.fetchall()
-					for files in resultFile:
+					print(len(resultFile))
+					i = 0
+					lunghezza = int(len(resultFile))
+					while i < lunghezza:
 						#per ogni file che ho trovato nel db, invio un messaggio al peer
-						msg = "AQUE" + Pktid + self.myIPP2P + str(self.PORT).ljust(5) + files[0] + files[1].ljust(100)
-						setConnection(user[0], int(user[1]), msg)
+						msg = "AQUE" + Pktid + self.myIPP2P + str(self.PORT).ljust(5) + resultFile[i][0] + resultFile[i][1].ljust(100)
+						print("STAMPO MESSAGGIO DI AQUE --> "+msg)
+						i = i+1
+						setConnection(IPP2P, int(PP2P), msg)
+						
 					if int(TTL) > 1:
 						#se ttl maggiore di 1, decremento il ttl e lo rispedisco a tutti i vicini
+						
 						TTL = setNumber(int(TTL) - 1)
 						self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P != ?", (IPP2P,))
 						resultUser = self.dbReader.fetchall()
-						msg = "QUER" + Pkid + IPP2P + PP2P + TTL + ricerca
+						msg = "QUER" + Pktid + IPP2P + PP2P + TTL + ricerca.ljust(20)
+						print("STAMPO MESSAGGIO --> "+msg)
 						for user in resultUser:
 							setConnection(user[0], int(user[1], msg))
+					
 					
 			elif command == "RETR":
 				print("RETR")
