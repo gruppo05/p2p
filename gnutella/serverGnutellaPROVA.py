@@ -155,7 +155,11 @@ class GnutellaServer(object):
 					self.dbReader.execute("INSERT INTO File (filemd5, filename, IPP2P) values (?, ?, ?)", (filemd5, filename, self.myIPP2P))
 					msg = "1"
 					
+<<<<<<< HEAD
+				self.sockUDPClient.sendto((msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+=======
 				self.sockUDPClient.sendto((msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT)))
+>>>>>>> 22c1c79e2fa71864e04a03ebcf3f3a3d872520fa
 						
 			elif command == "QUER":
 				
@@ -165,6 +169,10 @@ class GnutellaServer(object):
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
 				resultUser = self.dbReader.fetchall()
 				
+<<<<<<< HEAD
+				
+=======
+>>>>>>> 22c1c79e2fa71864e04a03ebcf3f3a3d872520fa
 				ricerca, useless = self.sockUDPServer.recvfrom(20)
 				filename = ricerca.decode()
 				print(filename)
@@ -173,7 +181,11 @@ class GnutellaServer(object):
 				
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
+<<<<<<< HEAD
+				print("finito funzione quer")
+=======
 				
+>>>>>>> 22c1c79e2fa71864e04a03ebcf3f3a3d872520fa
 				
 			elif command == "RETR":
 				self.dbReader.execute("SELECT * FROM File WHERE IPP2P != ?", (self.myIPP2P,))
