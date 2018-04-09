@@ -84,27 +84,12 @@ class GnutellaClient(object):
 			
 			elif cmd is "4":
 				print("INIZIO DOWNLOAD")
-				self.sockUDPServer.sendto(("RETR").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
-				lunghezza = self.sockUDPServer.recvfrom(2)
-				if lunghezza == "00":
-					print("Non ci sono file da scaricare")
-				else:
-					#ci sono file da scaricare
-					i = 0
-					print("Quale file vuoi scaricare?")
-					while i < int(lunghezza):
-						filename[i] = self.sockUDP.recvfrom(100)
-						print(i + " : " + filename[i])
-					
-					print("-1 per terminare il download")
-					code = input("\n ")	
-					
-					if len(code) == 1:
-						code = str(code).ljust()
-					else:
-						code = str(code)
-					
-					self.sockUDPServer.sendto((code).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				
+				filename = input("Inserisci il nome del file da scaricare: ")
+				
+				filename = str(filename).ljust(20)
+				filename = "RETR" + filename				
+				self.sockUDPServer.sendto((filename).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 			
 			elif cmd is "5":
 				print("STAMPA TUTTI I VICINI")
