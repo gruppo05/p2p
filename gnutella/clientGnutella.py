@@ -126,7 +126,7 @@ class GnutellaClient(object):
 					cmd = buff.decode()
 					if cmd == self.endUDP2:
 						print(color.recv+"Lista file terminata"+color.end)
-						cmd = input("Premi un tasto per continuare:")
+						cmd = input("Premi invio per continuare:")
 						break;
 					else:
 						print(color.recv+cmd+color.end)

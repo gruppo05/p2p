@@ -1,4 +1,5 @@
 class Settings(object):
+
 	PORT = 3000
 	myIPP2P = "192.168.043.131|fe80:0000:0000:0000:5bf8:4887:b7f4:6974"
 	
