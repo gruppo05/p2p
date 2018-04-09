@@ -294,12 +294,12 @@ class GnutellaServer(object):
 				#controllo se ho già ricevuto questa richiesta
 				self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (Pktid,))
 				t = self.dbReader.fetchone()
-				ricerca = str(ricerca)
+				ricerca = ricerca.strip()
 				if t is None:
 					print("Rispondo alla quer di un peer")
 					self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)", (Pktid, datetime.datetime.now()))
 					#prendo i file che ho io cioè quelli che puntano al mio indirizzo ip
-					self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ?", ( '%' + ricerca + '%',))
+					self.dbReader.execute("SELECT * FROM File WHERE IPP2P LIKE ? AND Filename LIKE ?", ( '%' + self.myIPP2P + '%', '%' + ricerca + '%',))
 					
 					print("sto cercando:", ricerca)
 					resultFile = self.dbReader.fetchall()
