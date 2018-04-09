@@ -1,4 +1,4 @@
-import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path
+import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path, hashlib
 import settings as var
 from random import *
 
@@ -29,12 +29,14 @@ def encryptMD5(filename):
 	#calcolo hash file
 	BLOCKSIZE = 128
 	hasher = hashlib.md5()
+	print(1)
 	with open(filename, 'rb') as f:
 		buf = f.read(BLOCKSIZE)
 		while len(buf) > 0:
 			hasher.update(buf)
 			buf = f.read(BLOCKSIZE)
 		f.close()
+	print(2)
 	filemd5 = hasher.hexdigest()
 	#print(str(msg))
 	#res = makeStringLength(str(msg),100)
@@ -143,17 +145,17 @@ class GnutellaServer(object):
 				
 				filename, useless = self.sockUDPServer.recvfrom(20)
 				filename = filename.decode()
-				filemd5 = encryptMD5(filename)
-				print(filemd5)
+
 				PATH=var.Settings.userPath+filename.strip()
-				
 				if os.path.isfile(PATH) and os.access(PATH, os.R_OK):
+					filemd5 = encryptMD5(PATH)
 					msg = "1"
 					self.dbReader.execute("INSERT INTO File (filemd5, filename, IPP2P) values (?, ?, ?)", (filemd5, filename, self.myIPP2P))
+					print(msg)
 				else:
 					msg = "0"
-					
-					
+					print(msg)
+
 					
 				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 	
