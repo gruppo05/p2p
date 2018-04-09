@@ -67,6 +67,7 @@ class GnutellaClient(object):
 				#esito operazione
 				command, useless = self.sockUDPClient.recvfrom(1)
 				print("ok1")
+
 				com = command.decode()
 				print(com)
 				if com is "1":
