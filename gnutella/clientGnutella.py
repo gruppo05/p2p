@@ -89,11 +89,10 @@ class GnutellaClient(object):
 			
 			elif cmd is "4":
 				print("INIZIO DOWNLOAD")
-				
+				self.sockUDPServer.sendto(("RETR").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				filename = input("Inserisci il nome del file da scaricare: ")
 				
-				filename = str(filename).ljust(20)
-				filename = "RETR" + filename				
+				filename = str(filename).ljust(20)				
 				self.sockUDPServer.sendto((filename).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 			
 			elif cmd is "5":

@@ -194,21 +194,23 @@ class GnutellaServer(object):
 				
 				
 			elif command == "RETR":
-				
+				print("1")
 				filename, addr = self.sockUDPServer.recvfrom(20)
+				
 				filename = filename.decode()
+				print("2")
 				filename = filename.strip()
-				
-				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ?", ("%"+filename+"%",))
+				print("3")
+				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ? AND IPP2P NOT LIKE ?", ("%"+filename+"%","%" + self.myIPP2P+"%"))
 				resultFile = self.dbReader.fetchone()
-				
+				print(len(resultFile))
 				self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ("%"+resultFile[2]+"%",))
 				resultUser = self.dbReader.fetchone()
 				
 				msg = "RETR" + resultFile[0]
 				
-				setConnection(resultUser[0], int(resultUser[1], msg))
-				
+				setConnection(resultUser[0], int(resultUser[1]), msg)
+				'''
 				self.dbReader.execute("SELECT * FROM File WHERE IPP2P NOT LIKE ?", (self.myIPP2P,))
 				resultFile = self.dbReader.fetchall()
 				print(len(resultFile))	
@@ -232,7 +234,7 @@ class GnutellaServer(object):
 				
 				#invio il retr all'utente
 				setConnection(utente[0], int(utente[1]), msg)	
-
+'''
 			elif command == "STMV":
 				self.dbReader.execute("SELECT * FROM user")
 				vicini = self.dbReader.fetchall()
@@ -342,11 +344,13 @@ class GnutellaServer(object):
 				FileMD5 = connection.recv(32).decode()
 				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
 				resultFile = self.dbReader.fetchone()
-				print(resultFile[0].strip())
-				print(os.path.dirname(os.path.abspath(__file__)))
 				filename=resultFile[0].replace(" ","")
 				print(filename)
-				fd = os.open(filename, os.O_RDONLY, 777)
+				try:
+					fd = os.open(filename, os.O_RDONLY, 777)
+				except OSError as e:
+					print(e)
+				
 				print(fd)
 				if fd is None:
 					
