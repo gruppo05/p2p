@@ -243,7 +243,6 @@ class GnutellaServer(object):
 		while True:
 			try:
 				connection, client_address = self.sock.accept()
-				print("SONO NEL SERVER PRINCIPALE")
 				#connection.settimeout(60)
 				threading.Thread(target = self.startServer, args = (connection,client_address)).start()
 			except:
@@ -253,6 +252,7 @@ class GnutellaServer(object):
 		command = connection.recv(4).decode()
 		try:
 			if command == "NEAR":
+				print("Ricevuto "+color.recv+"NEAR"+color.end)
 				Pktid = connection.recv(16).decode()
 				IPP2P = connection.recv(55).decode()
 				PP2P = connection.recv(5).decode()
@@ -272,7 +272,6 @@ class GnutellaServer(object):
 						print(color.fail + "User già presente" + color.end)
 					
 					msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
-					print("STAMPO MESSAGGIO --> "+msg)
 					setConnection(IPP2P, int(PP2P), msg)
 			
 					TTL = setNumber(int(TTL) - 1)
@@ -285,7 +284,7 @@ class GnutellaServer(object):
 							setConnection(user[0], int(user[1]), msg)
 							
 			elif command == "QUER":
-				print("QUER")
+				print("Ricevuto "+color.recv+"QUER"+color.end)
 				Pktid = connection.recv(16).decode()
 				IPP2P = connection.recv(55).decode()
 				PP2P = connection.recv(5).decode()
@@ -296,20 +295,17 @@ class GnutellaServer(object):
 				t = self.dbReader.fetchone()
 				ricerca = ricerca.strip()
 				if t is None:
-					print("Rispondo alla quer di un peer")
 					self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)", (Pktid, datetime.datetime.now()))
 					#prendo i file che ho io cioè quelli che puntano al mio indirizzo ip
 					self.dbReader.execute("SELECT * FROM File WHERE IPP2P LIKE ? AND Filename LIKE ?", ( '%' + self.myIPP2P + '%', '%' + ricerca + '%',))
 					
-					print("sto cercando:", ricerca)
 					resultFile = self.dbReader.fetchall()
-					print("trovati:", len(resultFile))
+					print(color.green+"Trovati: "+len(resultFile)+" file"+color.end)
 					i = 0
 					lunghezza = int(len(resultFile))
 					while i < lunghezza:
 						#per ogni file che ho trovato nel db, invio un messaggio al peer
 						msg = "AQUE" + Pktid + self.myIPP2P + str(self.PORT).ljust(5) + resultFile[i][0] + resultFile[i][1].ljust(100)
-						print("STAMPO MESSAGGIO DI AQUE --> "+msg)
 						i = i+1
 						setConnection(IPP2P, int(PP2P), msg)
 						
@@ -320,13 +316,11 @@ class GnutellaServer(object):
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P != ?", (IPP2P,))
 					resultUser = self.dbReader.fetchall()
 					msg = "QUER" + Pktid + IPP2P + PP2P + TTL + ricerca.ljust(20)
-					print("STAMPO MESSAGGIO --> "+msg)
 					for user in resultUser:
 						setConnection(user[0], int(user[1], msg))
 					
-					
 			elif command == "RETR":
-				print("RETR")
+				print("Ricevuto "+color.recv+"RETR"+color.end)
 				
 				#inviare un file che ho
 				FileMD5 = connection.recv(32).decode()
@@ -365,8 +359,7 @@ class GnutellaServer(object):
 					print("Errore nell'apertura del file")
 				
 			elif command == "ANEA":
-				print("Ricevuto ANEA")
-
+				print("Ricevuto "+color.recv+"ANEA"+color.end)
 				Pktid = connection.recv(16).decode()
 				IPP2P = connection.recv(55).decode()
 				PP2P = connection.recv(5).decode()
@@ -386,10 +379,10 @@ class GnutellaServer(object):
 					else:
 						print(color.fail + "User già presente" + color.end)	
 				else:
-					print("ricevuto pacchetto dopo 300s")
+					print(color.fail+"ricevuto pacchetto dopo 300s"+color.end)
 			
 			elif command == "AQUE":
-				print("Ricevuto AQUE")
+				print("Ricevuto "+color.recv+"AQUE"+color.end)
 				
 				Pktid = connection.recv(16).decode()
 				IPP2P = connection.recv(55).decode()
@@ -407,14 +400,14 @@ class GnutellaServer(object):
 					if data is None:
 						#se il file non esiste nel db lo inserisco
 						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, IPP2P) values (?, ?, ?)", (Filemd5, Filename, IPP2P))
-						print(color.green + "Aggiunto un file di un peer" + color.end)
+						print(color.green + "Aggiunto alla lista un nuovo file" + color.end)
 					else:
 						print(color.fail + "File già presente" + color.end)
 				else:
-					print("Ricevuto pacchetto dopo 300s")
+					print(color.fail+"Ricevuto pacchetto dopo 300s"+color.end)
 				
 			elif command == "ARET":
-				print("Ricevuto ARET")
+				print("Ricevuto "+color.recv+"ARET"+color.end)
 				try:
 						#DA DECIDERE !!!!!
 					filename = "DA DECIDERE"
