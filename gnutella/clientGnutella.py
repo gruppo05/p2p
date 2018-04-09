@@ -66,7 +66,13 @@ class GnutellaClient(object):
 				filename = input("Inserisci il nome del file da aggiungere: ")
 				self.sockUDPServer.sendto((filename.ljust(20)).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				#esito operazione
+<<<<<<< HEAD
 				command, useless = self.sockUDPServer.recv(1)
+=======
+				print("ok")
+				command, useless = self.sockUDPClient.recvfrom(1)
+				print("ok1")
+>>>>>>> 074c5fbfa7ec5d7d8d9cc033fae6bbb757757339
 				com = command.decode()
 				if com is "1":
 					print("File aggiunto con successo")
