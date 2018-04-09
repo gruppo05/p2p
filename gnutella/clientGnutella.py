@@ -12,7 +12,7 @@ class color:
 	UNDERLINE = '\033[4m'
 
 def startServer():
-	os.system("gnome-terminal -e 'sh -c \"python3 serverGnutellaPROVA.py\"'")
+	os.system("gnome-terminal -e 'sh -c \"python3 serverGnutella.py\"'")
 
 def printMenu():
 	print(color.recv+"  ____  "+ color.green+"        "+ color.send+"        "+ color.fail+" _    "+ color.recv+"       "+ color.green+" _  "+ color.send+" _  "+ color.green+"        "+ color.fail+"  ____  _____   ____  "+ color.end)
