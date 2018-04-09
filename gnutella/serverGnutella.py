@@ -189,22 +189,19 @@ class GnutellaServer(object):
 			elif command == "RETR":
 				print("\n\nRicevuto comando dal client: "+color.recv+command+color.end)
 			
-			
-			
-			elif command == "STMF":
-				self.dbReader.execute("SELECT * FROM File")
-				files = self.dbReader.fetchall()
-				for f in files:
-					self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-				self.sockUDPClient.sendto((self.endUDP2).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-				
 			elif command == "STMV":
-				if False: #questo è da rimuovere
-					self.dbReader.execute("SELECT * FROM user")
-					vicini = self.dbReader.fetchall()
-					for v in vicini:
-						self.sockUDPClient.sendto((v[0]+"-"+v[1]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.dbReader.execute("SELECT * FROM user")
+				vicini = self.dbReader.fetchall()
+				for v in vicini:
+					self.sockUDPClient.sendto((v[0]+"-"+v[1]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				self.sockUDPClient.sendto((self.endUDP1).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				
+			elif command == "STMF":
+				#self.dbReader.execute("SELECT * FROM File")
+				#files = self.dbReader.fetchall()
+				#for f in files:
+				#	self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.sockUDPClient.sendto((self.endUDP2).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				
 			print("\n")
 
@@ -232,23 +229,26 @@ class GnutellaServer(object):
 				IPP2P = connection.recv(55).decode()
 				PP2P = connection.recv(5).decode()
 				TTL = connection.recv(2).decode()
-				
+				print("pno")
 				#se non esiste il pktid, lo inserisco e propago il messaggio altrimenti lo ignoro in quanto l'ho già ricevuto e ritrasmesso
 				self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (Pktid,))
 				t = self.dbReader.fetchone()
 				
 				if t is None:
-					self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)",(myPktid,datetime.datetime.now()))
-					
+					print("entrato")
+					self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)",(Pktid,datetime.datetime.now()))
+					print("entrato 1")
 					self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
 					data = self.dbReader.fetchone()
+					print("entrato fatchone 2")
 					if data is None:
 						self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values (?, ?)",(IPP2P, PP2P))
 						print(color.green + "Aggiunto nuovo user" + color.end)
 					else:
 						print(color.fail + "User già presente" + color.end)
-			
+					
 					msg = "ANEA" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
+					print("STAMPO MESSAGGIO --> "+msg)
 					setConnection(IPP2P, int(PP2P), msg)
 			
 					TTL = setNumber(int(TTL) - 1)

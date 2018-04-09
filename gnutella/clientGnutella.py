@@ -100,11 +100,11 @@ class GnutellaClient(object):
 				print("STAMPA TUTTI I FILE TROVATI")
 				self.sockUDPServer.sendto(("STMF").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				while True:
-					buff, addr = self.sockUDPClient.recvfrom(61)
+					buff, addr = self.sockUDPClient.recvfrom(159)
 					cmd = buff.decode()
 					if cmd == self.endUDP2:
 						print(color.recv+"Lista file terminata"+color.end)
-						cmd = input("\nPremi un tasto per continuare:\n")
+						cmd = input("Premi un tasto per continuare:")
 						break;
 					else:
 						print(color.recv+cmd+color.end)
