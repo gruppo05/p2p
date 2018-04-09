@@ -12,7 +12,7 @@ class color:
 	UNDERLINE = '\033[4m'
 
 def startServer():
-	os.system("gnome-terminal -e 'sh -c \"python3 serverGnutellaPROVA.py\"'")
+	os.system("gnome-terminal -e 'sh -c \"python3 serverGnutella.py\"'")
 
 def printMenu():
 	print(color.recv+"  ____  "+ color.green+"        "+ color.send+"        "+ color.fail+" _    "+ color.recv+"       "+ color.green+" _  "+ color.send+" _  "+ color.green+"        "+ color.fail+"  ____  _____   ____  "+ color.end)
@@ -66,7 +66,7 @@ class GnutellaClient(object):
 				filename = input("Inserisci il nome del file da aggiungere: ")
 				self.sockUDPServer.sendto((filename.ljust(20)).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				#esito operazione
-				command, useless = self.sockUDPClient.recv(1)
+				command, useless = self.sockUDPServer.recv(1)
 				com = command.decode()
 				if com is "1":
 					print("File aggiunto con successo")

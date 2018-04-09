@@ -139,6 +139,10 @@ class GnutellaServer(object):
 				msg = "NEAR" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
+<<<<<<< HEAD
+=======
+					
+>>>>>>> 22c1c79e2fa71864e04a03ebcf3f3a3d872520fa
 			elif command == "ADDF":
 				
 				filename, useless = self.sockUDPServer.recvfrom(20)
@@ -409,7 +413,12 @@ class GnutellaServer(object):
 			elif command == "ARET":
 				print("Ricevuto ARET")
 				try:
+<<<<<<< HEAD
 						#DA DECIDERE !!!!!
+=======
+					
+					#DA DECIDERE !!!!!
+>>>>>>> 22c1c79e2fa71864e04a03ebcf3f3a3d872520fa
 					filename = "DA DECIDERE"
 					
 					fd = os.open(filename, os.O_WRONLY | os.O_CREAT, 777)
