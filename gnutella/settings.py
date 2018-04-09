@@ -2,5 +2,7 @@ class Settings(object):
 	PORT = 3000
 	myIPP2P = "192.168.043.078|fe80:0000:0000:0000:5bf8:4887:b7f4:6974"
 	
-	root_IP = "192.168.043.012|fe80:0000:0000:0000:6547:5218:f0db:25ec"
-	root_PORT = "5000"
+	root_IP = "192.168.043.078|fe80:0000:0000:0000:5bf8:4887:b7f4:6974"
+	root_PORT = "3000"
+	userPath = "/home/francesco/Scrivania/immagini-p2p/"
+
