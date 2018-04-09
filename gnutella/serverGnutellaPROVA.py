@@ -139,6 +139,7 @@ class GnutellaServer(object):
 				msg = "NEAR" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
+					
 			elif command == "ADDF":
 				
 				filename, useless = self.sockUDPServer.recvfrom(20)
@@ -151,7 +152,7 @@ class GnutellaServer(object):
 					self.dbReader.execute("INSERT INTO File (filemd5, filename, IPP2P) values (?, ?, ?)", (filemd5, filename, self.myIPP2P))
 					msg = "1"
 					
-				self.sockUDPClient.sendto((msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.sockUDPClient.sendto((msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT)))
 						
 			elif command == "QUER":
 				
@@ -409,7 +410,8 @@ class GnutellaServer(object):
 			elif command == "ARET":
 				print("Ricevuto ARET")
 				try:
-						#DA DECIDERE !!!!!
+					
+					#DA DECIDERE !!!!!
 					filename = "DA DECIDERE"
 					
 					fd = os.open(filename, os.O_WRONLY | os.O_CREAT, 777)
