@@ -175,45 +175,46 @@ class GnutellaServer(object):
 				
 				
 			elif command == "RETR":
-				self.dbReader.execute("SELECT * FROM File WHERE IPP2P != ?", (self.myIPP2P,))
+				
+				filename, addr = self.sockUDPServer.recvfrom(20)
+				filename = filename.decode()
+				filename = filename.strip()
+				
+				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ?", ("%"+filename+"%",))
+				resultFile = self.dbReader.fetchone()
+				
+				self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ("%"+resultFile[2]+"%",))
+				resultUser = self.dbReader.fetchone()
+				
+				msg = "RETR" + resultFile[0]
+				
+				setConnection(resultUser[0], int(resultUser[1], msg))
+				
+				'''
+				self.dbReader.execute("SELECT * FROM File WHERE IPP2P NOT LIKE ?", (self.myIPP2P,))
 				resultFile = self.dbReader.fetchall()
-
-				i = 0
-				if resultFile is None:
-					#se non si sono file interrompo la richiesta di download
-					self.sockUDPClient.sendto(("00").encode(), (self.UDP_IP, selfUDP_PORT_CLIENT))
-				else:
-					#se ci sono file continuo
-					if len(resultFile) == 1:
-						lunghezza = str(len(resultFile)).ljust(2)
-					else:
-						lunghezza = str(len(resultFile))
-						
-					self.sockUDPClient.sendto((lunghezza).encode(), (self.UDP_IP, selfUDP_PORT_CLIENT))
-					for result in resultFile:
-						#invio tutti i filename al client	
-						files[i] = (result[0], result[1], result[2])
-						self.sockUDPClient.sendto((result[1]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-
-					code = self.sockUDPServer.recvfrom(2)
-					
-					if code == -1:
-						print("Download annullato.")
-						break
-					if len(resultFile[code][0]) == 0: #da controllare, si potrebbe utilizzare come condizione resultFile[code][0] is None
-						print("Codice sbagliato.")
-						break
-					
-					#threading.Thread(target = self.attesaDownload, args = (data,addr)).start()
-					
-					msg = "RETR" + 	resultFile[code][0]
-					sef.download = resultFile[code][1]
-					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P = ?", (resultFile[code][2],))
-					utente = self.dbReader.fetchone()
-					
-					#invio il retr all'utente
-					setConnection(utente[0], int(utente[1]), msg)	
-							
+				print(len(resultFile))	
+				for f in resultFile:
+					self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.sockUDPClient.sendto((self.endUDP2).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				print("1")
+				code = self.sockUDPServer.recvfrom(100)
+				code = code.strip()
+				if int(code) == -1:
+					print("Download annullato.")
+					break
+				print("2")	
+				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ? AND IPP2P NOT LIKE ?", (code, self.myIPP2P))
+				data = self.dbReader.fetchone()
+				msg = "RETR" + 	data[0]
+				
+				sef.download = data[1]
+				self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P = ?", (data[2],))
+				utente = self.dbReader.fetchone()
+				
+				#invio il retr all'utente
+				setConnection(utente[0], int(utente[1]), msg)	
+				'''			
 			elif command == "STMV":
 				self.dbReader.execute("SELECT * FROM user")
 				vicini = self.dbReader.fetchall()
@@ -297,7 +298,7 @@ class GnutellaServer(object):
 					self.dbReader.execute("SELECT * FROM File WHERE IPP2P LIKE ? AND Filename LIKE ?", ( '%' + self.myIPP2P + '%', '%' + ricerca + '%',))
 					
 					resultFile = self.dbReader.fetchall()
-					print(color.green+"Trovati: "+len(resultFile)+" file"+color.end)
+					print(color.green+"Trovati: "+str(len(resultFile))+" file"+color.end)
 					i = 0
 					lunghezza = int(len(resultFile))
 					while i < lunghezza:
@@ -321,7 +322,6 @@ class GnutellaServer(object):
 				
 				#inviare un file che ho
 				FileMD5 = connection.recv(32).decode()
-				
 				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
 				resultFile = self.dbReader.fetchone()
 				f = os.open(str(resultFile), os.O_RDONLY)
