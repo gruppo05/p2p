@@ -1,4 +1,4 @@
-import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path
+import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime
 import settings as var
 from random import *
 
@@ -139,21 +139,21 @@ class GnutellaServer(object):
 				msg = "NEAR" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
+					
 			elif command == "ADDF":
 				
 				filename, useless = self.sockUDPServer.recvfrom(20)
 				filename = filename.decode()
-				PATH=var.Settings.userPath+filename.strip()
-				
-				if os.path.isfile(PATH) and os.access(PATH, os.R_OK):
-
-					msg = "1"
-				else:
+				fd = os.open(filename, os.O_RDONLY, 777)
+				if fd is None:
 					msg = "0"
+				else:
+					filemd5 = encryptMD5(filename)
 					self.dbReader.execute("INSERT INTO File (filemd5, filename, IPP2P) values (?, ?, ?)", (filemd5, filename, self.myIPP2P))
+					msg = "1"
 					
-				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-	
+				self.sockUDPClient.sendto((msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT)))
+						
 			elif command == "QUER":
 				
 				myPktid = PktidGenerator()
@@ -179,7 +179,7 @@ class GnutellaServer(object):
 				i = 0
 				if resultFile is None:
 					#se non si sono file interrompo la richiesta di download
-					self.sockUDPClient.sendto(("00").encode(), (self.UDP_IP, selfUDP_PORT_CLIENT))
+					self.sockUDPClient.sendto(("00").encode(), (self.UDP_IP, selfUDP_PORT))
 				else:
 					#se ci sono file continuo
 					if len(resultFile) == 1:
@@ -187,11 +187,11 @@ class GnutellaServer(object):
 					else:
 						lunghezza = str(len(resultFile))
 						
-					self.sockUDPClient.sendto((lunghezza).encode(), (self.UDP_IP, selfUDP_PORT_CLIENT))
+					self.sockUDPClient.sendto((lunghezza).encode(), (self.UDP_IP, selfUDP_PORT))
 					for result in resultFile:
 						#invio tutti i filename al client	
 						files[i] = (result[0], result[1], result[2])
-						self.sockUDPClient.sendto((result[1]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+						self.sockUDPClient.sendto((result[1]).encode(), (self.UDP_IP, self.UDP_PORT))
 
 					code = self.sockUDPServer.recvfrom(2)
 					
@@ -410,7 +410,8 @@ class GnutellaServer(object):
 			elif command == "ARET":
 				print("Ricevuto ARET")
 				try:
-						#DA DECIDERE !!!!!
+					
+					#DA DECIDERE !!!!!
 					filename = "DA DECIDERE"
 					
 					fd = os.open(filename, os.O_WRONLY | os.O_CREAT, 777)
