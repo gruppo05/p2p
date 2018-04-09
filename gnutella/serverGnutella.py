@@ -91,6 +91,7 @@ def getTime(t):
 class GnutellaServer(object):
 	def __init__(self):
 		IP = ""
+		self.download = ""
 		self.PORT = var.Settings.PORT
 		self.myIPP2P = var.Settings.myIPP2P
 		self.UDP_IP = "127.0.0.1"
@@ -210,7 +211,7 @@ class GnutellaServer(object):
 					#threading.Thread(target = self.attesaDownload, args = (data,addr)).start()
 					
 					msg = "RETR" + 	resultFile[code][0]
-					
+					sef.download = resultFile[code][1]
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P = ?", (resultFile[code][2],))
 					utente = self.dbReader.fetchone()
 					
@@ -415,8 +416,8 @@ class GnutellaServer(object):
 			elif command == "ARET":
 				print("Ricevuto ARET")
 				try:
-						#DA DECIDERE !!!!!
-					filename = "DA DECIDERE"
+					
+					filename = self.download
 					
 					fd = os.open(filename, os.O_WRONLY | os.O_CREAT, 777)
 						
