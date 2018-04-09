@@ -25,6 +25,21 @@ def splitIp(ip):
 	ip = str(int(splitted[0]))+"."+str(int(splitted[1]))+"."+str(int(splitted[2]))+"."+str(int(splitted[3]))
 	return ip
 	
+def encryptMD5(filename):
+	#calcolo hash file
+	BLOCKSIZE = 128
+	hasher = hashlib.md5()
+	with open(filename, 'rb') as f:
+		buf = f.read(BLOCKSIZE)
+		while len(buf) > 0:
+			hasher.update(buf)
+			buf = f.read(BLOCKSIZE)
+		f.close()
+	filemd5 = hasher.hexdigest()
+	#print(str(msg))
+	#res = makeStringLength(str(msg),100)
+	return(filemd5)	
+	
 class color:
 	HEADER = '\033[95m'
 	recv = '\033[36m'
@@ -124,18 +139,34 @@ class GnutellaServer(object):
 				msg = "NEAR" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
+			elif command == "ADDF":
+				
+				filename, useless = self.sockUDPServer.recvfrom(20)
+				filename = filename.decode()
+				fd = os.open(filename, os.O_RDONLY, 777)
+				if fd is None:
+					msg = "0"
+				else:
+					filemd5 = encryptMD5(filename)
+					self.dbReader.execute("INSERT INTO File (filemd5, filename, IPP2P) values (?, ?, ?)", (filemd5, filename, self.myIPP2P))
+					msg = "1"
 					
+				self.sockUDPClient.sendto((msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+						
 			elif command == "QUER":
+				
 				myPktid = PktidGenerator()
 				self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)", (myPktid, datetime.datetime.now()))
 				TTL = setNumber(5)
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
 				resultUser = self.dbReader.fetchall()
 				
-				ricerca, addr = self.sockUDPServer.recvfrom(20)
-				# credo che il comando giusto sia quello con QUER e non con NEAR, quindi commento NEAR
-				#msg = "NEAR" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL + ricerca.decode()
-				msg = "QUER" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL + ricerca.decode()
+				
+				ricerca, useless = self.sockUDPServer.recvfrom(20)
+				filename = ricerca.decode()
+				print(filename)
+				msg = "QUER" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL + str(filename)
+
 				
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
@@ -221,7 +252,6 @@ class GnutellaServer(object):
 				IPP2P = connection.recv(55).decode()
 				PP2P = connection.recv(5).decode()
 				TTL = connection.recv(2).decode()
-				print("pno")
 				#se non esiste il pktid, lo inserisco e propago il messaggio altrimenti lo ignoro in quanto l'ho già ricevuto e ritrasmesso
 				self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (Pktid,))
 				t = self.dbReader.fetchone()
@@ -265,19 +295,29 @@ class GnutellaServer(object):
 					self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)", (Pktid, datetime.datetime.now()))
 					#prendo i file che ho io cioè quelli che puntano al mio indirizzo ip
 					self.dbReader.execute("SELECT * FROM File WHERE IPP2P = ? AND Filename LIKE ?", (self.myIPP2P, "%"+ricerca+"%"))
+					print(ricerca)
 					resultFile = self.dbReader.fetchall()
-					for files in resultFile:
+					print(len(resultFile))
+					i = 0
+					lunghezza = int(len(resultFile))
+					while i < lunghezza:
 						#per ogni file che ho trovato nel db, invio un messaggio al peer
-						msg = "AQUE" + Pktid + self.myIPP2P + str(self.PORT).ljust(5) + files[0] + files[1].ljust(100)
-						setConnection(user[0], int(user[1]), msg)
+						msg = "AQUE" + Pktid + self.myIPP2P + str(self.PORT).ljust(5) + resultFile[i][0] + resultFile[i][1].ljust(100)
+						print("STAMPO MESSAGGIO DI AQUE --> "+msg)
+						i = i+1
+						setConnection(IPP2P, int(PP2P), msg)
+						
 					if int(TTL) > 1:
 						#se ttl maggiore di 1, decremento il ttl e lo rispedisco a tutti i vicini
+						
 						TTL = setNumber(int(TTL) - 1)
 						self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P != ?", (IPP2P,))
 						resultUser = self.dbReader.fetchall()
-						msg = "QUER" + Pkid + IPP2P + PP2P + TTL + ricerca
+						msg = "QUER" + Pktid + IPP2P + PP2P + TTL + ricerca.ljust(20)
+						print("STAMPO MESSAGGIO --> "+msg)
 						for user in resultUser:
 							setConnection(user[0], int(user[1], msg))
+					
 					
 			elif command == "RETR":
 				print("RETR")
