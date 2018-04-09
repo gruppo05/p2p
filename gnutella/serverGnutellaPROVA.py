@@ -25,6 +25,21 @@ def splitIp(ip):
 	ip = str(int(splitted[0]))+"."+str(int(splitted[1]))+"."+str(int(splitted[2]))+"."+str(int(splitted[3]))
 	return ip
 	
+def encryptMD5(filename):
+	#calcolo hash file
+	BLOCKSIZE = 128
+	hasher = hashlib.md5()
+	with open(filename, 'rb') as f:
+		buf = f.read(BLOCKSIZE)
+		while len(buf) > 0:
+			hasher.update(buf)
+			buf = f.read(BLOCKSIZE)
+		f.close()
+	filemd5 = hasher.hexdigest()
+	#print(str(msg))
+	#res = makeStringLength(str(msg),100)
+	return(filemd5)	
+	
 class color:
 	HEADER = '\033[95m'
 	recv = '\033[36m'
@@ -128,14 +143,15 @@ class GnutellaServer(object):
 				
 				filename, useless = self.sockUDPServer.recvfrom(20)
 				filename = filename.decode()
-				fd = os.open(filename, os._OWRONLY | os.O_CREAT, 777)
+				fd = os.open(filename, os.O_RDONLY, 777)
 				if fd is None:
-					#calcolare md5
-					#self.dbReader.execute("INSERT INTO File (filemd5, filename, IPP2P) values (?, ?, ?)", (filemd5, filename, self.myIPP2P))
 					msg = "0"
 				else:
-					msg == "1"
-				#self.sockUDPClient.sendto((msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					filemd5 = encryptMD5(filename)
+					self.dbReader.execute("INSERT INTO File (filemd5, filename, IPP2P) values (?, ?, ?)", (filemd5, filename, self.myIPP2P))
+					msg = "1"
+					
+				self.sockUDPClient.sendto((msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 						
 			elif command == "QUER":
 				
@@ -276,7 +292,6 @@ class GnutellaServer(object):
 				if t is None:
 					print("Rispondo alla quer di un peer")
 					self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)", (Pktid, datetime.datetime.now()))
-					self.dbReader.execute("INSERT INTO File (Filemd5, filename, IPP2P) values (?,?,?)", ("Funzionaaaaaaaaaaaaaaaaaaaaaaaaa", ricerca, self.myIPP2P))
 					#prendo i file che ho io cioè quelli che puntano al mio indirizzo ip
 					self.dbReader.execute("SELECT * FROM File WHERE IPP2P = ? AND Filename LIKE ?", (self.myIPP2P, "%"+ricerca+"%"))
 					print(ricerca)
