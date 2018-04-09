@@ -132,12 +132,14 @@ class GnutellaServer(object):
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
 				resultUser = self.dbReader.fetchall()
 				
-				ricerca = self.sockUDPServer.recvfrom(20)
-				msg = "NEAR" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL + ricerca
+				ricerca, addr = self.sockUDPServer.recvfrom(20)
+				# credo che il comando giusto sia quello con QUER e non con NEAR, quindi commento NEAR
+				#msg = "NEAR" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL + ricerca.decode()
+				msg = "QUER" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL + ricerca.decode()
 				
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
-				
+				print("finito funzione quer")
 				
 			elif command == "RETR":
 				self.dbReader.execute("SELECT * FROM File WHERE IPP2P != ?", (self.myIPP2P,))

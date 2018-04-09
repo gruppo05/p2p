@@ -12,7 +12,7 @@ class color:
 	UNDERLINE = '\033[4m'
 
 def startServer():
-	os.system("gnome-terminal -e 'sh -c \"python3 serverGnutella.py\"'")
+	os.system("gnome-terminal -e 'sh -c \"python3 serverGnutellaPROVA.py\"'")
 
 def printMenu():
 	print(color.recv+"  ____  "+ color.green+"        "+ color.send+"        "+ color.fail+" _    "+ color.recv+"       "+ color.green+" _  "+ color.send+" _  "+ color.green+"        "+ color.fail+"  ____  _____   ____  "+ color.end)
@@ -63,6 +63,8 @@ class GnutellaClient(object):
 				self.sockUDPServer.sendto(("QUER").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				ricerca = input("Inserire il nome presente nel file da cercare: ")
 				self.sockUDPServer.sendto((ricerca.ljust(20)).encode(),(self.UDP_IP, self.UDP_PORT_SERVER))
+				
+				
 			elif cmd is "3":
 				print("INIZIO DOWNLOAD")
 				self.sockUDPServer.sendto(("RETR").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
@@ -116,6 +118,7 @@ class GnutellaClient(object):
 				
 			elif cmd is "6":
 				#stopServer()
+				#os.system("sh -c \"kill $(ps aux | grep '.py' | awk '{print $2}')\"")
 				os._exit(0)
 			
 if __name__ == "__main__":
