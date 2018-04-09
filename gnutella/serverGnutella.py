@@ -150,8 +150,10 @@ class GnutellaServer(object):
 					filemd5 = encryptMD5(PATH)
 					msg = "1"
 					self.dbReader.execute("INSERT INTO File (filemd5, filename, IPP2P) values (?, ?, ?)", (filemd5, filename, self.myIPP2P))
+					print(color.green+"Trovato. Aggiunto file in condivisione"+color.end)
 				else:
 					msg = "0"
+					print(color.fail+"File non presente. Impossibile aggiungerlo in condivisione"+color.end)
 
 					
 				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
