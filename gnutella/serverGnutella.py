@@ -29,14 +29,12 @@ def encryptMD5(filename):
 	#calcolo hash file
 	BLOCKSIZE = 128
 	hasher = hashlib.md5()
-	print(1)
 	with open(filename, 'rb') as f:
 		buf = f.read(BLOCKSIZE)
 		while len(buf) > 0:
 			hasher.update(buf)
 			buf = f.read(BLOCKSIZE)
 		f.close()
-	print(2)
 	filemd5 = hasher.hexdigest()
 	#print(str(msg))
 	#res = makeStringLength(str(msg),100)
@@ -151,10 +149,10 @@ class GnutellaServer(object):
 					filemd5 = encryptMD5(PATH)
 					msg = "1"
 					self.dbReader.execute("INSERT INTO File (filemd5, filename, IPP2P) values (?, ?, ?)", (filemd5, filename, self.myIPP2P))
-					print(msg)
+					print(color.green+"Trovato. Aggiunto file in condivisione"+color.end)
 				else:
 					msg = "0"
-					print(msg)
+					print(color.fail+"File non presente. Impossibile aggiungerlo in condivisione"+color.end)
 
 					
 				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
@@ -300,7 +298,7 @@ class GnutellaServer(object):
 					self.dbReader.execute("SELECT * FROM File WHERE IPP2P LIKE ? AND Filename LIKE ?", ( '%' + self.myIPP2P + '%', '%' + ricerca + '%',))
 					
 					resultFile = self.dbReader.fetchall()
-					print(color.green+"Trovati: "+len(resultFile)+" file"+color.end)
+					print(color.green+"Trovati: "+str(len(resultFile))+" file"+color.end)
 					i = 0
 					lunghezza = int(len(resultFile))
 					while i < lunghezza:
