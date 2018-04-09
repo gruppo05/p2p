@@ -143,27 +143,15 @@ class GnutellaServer(object):
 				
 				filename, useless = self.sockUDPServer.recvfrom(20)
 				filename = filename.decode()
-				
-				PATH=str(var.Settings.userPath+filename)
+				PATH=var.Settings.userPath+filename.strip()
 				
 				if os.path.isfile(PATH) and os.access(PATH, os.R_OK):
-					print("c'è")
-					print("PATH=",PATH)
-				else:
-					print("PATH=",PATH)
-					print("non c'è")
-				
-				
-				'''
-				fd = os.open(filename, os.O_RDONLY, 777)
-				if fd is None:
-					msg = "0"
-				else:
-					filemd5 = encryptMD5(filename)
-					self.dbReader.execute("INSERT INTO File (filemd5, filename, IPP2P) values (?, ?, ?)", (filemd5, filename, self.myIPP2P))
 					msg = "1"
-				'''	
-				#self.sockUDPClient.sendto((msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT)))
+				else:
+					msg = "0"
+					self.dbReader.execute("INSERT INTO File (filemd5, filename, IPP2P) values (?, ?, ?)", (filemd5, filename, self.myIPP2P))
+				
+				self.sockUDPClient.sendto((msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT)))	
 						
 			elif command == "QUER":
 				
