@@ -1,6 +1,16 @@
-import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path, hashlib
+import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path, hashlib, sys
 import settings as var
 from random import *
+	
+class color:
+	HEADER = '\033[95m'
+	recv = '\033[36m'
+	green = '\033[32m'
+	send = '\033[33m'
+	fail = '\033[31m'
+	end = '\033[0m'
+	BOLD = '\033[1m'
+	UNDERLINE = '\033[4m'
 
 def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS User")
@@ -12,6 +22,21 @@ def clearAndSetDB(self):
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, IPP2P text)")
 	#self.dbReader.execute("CREATE TABLE download (Filemd5 text, Download integer)")
 
+def progressBar(end_val, bar_length):
+	end_val = 10
+	bar_length = 20
+	i = 0
+	while i < 11:
+		percent = float(i) / end_val
+		hashes = '#' * int(round(percent * bar_length))
+		spaces = ' ' * (bar_length - len(hashes))
+		sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+		sys.stdout.flush()
+		time.sleep(0.1)
+		i = i+1
+	print(color.green+"\nFine download!"+color.end)
+    
+    
 def PktidGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
 
@@ -29,28 +54,14 @@ def encryptMD5(filename):
 	#calcolo hash file
 	BLOCKSIZE = 128
 	hasher = hashlib.md5()
-	print(1)
 	with open(filename, 'rb') as f:
 		buf = f.read(BLOCKSIZE)
 		while len(buf) > 0:
 			hasher.update(buf)
 			buf = f.read(BLOCKSIZE)
 		f.close()
-	print(2)
 	filemd5 = hasher.hexdigest()
-	#print(str(msg))
-	#res = makeStringLength(str(msg),100)
 	return(filemd5)	
-	
-class color:
-	HEADER = '\033[95m'
-	recv = '\033[36m'
-	green = '\033[32m'
-	send = '\033[33m'
-	fail = '\033[31m'
-	end = '\033[0m'
-	BOLD = '\033[1m'
-	UNDERLINE = '\033[4m'
 
 def setConnection(ip, port, msg):
 	try:
@@ -141,6 +152,10 @@ class GnutellaServer(object):
 				msg = "NEAR" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
+			
+			elif command == "1111":
+				progressBar(1,1)
+				
 			elif command == "ADDF":
 				
 				filename, useless = self.sockUDPServer.recvfrom(20)
@@ -206,8 +221,6 @@ class GnutellaServer(object):
 					if len(resultFile[code][0]) == 0: #da controllare, si potrebbe utilizzare come condizione resultFile[code][0] is None
 						print("Codice sbagliato.")
 						break
-					
-					#threading.Thread(target = self.attesaDownload, args = (data,addr)).start()
 					
 					msg = "RETR" + 	resultFile[code][0]
 					
