@@ -143,28 +143,20 @@ class GnutellaServer(object):
 				
 				filename, useless = self.sockUDPServer.recvfrom(20)
 				filename = filename.decode()
-				
-				PATH=str(var.Settings.userPath+filename)
+				filemd5 = encryptMD5(filename)
+				print(filemd5)
+				PATH=var.Settings.userPath+filename.strip()
 				
 				if os.path.isfile(PATH) and os.access(PATH, os.R_OK):
-					print("c'è")
-					print("PATH=",PATH)
-				else:
-					print("PATH=",PATH)
-					print("non c'è")
-				
-				
-				'''
-				fd = os.open(filename, os.O_RDONLY, 777)
-				if fd is None:
-					msg = "0"
-				else:
-					filemd5 = encryptMD5(filename)
-					self.dbReader.execute("INSERT INTO File (filemd5, filename, IPP2P) values (?, ?, ?)", (filemd5, filename, self.myIPP2P))
 					msg = "1"
-				'''	
-				#self.sockUDPClient.sendto((msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT)))
-						
+					self.dbReader.execute("INSERT INTO File (filemd5, filename, IPP2P) values (?, ?, ?)", (filemd5, filename, self.myIPP2P))
+				else:
+					msg = "0"
+					
+					
+					
+				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+	
 			elif command == "QUER":
 				
 				myPktid = PktidGenerator()
@@ -190,7 +182,7 @@ class GnutellaServer(object):
 				i = 0
 				if resultFile is None:
 					#se non si sono file interrompo la richiesta di download
-					self.sockUDPClient.sendto(("00").encode(), (self.UDP_IP, selfUDP_PORT))
+					self.sockUDPClient.sendto(("00").encode(), (self.UDP_IP, selfUDP_PORT_CLIENT))
 				else:
 					#se ci sono file continuo
 					if len(resultFile) == 1:
@@ -198,11 +190,11 @@ class GnutellaServer(object):
 					else:
 						lunghezza = str(len(resultFile))
 						
-					self.sockUDPClient.sendto((lunghezza).encode(), (self.UDP_IP, selfUDP_PORT))
+					self.sockUDPClient.sendto((lunghezza).encode(), (self.UDP_IP, selfUDP_PORT_CLIENT))
 					for result in resultFile:
 						#invio tutti i filename al client	
 						files[i] = (result[0], result[1], result[2])
-						self.sockUDPClient.sendto((result[1]).encode(), (self.UDP_IP, self.UDP_PORT))
+						self.sockUDPClient.sendto((result[1]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 
 					code = self.sockUDPServer.recvfrom(2)
 					
