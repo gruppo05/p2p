@@ -1,4 +1,4 @@
-import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path, hashlib, sys
+import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path, hashlib, sys, stat
 import settings as var
 from random import *
 	
@@ -347,14 +347,15 @@ class GnutellaServer(object):
 				filename=resultFile[0].replace(" ","")
 				print(filename)
 				try:
-					fd = os.open(filename, os.O_RDONLY, 777)
+					fd = os.open(filename, os.O_RDONLY)
 				except OSError as e:
 					print(e)
 				
 				print(fd)
-				if fd is None:
-					
+				if fd is not -1:
+					print("damiano")
 					filesize = os.fstat(fd)[stat.ST.SIZE]
+					print("mattia")
 					nChunck = filesize / 4096
 					print(filesize)
 
