@@ -12,7 +12,7 @@ class color:
 	UNDERLINE = '\033[4m'
 
 def startServer():
-	os.system("gnome-terminal -e 'sh -c \"python3 serverGnutella.py\"'")
+	os.system("gnome-terminal -e 'sh -c \"python3 serverGnutellaPROVA.py\"'")
 
 def printMenu():
 	print(color.recv+"  ____  "+ color.green+"        "+ color.send+"        "+ color.fail+" _    "+ color.recv+"       "+ color.green+" _  "+ color.send+" _  "+ color.green+"        "+ color.fail+"  ____  _____   ____  "+ color.end)
@@ -22,26 +22,34 @@ def printMenu():
 	print(color.recv+" \____| "+ color.green+"|_| |_| "+ color.send+" \__,_| "+ color.fail+" \__\ "+ color.recv+" \___| "+ color.green+"|_| "+ color.send+"|_| "+ color.green+" \__,_| "+ color.fail+" |_|   |_____| |_|    "+ color.end)
 	print("\n")
 	print("« 1 » RICERCA VICINI")
-	print("« 2 » RICERCA FILE")
-	print("« 3 » SCARICA FILE")
-	print("« 4 » STAMPA TUTTI I VICINI")
-	print("« 5 » STAMPA TUTTI I FILE TROVATI")
-	print(color.fail+"« 6 » CHIUDI IL CLIENT"+color.end)
+	print("« 2 » AGGIUNGI FILE")
+	print("« 3 » RICERCA FILE")
+	print("« 4 » SCARICA FILE")
+	print("« 5 » STAMPA TUTTI I VICINI")
+	print("« 6 » STAMPA TUTTI I FILE TROVATI")
+	print(color.fail+"« 7 » CHIUDI IL CLIENT"+color.end)
 
 
 class GnutellaClient(object):
 	def __init__(self):
 		self.UDP_IP = "127.0.0.1"
-		self.UDP_PORT = 49999
+		self.UDP_PORT_SERVER = 49999
+		UDP_PORT_CLIENT = 50000
+		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 		
-		# Socket UDP ipv4 interna
-		self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		# Socket UPD ipv4 client in attesa
+		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		self.sockUDPClient.bind((self.UDP_IP, UDP_PORT_CLIENT))
+		
+		# Socket UDP ipv4 server in uscita
+		self.sockUDPServer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		
 	def start(self):
 		os.system('cls' if os.name == 'nt' else 'clear')
 		startServer()
 		while True:
-			time.sleep(0.5)
+			#time.sleep(0.5)
 			printMenu()
 			
 			try:
@@ -50,47 +58,80 @@ class GnutellaClient(object):
 				continue
 			if cmd is "1":
 				print("INIZIO RICERCA VICINI")
-				self.sock.sendto(("NEAR").encode(), (self.UDP_IP, self.UDP_PORT))
+				self.sockUDPServer.sendto(("NEAR").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 			elif cmd is "2":
-				print("INIZIO RICERCA FILE")
-				self.sock.sendto(("QUER").encode(), (self.UDP_IP, self.UDP_PORT))
-				fileDaCercare = input("Inserisci file che vuoi cercare:")
-				self.sock.sendto((fileDaCercare.ljust(20)).encode(),(self.UDP_IP, self.UDP_PORT))
 
+				print("AGGIUNGO UN FILE")
+				self.sockUDPServer.sendto(("ADDF").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				filename = input("Inserisci il nome del file da aggiungere: ")
+				self.sockUDPServer.sendto((filename.ljust(20)).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				#esito operazione
+				command, useless = self.sockUDPClient.recv(1)
+				com = command.decode()
+				if com is "1":
+					print("File aggiunto con successo")
+				else:
+					print ("Errore - Non è stato aggiunto il file")
 
 			elif cmd is "3":
-				print("INIZIO DOWNLOAD")
-				print("Quale file vuoi scaricare?")
-				self.sock.sendto(("RETR").encode(), (self.UDP_IP, self.UDP_PORT))
-				
-				lunghezza = self.sockUDP.recvfrom(2)
-				
-				i = 0
-				
-				while i < int(lunghezza):
-					filename[i] = self.sockUDP.recvfrom(100)
-					print(i + " : " + filename[i])
-				
-				code = input("\n ")	
-				
-				if len(code) == 1:
-					code = "0"+code
-				else:
-					code = str(code)
-				
-				#la connessione avviene sul client o sul server??
-				self.sock.sendto((code).encode(), (self.UDP_IP, self.UDP_PORT))
-			
+				print("INIZIO RICERCA FILE")
+				self.sockUDPServer.sendto(("QUER").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				ricerca = input("Inserire il nome presente nel file da cercare: ")
+				self.sockUDPServer.sendto((ricerca.ljust(20)).encode(),(self.UDP_IP, self.UDP_PORT_SERVER))
 			elif cmd is "4":
-				print("STAMPA TUTTI I VICINI")
-				self.sock.sendto(("STMV").encode(), (self.UDP_IP, self.UDP_PORT))
+				print("INIZIO DOWNLOAD")
+				self.sockUDPServer.sendto(("RETR").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				lunghezza = self.sockUDPServer.recvfrom(2)
+				if lunghezza == "00":
+					print("Non ci sono file da scaricare")
+				else:
+					#ci sono file da scaricare
+					i = 0
+					print("Quale file vuoi scaricare?")
+					while i < int(lunghezza):
+						filename[i] = self.sockUDP.recvfrom(100)
+						print(i + " : " + filename[i])
+					
+					print("-1 per terminare il download")
+					code = input("\n ")	
+					
+					if len(code) == 1:
+						code = str(code).ljust()
+					else:
+						code = str(code)
+					
+					self.sockUDPServer.sendto((code).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+			
 			elif cmd is "5":
-				print("STAMPA TUTTI I FILE TROVATI")
-				self.sock.sendto(("STMF").encode(), (self.UDP_IP, self.UDP_PORT))
+				print("STAMPA TUTTI I VICINI")
+				self.sockUDPServer.sendto(("STMV").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				while True:
+					buff, addr = self.sockUDPClient.recvfrom(61)
+					cmd = buff.decode()
+					if cmd == self.endUDP1:
+						print(color.recv+"Lista vicini terminata"+color.end)
+						cmd = input("Premi invio per continuare:")
+						os.system('cls' if os.name == 'nt' else 'clear')
+						break;
+					else:
+						print(color.recv+cmd+color.end)
+
 			elif cmd is "6":
+				print("STAMPA TUTTI I FILE TROVATI")
+				self.sockUDPServer.sendto(("STMF").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				while True:
+					buff, addr = self.sockUDPClient.recvfrom(159)
+					cmd = buff.decode()
+					if cmd == self.endUDP2:
+						print(color.recv+"Lista file terminata"+color.end)
+						cmd = input("Premi un tasto per continuare:")
+						break;
+					else:
+						print(color.recv+cmd+color.end)
+				
+			elif cmd is "7":
 				#stopServer()
 				os._exit(0)
-			print("\n")
 			
 if __name__ == "__main__":
     gnutella = GnutellaClient()
