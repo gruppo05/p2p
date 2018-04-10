@@ -1,7 +1,6 @@
 import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path, hashlib, sys, stat
 import settings as var
 from random import *
-	
 class color:
 	HEADER = '\033[95m'
 	recv = '\033[36m'
@@ -16,11 +15,11 @@ def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS User")
 	self.dbReader.execute("DROP TABLE IF EXISTS Pktid")
 	self.dbReader.execute("DROP TABLE IF EXISTS File")
-	#self.dbReader.execute("DROP TABLE IF EXISTS download")
+	self.dbReader.execute("DROP TABLE IF EXISTS download")
 	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text)")
 	self.dbReader.execute("CREATE TABLE Pktid (Pktid text, Timestamp DATETIME)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, IPP2P text)")
-	#self.dbReader.execute("CREATE TABLE download (Filemd5 text, Download integer)")
+	self.dbReader.execute("CREATE TABLE download (Filemd5 text, Filename text)")
 
 def progressBar(end_val, bar_length):
 	end_val = 10
@@ -42,6 +41,13 @@ def PktidGenerator():
 
 def setNumber(n):
 	if n < 10:
+		n = "0"+str(n)
+	return n
+
+def setIp(n):
+	if n < 10:
+		n = "00"+str(n)
+	elif n < 100:
 		n = "0"+str(n)
 	return n
 
@@ -100,9 +106,9 @@ def getTime(t):
 	return time2 - time1
 
 class GnutellaServer(object):
+	global download
 	def __init__(self):
 		IP = ""
-		self.download = ""
 		self.PORT = var.Settings.PORT
 		self.myIPP2P = var.Settings.myIPP2P
 		self.UDP_IP = "127.0.0.1"
@@ -201,13 +207,17 @@ class GnutellaServer(object):
 				filename = filename.strip()
 				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ? AND IPP2P NOT LIKE ?", ("%"+filename+"%","%" + self.myIPP2P+"%"))
 				resultFile = self.dbReader.fetchone()
-				self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ("%"+resultFile[2]+"%",))
+				self.dbReader.execute("DELETE FROM Download")
+				self.dbReader.execute("INSERT INTO Download (Filemd5, Filename) values (?, ?)", (resultFile[0], resultFile[1]))
+				self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ('%'+resultFile[2]+'%',))
 				resultUser = self.dbReader.fetchone()
-				
 				msg = "RETR" + resultFile[0]
 				
 				setConnection(resultUser[0], int(resultUser[1]), msg)
-					
+				
+				
+				print("finito programma")
+				
 			elif command == "STMV":
 				self.dbReader.execute("SELECT * FROM user")
 				vicini = self.dbReader.fetchall()
@@ -319,6 +329,8 @@ class GnutellaServer(object):
 				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
 				resultFile = self.dbReader.fetchone()
 				filename=resultFile[0].replace(" ","")
+				download = filename
+				print(download)
 				nChunk = 0
 				try:
 					fd = os.open(filename, os.O_RDONLY)
@@ -327,8 +339,7 @@ class GnutellaServer(object):
 				
 				if fd is not -1:
 
-					filesize = os.path.getsize(filename)
-					nChunck = filesize / 4096
+					filesize = int(os.path.getsize(filename))
 
 					if (filesize % 4096)!= 0:
 						nChunk = nChunk + 1
@@ -350,7 +361,16 @@ class GnutellaServer(object):
 					os.close(fd)
 					print('Trasferimento completato.. ')
 					
+					print("Address --> "+str(client_address))
+					addrIPv4 = str(client_address).split(":")[-1].split("'")[0]
+					#addrIPv6 = str(client_address).split("'")[1].split(":"+addrIPv4)[0]
+					addrIPv4 = str(setIp(int(addrIPv4.split(".")[0])))+"."+str(setIp(int(addrIPv4.split(".")[1])))+"."+str(setIp(int(addrIPv4.split(".")[2])))+"."+str(setIp(int(addrIPv4.split(".")[3])))
+					#get port from db
+					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P LIKE ?",('%'+addrIPv4+'%',))
 					#invio del file, leggere l'ip dall'oggetto connection	
+					data = self.dbReader.fetchone()
+					setConnection(data[0],int(data[1]), msg)
+					
 					connection.sendall(msg.encode())
 					connection.close()
 
@@ -407,33 +427,82 @@ class GnutellaServer(object):
 					print(color.fail+"Ricevuto pacchetto dopo 300s"+color.end)
 				
 			elif command == "ARET":
-				print("Ricevuto "+color.recv+"ARET"+color.end)
-				try:
-					
-					filename = self.download
-					
-					#fd = os.open(filename, os.O_WRONLY | os.O_CREAT, 777)
-					fd = os.open(filename, "wb")	
-					nChunk = int(connection.recv(6).decode())
-					i=0;
-						
-					while i < nChunk:
-						lun = int(connection.recv(5).decode())
-						data = connection.recv(lun).decode()
-							#scrittura del file
-						os.write(fd,data)
-						
-					print(color.green + "Scaricato il file" + color.end)
-							
-				except OSError:
-					print("Impossibile aprire il file: controlla di avere i permessi")
-					return False
-					
-		except:
-			connection.close()
-			return False
 				
-		
+				print("Ricevuto "+color.recv+"ARET"+color.end)
+				self.dbReader.execute("SELECT * FROM Download")
+				filename = self.dbReader.fetchone()
+				print(filename[1])
+				fd = os.open(filename[1], os.O_WRONLY | os.O_CREAT, 777)	
+				pippo = str(connection.recv(6).decode()).strip('0')
+				
+				
+				i=0
+				o = ""
+				print("nchunk = " + pippo)
+				while i < int(pippo):
+					print(i)
+					
+					lun = connection.recv(5).decode()
+					print(str(lun.strip('0')))
+					data = connection.recv(lun).decode()
+					#scrittura del file
+					
+					o = o + data
+					#os.write(fd,data)
+					#fd.write(data)
+					i = i + 1
+					print("adnan")'''
+				'''while i < int(pippo):
+					lenchunk = connection.recv(5).decode()
+					while len(lenchunk) < 5:
+						print("boh")
+						lenchunk = lenchunk + connection.recv(1).decode()
+					print(i)
+					print("ciao")
+					lenchunk.strip('0')
+					print(str(lenchunck))
+					data = connection.recv(lenchunk)
+					print(len(data))
+					while len(data) < lenchunk:
+						data = data + connection.recv(1)
+					os.write(fd, data)
+					i = i + 1	
+					
+				print("ciao")
+				os.write(fd,data)
+				fd.close()
+				print(color.green + "Scaricato il file" + color.end)
+						
+			except OSError:
+				print("Impossibile aprire il file: controlla di avere i permessi")
+				return False
+				'''
+					
+				total_chunks = int(sock.recv(6).decode())
+				print(total_chunks)
+
+				try:
+					f_obj = open(''+filename[1], 'wb')
+				except OSError as e:
+					
+					raise e
+
+				for i in range(total_chunks):
+					chunk_size = sock.recv(5)
+					# if not all the 5 expected bytes has been received
+					while len(chunk_size) < 5:
+						chunk_size += sock.recv(1)
+					chunk_size = int(chunk_size)
+
+					data = sock.recv(chunk_size)
+					# if not all the expected bytes has been received
+					while len(data) < chunk_size:
+						data += sock.recv(1)
+					f_obj.write(data)
+					
+
+				f_obj.close()
+				
 if __name__ == "__main__":
     gnutella = GnutellaServer()
 gnutella.server()
