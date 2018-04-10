@@ -206,59 +206,8 @@ class GnutellaServer(object):
 				
 				msg = "RETR" + resultFile[0]
 				
-				#setConnection(resultUser[0], int(resultUser[1]), msg)
-				
-				try:
-					rnd = random()
-					rnd = 0.1
-					if(rnd<0.5):
-						ip = splitIp(ip[0:15])						
-						print(color.green+"Connessione IPv4:"+ip+color.end)
-						retr_sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-						retr_sock.connect((ip,port))
-		
-					else:
-						ip = ip[16:55]
-						print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
-						retr_sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-						retr_sock.connect((ip, port))
-		
-					print("Invio --> "+color.send+msg+color.end)
-					retr_sock.sendall(msg.encode())
-					#peer_socket.close()
-				except:
-					print("Nessun vicino trovato!")
-				connection, client_address = self.retr_sock.accept()
-				
-				print("ricevo tutta la roba")
-				retr_sock.close()
-				
-				
-				'''
-				self.dbReader.execute("SELECT * FROM File WHERE IPP2P NOT LIKE ?", (self.myIPP2P,))
-				resultFile = self.dbReader.fetchall()
-				print(len(resultFile))	
-				for f in resultFile:
-					self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-				self.sockUDPClient.sendto((self.endUDP2).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-				print("1")
-				code = self.sockUDPServer.recvfrom(100)
-				code = code.strip()
-				if int(code) == -1:
-					print("Download annullato.")
-					break
-				print("2")	
-				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ? AND IPP2P NOT LIKE ?", (code, self.myIPP2P))
-				data = self.dbReader.fetchone()
-				msg = "RETR" + 	data[0]
-				
-				sef.download = data[1]
-				self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P = ?", (data[2],))
-				utente = self.dbReader.fetchone()
-				
-				#invio il retr all'utente
-				setConnection(utente[0], int(utente[1]), msg)	
-'''
+				setConnection(resultUser[0], int(resultUser[1]), msg)
+					
 			elif command == "STMV":
 				self.dbReader.execute("SELECT * FROM user")
 				vicini = self.dbReader.fetchall()
@@ -294,6 +243,7 @@ class GnutellaServer(object):
 		command = connection.recv(4).decode()
 		try:
 			if command == "NEAR":
+				
 				print("Ricevuto "+color.recv+"NEAR"+color.end)
 				Pktid = connection.recv(16).decode()
 				IPP2P = connection.recv(55).decode()
@@ -462,8 +412,8 @@ class GnutellaServer(object):
 					
 					filename = self.download
 					
-					fd = os.open(filename, os.O_WRONLY | os.O_CREAT, 777)
-						
+					#fd = os.open(filename, os.O_WRONLY | os.O_CREAT, 777)
+					fd = os.open(filename, "wb")	
 					nChunk = int(connection.recv(6).decode())
 					i=0;
 						
