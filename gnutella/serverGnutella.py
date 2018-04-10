@@ -1,6 +1,7 @@
 import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, hashlib, sys, stat
 import settings as var
 from random import *
+	
 class color:
 	HEADER = '\033[95m'
 	recv = '\033[36m'
@@ -72,6 +73,7 @@ def encryptMD5(filename):
 def setConnection(ip, port, msg):
 	try:
 		rnd = random()
+		rnd = 0.1
 		if(rnd<0.5):
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+color.end)
@@ -105,7 +107,7 @@ def getTime(t):
 	return time2 - time1
 
 class GnutellaServer(object):
-	global download
+	download = ""
 	def __init__(self):
 		IP = ""
 		self.PORT = var.Settings.PORT
@@ -207,17 +209,44 @@ class GnutellaServer(object):
 				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ? AND IPP2P NOT LIKE ?", ("%"+filename+"%","%" + self.myIPP2P+"%"))
 				resultFile = self.dbReader.fetchone()
 				self.dbReader.execute("DELETE FROM Download")
-				self.dbReader.execute("INSERT INTO Download (Filemd5, Filename) values (?, ?)", (resultFile[0], resultFile[1]))
+				self.dbReader.execute("INSERT INTO Download values (?, ?)", (resultFile[0], resultFile[1]))
+				
 				self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ('%'+resultFile[2]+'%',))
 				resultUser = self.dbReader.fetchone()
+				
 				msg = "RETR" + resultFile[0]
 				
 				setConnection(resultUser[0], int(resultUser[1]), msg)
-				
-				
-				print("finito programma")
-				
 
+				#retr_sock.close()
+
+				
+				
+				'''
+				self.dbReader.execute("SELECT * FROM File WHERE IPP2P NOT LIKE ?", (self.myIPP2P,))
+				resultFile = self.dbReader.fetchall()
+				print(len(resultFile))	
+				for f in resultFile:
+					self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.sockUDPClient.sendto((self.endUDP2).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				print("1")
+				code = self.sockUDPServer.recvfrom(100)
+				code = code.strip()
+				if int(code) == -1:
+					print("Download annullato.")
+					break
+				print("2")	
+				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ? AND IPP2P NOT LIKE ?", (code, self.myIPP2P))
+				data = self.dbReader.fetchone()
+				msg = "RETR" + 	data[0]
+				
+				sef.download = data[1]
+				self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P = ?", (data[2],))
+				utente = self.dbReader.fetchone()
+				
+				#invio il retr all'utente
+				setConnection(utente[0], int(utente[1]), msg)	
+'''
 			elif command == "STMV":
 				self.dbReader.execute("SELECT * FROM user")
 				vicini = self.dbReader.fetchall()
@@ -253,7 +282,6 @@ class GnutellaServer(object):
 		command = connection.recv(4).decode()
 		try:
 			if command == "NEAR":
-				
 				print("Ricevuto "+color.recv+"NEAR"+color.end)
 				Pktid = connection.recv(16).decode()
 				IPP2P = connection.recv(55).decode()
@@ -328,9 +356,11 @@ class GnutellaServer(object):
 				FileMD5 = connection.recv(32).decode()
 				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
 				resultFile = self.dbReader.fetchone()
-				filename=resultFile[0].replace(" ","")	
-				download = filename
+				filename=resultFile[0].replace(" ","")
 				
+				download = filename
+				porcodio = 0
+
 				try:
 					fd = os.open(filename, os.O_RDONLY)
 				except OSError as e:
@@ -341,6 +371,7 @@ class GnutellaServer(object):
 					filesize = int(os.path.getsize(filename))
 					print(int(filesize))
 					nChunck = int(filesize) / 4096
+
 
 					if (filesize % 4096)!= 0:
 						num = num + 1
@@ -432,19 +463,16 @@ class GnutellaServer(object):
 					print(color.fail+"Ricevuto pacchetto dopo 300s"+color.end)
 				
 			elif command == "ARET":
-				
 				print("Ricevuto "+color.recv+"ARET"+color.end)
-				self.dbReader.execute("SELECT * FROM Download")
-				filename = self.dbReader.fetchone()
-				print(filename[1])
-				fd = os.open(filename[1], os.O_WRONLY | os.O_CREAT, 777)	
-				pippo = str(connection.recv(6).decode()).strip('0')
-					filename = filename[1]
+				try:
+					self.dbReader.execute("SELECT * FROM Download")
+					files = self.dbReader.fetchone()
+					filename = files[1]
 					print(filename)
 					fd = open(filename, 'wb')
 					
-					numChunk = int(connection.recv(6).decode())
-					
+					numChunk = connection.recv(6).decode()
+					numChunk = int(numChunk)
 					i = 0
 					while i < numChunck:
 						lun = connection.recv(5).decode()
@@ -466,8 +494,12 @@ class GnutellaServer(object):
 					print("Impossibile aprire il file: controlla di avere i permessi")
 					return False
 				print("finito baby")
+					
+		except:
+			connection.close()
+			return False
 				
+		
 if __name__ == "__main__":
     gnutella = GnutellaServer()
 gnutella.server()
-
