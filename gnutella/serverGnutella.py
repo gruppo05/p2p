@@ -209,17 +209,19 @@ class GnutellaServer(object):
 				filename = filename.strip()
 				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ? AND IPP2P NOT LIKE ?", ("%"+filename+"%","%" + self.myIPP2P+"%"))
 				resultFile = self.dbReader.fetchone()
-				self.dbReader.execute("DELETE FROM Download")
-				self.dbReader.execute("INSERT INTO Download values (?, ?)", (resultFile[0], resultFile[1]))
-				
-				self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ('%'+resultFile[2]+'%',))
-				resultUser = self.dbReader.fetchone()
-				
-				msg = "RETR" + resultFile[0]
-				
-				setConnection(resultUser[0], int(resultUser[1]), msg)
-
-				#retr_sock.close()
+				if resultFile is not None:
+					self.dbReader.execute("DELETE FROM Download")
+					self.dbReader.execute("INSERT INTO Download values (?, ?)", (resultFile[0], resultFile[1]))
+					
+					self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ('%'+resultFile[2]+'%',))
+					resultUser = self.dbReader.fetchone()
+					
+					msg = "RETR" + resultFile[0]
+					
+					setConnection(resultUser[0], int(resultUser[1]), msg)
+				else:
+					print("File non presente nel database")
+					#retr_sock.close()
 
 				
 				
@@ -397,7 +399,7 @@ class GnutellaServer(object):
 						i = i + 1
 					
 					os.close(fd)
-					
+
 					print('Trasferimento completato.. ')
 					
 					print("Address --> "+str(client_address))
@@ -477,6 +479,7 @@ class GnutellaServer(object):
 					files = self.dbReader.fetchone()
 					filename = files[1]
 					filename.strip()
+
 					fd = open(filename, 'wb')
 					
 					numChunk = connection.recv(6).decode()

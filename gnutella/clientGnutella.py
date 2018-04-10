@@ -76,7 +76,6 @@ class GnutellaClient(object):
 				if com is "1":
 					print(color.green+"File aggiunto con successo"+color.end)
 				else:
-
 					print(color.fail+"Impossibile aggiungere il file"+color.end)
 				time.sleep(1.5)
 				os.system('cls' if os.name == 'nt' else 'clear')
