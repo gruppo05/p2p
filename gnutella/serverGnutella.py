@@ -222,33 +222,6 @@ class GnutellaServer(object):
 					print("File non presente nel database")
 					#retr_sock.close()
 
-				
-				
-				'''
-				self.dbReader.execute("SELECT * FROM File WHERE IPP2P NOT LIKE ?", (self.myIPP2P,))
-				resultFile = self.dbReader.fetchall()
-				print(len(resultFile))	
-				for f in resultFile:
-					self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-				self.sockUDPClient.sendto((self.endUDP2).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-				print("1")
-				code = self.sockUDPServer.recvfrom(100)
-				code = code.strip()
-				if int(code) == -1:
-					print("Download annullato.")
-					break
-				print("2")	
-				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ? AND IPP2P NOT LIKE ?", (code, self.myIPP2P))
-				data = self.dbReader.fetchone()
-				msg = "RETR" + 	data[0]
-				
-				sef.download = data[1]
-				self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P = ?", (data[2],))
-				utente = self.dbReader.fetchone()
-				
-				#invio il retr all'utente
-				setConnection(utente[0], int(utente[1]), msg)	
-'''
 			elif command == "STMV":
 				self.dbReader.execute("SELECT * FROM user")
 				vicini = self.dbReader.fetchall()
@@ -361,7 +334,7 @@ class GnutellaServer(object):
 				filename=resultFile[0].replace(" ","")
 				
 				try:
-					fd = os.open(filename, os.O_RDONLY)
+					fd = os.open(var.Settings.userPath+""+filename, os.O_RDONLY)
 				except OSError as e:
 					print(e)
 				
@@ -382,7 +355,7 @@ class GnutellaServer(object):
 					except:
 						print("Errore invio messaggio")
 					
-					filesize = int(os.path.getsize(filename))
+					filesize = int(os.path.getsize(var.Settings.userPath+""+filename))
 					num = int(filesize) / 4096
 					
 					if (filesize % 4096)!= 0:
@@ -467,8 +440,10 @@ class GnutellaServer(object):
 					self.dbReader.execute("SELECT * FROM Download")
 					files = self.dbReader.fetchone()
 					filename = files[1]
+
+					print(filename)
 					filename = filename.strip()
-					fd = open(filename, 'wb')
+					fd = open(var.Settings.userPath + "" + filename, 'wb')
 					
 					numChunk = connection.recv(6).decode()
 					numChunk = int(numChunk)
