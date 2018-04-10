@@ -16,11 +16,11 @@ def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS User")
 	self.dbReader.execute("DROP TABLE IF EXISTS Pktid")
 	self.dbReader.execute("DROP TABLE IF EXISTS File")
-	#self.dbReader.execute("DROP TABLE IF EXISTS download")
+	self.dbReader.execute("DROP TABLE IF EXISTS download")
 	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text)")
 	self.dbReader.execute("CREATE TABLE Pktid (Pktid text, Timestamp DATETIME)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, IPP2P text)")
-	#self.dbReader.execute("CREATE TABLE download (Filemd5 text, Download integer)")
+	self.dbReader.execute("CREATE TABLE download (Filemd5 text, Filename text)")
 
 def progressBar(end_val, bar_length):
 	end_val = 10
@@ -209,6 +209,9 @@ class GnutellaServer(object):
 				filename = filename.strip()
 				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ? AND IPP2P NOT LIKE ?", ("%"+filename+"%","%" + self.myIPP2P+"%"))
 				resultFile = self.dbReader.fetchone()
+				self.dbReader.execute("DELETE FROM Download")
+				self.dbReader.execute("INSERT INTO Download values (?, ?)", (resultFile[0], resultFile[1]))
+				
 				self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ('%'+resultFile[2]+'%',))
 				resultUser = self.dbReader.fetchone()
 				
@@ -469,25 +472,36 @@ class GnutellaServer(object):
 			elif command == "ARET":
 				print("Ricevuto "+color.recv+"ARET"+color.end)
 				try:
-					
 
-					filename = "piadina"
-					print(filename)
+					self.dbReader.execute("SELECT * FROM Download")
+					files = self.dbReader.fetchone()
+					filename = files[1]
+					filename.strip()
 					fd = open(filename, 'wb')
 					
-					numChunk = int(connection.recv(6).decode())
-					
+					numChunk = connection.recv(6).decode()
+					numChunk = int(numChunk)
 					i = 0
-					while i < numChunck:
+	
+					
+					while i < numChunk:
+						print("mi fa quse")
 						lun = connection.recv(5).decode()
+						
 						while len(lun) < 5:
 							lun = lun + connection.recv(1).decode()
 						lun = int(lun)
-						
 						data = connection.recv(lun)
-						while len(data) <= lun:
-							data = data + connection.recv(1)
-							fd.write(data)
+						print("muoio")
+						print(len(data))
+						print(lun)
+						time.sleep(3)
+						while len(data) < lun:
+							print("ehehe")
+							data += connection.recv(1)
+						print("mi fa questo 3")	
+						fd.write(data)
+						print("mi fa questo 4")
 						i = i + 1
 					
 					fd.close()
@@ -508,4 +522,3 @@ class GnutellaServer(object):
 if __name__ == "__main__":
     gnutella = GnutellaServer()
 gnutella.server()
-
