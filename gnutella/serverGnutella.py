@@ -315,7 +315,7 @@ class GnutellaServer(object):
 				filename=resultFile[0].replace(" ","")
 				
 				try:
-					fd = os.open(filename, os.O_RDONLY)
+					fd = os.open(var.Settings.userPath+""+filename, os.O_RDONLY)
 				except OSError as e:
 					print(e)
 				
@@ -336,7 +336,7 @@ class GnutellaServer(object):
 					except:
 						print("Errore invio messaggio")
 					
-					filesize = int(os.path.getsize(filename))
+					filesize = int(os.path.getsize(var.Settings.userPath+""+filename))
 					num = int(filesize) / self.BUFF
 					
 					if (filesize % self.BUFF)!= 0:
@@ -423,8 +423,7 @@ class GnutellaServer(object):
 					files = self.dbReader.fetchone()
 					filename = files[1]
 					filename = filename.strip()
-					fd = open(filename, 'wb')
-					
+					fd = open(var.Settings.userPath + "" + filename, 'wb')					
 					numChunk = connection.recv(6).decode()
 					numChunk = int(numChunk)
 					
