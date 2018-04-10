@@ -4,6 +4,6 @@ class Settings(object):
 	
 	root_IP = "192.168.006.003|fe80:0000:0000:0000:b6bd:2104:d5cb:42b8"
 	root_PORT = "50005"
-	userPath = "/home/ale/Scrivania/immagini-p2p/"
+	userPath = "/home/dek/Scrivania/P2P/images/"
 
 
