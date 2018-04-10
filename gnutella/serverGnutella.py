@@ -1,4 +1,4 @@
-import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path, hashlib, sys, stat
+import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os.path, hashlib, sys, stat
 import settings as var
 from random import *
 	
@@ -217,8 +217,6 @@ class GnutellaServer(object):
 				setConnection(resultUser[0], int(resultUser[1]), msg)
 
 				#retr_sock.close()
-				
-				print("finito programma")
 
 				
 				
@@ -273,7 +271,6 @@ class GnutellaServer(object):
 		while True:
 			try:
 				connection, client_address = self.sock.accept()
-				print("ADDRESS --------------------------------------->"+str(client_address))
 				#connection.settimeout(60)
 				threading.Thread(target = self.startServer, args = (connection,client_address)).start()
 			except:
@@ -359,9 +356,11 @@ class GnutellaServer(object):
 				resultFile = self.dbReader.fetchone()
 				filename=resultFile[0].replace(" ","")
 
+
 				download = filename
 				a = 0
-				
+
+
 				try:
 					fd = os.open(filename, os.O_RDONLY)
 				except OSError as e:
@@ -370,9 +369,12 @@ class GnutellaServer(object):
 				if fd is not -1:
 
 					filesize = int(os.path.getsize(filename))
-					print("filesize =",filesize)
-					a = filesize/4096
-					
+
+					print(int(filesize))
+					nChunck = int(filesize) / 4096
+
+
+
 					if (filesize % 4096)!= 0:
 						a = a + 1
 
@@ -467,22 +469,37 @@ class GnutellaServer(object):
 				print("Ricevuto "+color.recv+"ARET"+color.end)
 				try:
 					
-					filename = download
-					fd = os.open(filename, os.O_WRONLY | os.O_CREAT, 777)
-					nChunk = int(connection.recv(6).decode())
-					i=0;
+
+					filename = "piadina.jpg"
+					print(filename)
+					fd = open(filename, 'wb', 777)
+					
+					numChunk = int(connection.recv(6).decode())
+					
+					i = 0
+					while i < numChunk:
+						lun = connection.recv(5).decode()
+						while len(lun) < 5:
+							lun = lun + connection.recv(1).decode()
+						lun = int(lun)
 						
-					while i < nChunk:
-						lun = int(connection.recv(5).decode())
 						data = connection.recv(lun).decode()
-							#scrittura del file
-						os.write(fd,data)				
-						
+						while len(data) < lun:
+							data = data + connection.recv(1).decode()
+						os.flush(fd)
+						os.write(fd,data)
+						print("....FINITO...")
+						i = i + 1
+					
+					os.close(fd)
+					connection.close()
+
 					print(color.green + "Scaricato il file" + color.end)
 							
 				except OSError:
 					print("Impossibile aprire il file: controlla di avere i permessi")
 					return False
+				print("finito baby")
 					
 		except:
 			connection.close()
