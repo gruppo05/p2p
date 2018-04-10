@@ -1,4 +1,4 @@
-import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path, hashlib, sys, stat
+import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os.path, hashlib, sys, stat
 import settings as var
 from random import *
 	
@@ -214,10 +214,9 @@ class GnutellaServer(object):
 				msg = "RETR" + resultFile[0]
 				
 				setConnection(resultUser[0], int(resultUser[1]), msg)
-				
-				
-				print("finito programma")
-				
+
+				#retr_sock.close()
+
 				
 				
 				'''
@@ -357,7 +356,8 @@ class GnutellaServer(object):
 				filename=resultFile[0].replace(" ","")
 				
 				download = filename
-				nChunk = 0
+				porcodio = 0
+
 				try:
 					fd = os.open(filename, os.O_RDONLY)
 				except OSError as e:
@@ -365,20 +365,22 @@ class GnutellaServer(object):
 				
 				if fd is not -1:
 
-					filesize = int(os.path.getsize(filename))Zz
+					filesize = int(os.path.getsize(filename))
 					print(int(filesize))
 					nChunck = int(filesize) / 4096
 
-					if (filesize % 4096)!= 0:
-						nChunk = nChunk + 1
 
-					nChunk = int(float(nChunk))
-					msg = "ARET" + str(nChunk).zfill(6)
+					if (filesize % 4096)!= 0:
+						num = num + 1
+
+					num = int(float(num))
+					
+					msg = "ARET" + str(num).zfill(6)
 					print ('Trasferimento in corso di ', resultFile[0], '[BYTES ', filesize, ']')
 
 					i = 0
 
-					while i < nChunk:
+					while i < num:
 						buf = os.read(fd,4096)
 						if not buf: break
 						lbuf = len(buf)
@@ -387,6 +389,7 @@ class GnutellaServer(object):
 						i = i + 1
 					
 					os.close(fd)
+					time.sleep(2)
 					print('Trasferimento completato.. ')
 					
 					print("Address --> "+str(client_address))
@@ -396,11 +399,13 @@ class GnutellaServer(object):
 					#get port from db
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P LIKE ?",('%'+addrIPv4+'%',))
 					#invio del file, leggere l'ip dall'oggetto connection	
+
 					data = self.dbReader.fetchone()
 					setConnection(data[0],int(data[1]), msg)
 					
 					connection.sendall(msg.encode())
 					connection.close()
+
 
 				else: 
 					print("Errore nell'apertura del file")
@@ -459,19 +464,28 @@ class GnutellaServer(object):
 				try:
 					
 					filename = "piadina.jpg"
-					
 					print(filename)
-					fd = os.open(filename, os.O_WRONLY | os.O_CREAT, 777)
-					nChunk = int(connection.recv(6).decode())
-					print(nChunk)
-					i=0;
-					while i < nChunk:
-						lun = int(connection.recv(5).decode())
+					fd = open(filename, 'wb', 777)
+					
+					numChunk = int(connection.recv(6).decode())
+					
+					i = 0
+					while i < numChunk:
+						lun = connection.recv(5).decode()
+						while len(lun) < 5:
+							lun = lun + connection.recv(1).decode()
+						lun = int(lun)
+						
 						data = connection.recv(lun).decode()
-						print("ahahha ...> ",data)
-						#scrittura del file
+						while len(data) < lun:
+							data = data + connection.recv(1).decode()
+						os.flush(fd)
 						os.write(fd,data)
-					#fd.close()
+						print("....FINITO...")
+						i = i + 1
+					
+					os.close(fd)
+					connection.close()
 					print(color.green + "Scaricato il file" + color.end)
 							
 				except OSError:
