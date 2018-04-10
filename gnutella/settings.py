@@ -6,4 +6,3 @@ class Settings(object):
 	root_PORT = "3000"
 	userPath = "/home/dek/Scrivania/P2P/images/"
 
-

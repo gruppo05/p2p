@@ -194,16 +194,13 @@ class GnutellaServer(object):
 				
 				
 			elif command == "RETR":
-				print("1")
+				
 				filename, addr = self.sockUDPServer.recvfrom(20)
 				
 				filename = filename.decode()
-				print("2")
 				filename = filename.strip()
-				print("3")
 				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ? AND IPP2P NOT LIKE ?", ("%"+filename+"%","%" + self.myIPP2P+"%"))
 				resultFile = self.dbReader.fetchone()
-				print(len(resultFile))
 				self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ("%"+resultFile[2]+"%",))
 				resultUser = self.dbReader.fetchone()
 				
@@ -235,6 +232,8 @@ class GnutellaServer(object):
 				
 				print("ricevo tutta la roba")
 				retr_sock.close()
+				
+				
 				'''
 				self.dbReader.execute("SELECT * FROM File WHERE IPP2P NOT LIKE ?", (self.myIPP2P,))
 				resultFile = self.dbReader.fetchall()
@@ -400,8 +399,10 @@ class GnutellaServer(object):
 					
 					os.close(fd)
 					print('Trasferimento completato.. ')
+					
 					#invio del file, leggere l'ip dall'oggetto connection	
-					setConnection(conn[0], conn[1], msg)
+					connection.sendall(msg.encode())
+					connection.close()
 
 				else: 
 					print("Errore nell'apertura del file")
