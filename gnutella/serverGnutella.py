@@ -107,9 +107,9 @@ def getTime(t):
 	return time2 - time1
 
 class GnutellaServer(object):
+	download = ""
 	def __init__(self):
 		IP = ""
-		self.download = ""
 		self.PORT = var.Settings.PORT
 		self.myIPP2P = var.Settings.myIPP2P
 		self.UDP_IP = "127.0.0.1"
@@ -271,7 +271,6 @@ class GnutellaServer(object):
 		while True:
 			try:
 				connection, client_address = self.sock.accept()
-				print("ADDRESS --------------------------------------->"+str(client_address))
 				#connection.settimeout(60)
 				threading.Thread(target = self.startServer, args = (connection,client_address)).start()
 			except:
@@ -356,6 +355,8 @@ class GnutellaServer(object):
 				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
 				resultFile = self.dbReader.fetchone()
 				filename=resultFile[0].replace(" ","")
+				
+				download = filename
 				nChunk = 0
 				try:
 					fd = os.open(filename, os.O_RDONLY)
@@ -364,8 +365,9 @@ class GnutellaServer(object):
 				
 				if fd is not -1:
 
-					filesize = os.path.getsize(filename)
-					nChunck = filesize / 4096
+					filesize = int(os.path.getsize(filename))Zz
+					print(int(filesize))
+					nChunck = int(filesize) / 4096
 
 					if (filesize % 4096)!= 0:
 						nChunk = nChunk + 1
@@ -456,24 +458,26 @@ class GnutellaServer(object):
 				print("Ricevuto "+color.recv+"ARET"+color.end)
 				try:
 					
-					filename = self.download
+					filename = "piadina.jpg"
 					
+					print(filename)
 					fd = os.open(filename, os.O_WRONLY | os.O_CREAT, 777)
-						
 					nChunk = int(connection.recv(6).decode())
+					print(nChunk)
 					i=0;
-						
 					while i < nChunk:
 						lun = int(connection.recv(5).decode())
 						data = connection.recv(lun).decode()
-							#scrittura del file
+						print("ahahha ...> ",data)
+						#scrittura del file
 						os.write(fd,data)
-						
+					#fd.close()
 					print(color.green + "Scaricato il file" + color.end)
 							
 				except OSError:
 					print("Impossibile aprire il file: controlla di avere i permessi")
 					return False
+				print("finito baby")
 					
 		except:
 			connection.close()
