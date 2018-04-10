@@ -385,6 +385,7 @@ class GnutellaServer(object):
 						if not buf: break
 						lbuf = len(buf)
 						lbuf = str(lbuf).zfill(5)
+						
 						msg = msg + str(lbuf) + str(buf)
 						i = i + 1
 					
@@ -463,19 +464,19 @@ class GnutellaServer(object):
 				print("Ricevuto "+color.recv+"ARET"+color.end)
 				try:
 					
-					filename = "piadina"
+					filename = "piadina.jpg"
 					print(filename)
 					fd = open(filename, 'wb')
 					
-					numChunk = int(connection.recv(6).decode())
-					
+					numChunk = connection.recv(6).decode()
+					numChunk = int(numChunk)
+
 					i = 0
-					while i < numChunck:
+					while i < numChunk:
 						lun = connection.recv(5).decode()
 						while len(lun) < 5:
 							lun = lun + connection.recv(1).decode()
 						lun = int(lun)
-						
 						data = connection.recv(lun)
 						while len(data) <= lun:
 							data = data + connection.recv(1)
