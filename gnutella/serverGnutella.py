@@ -89,6 +89,7 @@ def setConnection(ip, port, msg):
 		print("Invio --> "+color.send+msg+color.end)
 		peer_socket.sendall(msg.encode())
 		peer_socket.close()
+		
 	except:
 		print("Nessun vicino trovato!")
 
@@ -107,7 +108,6 @@ def getTime(t):
 	return time2 - time1
 
 class GnutellaServer(object):
-	download = ""
 	def __init__(self):
 		IP = ""
 		self.PORT = var.Settings.PORT
@@ -208,17 +208,19 @@ class GnutellaServer(object):
 				filename = filename.strip()
 				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ? AND IPP2P NOT LIKE ?", ("%"+filename+"%","%" + self.myIPP2P+"%"))
 				resultFile = self.dbReader.fetchone()
-				self.dbReader.execute("DELETE FROM Download")
-				self.dbReader.execute("INSERT INTO Download values (?, ?)", (resultFile[0], resultFile[1]))
-				
-				self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ('%'+resultFile[2]+'%',))
-				resultUser = self.dbReader.fetchone()
-				
-				msg = "RETR" + resultFile[0]
-				
-				setConnection(resultUser[0], int(resultUser[1]), msg)
-
-				#retr_sock.close()
+				if resultFile is not None:
+					self.dbReader.execute("DELETE FROM Download")
+					self.dbReader.execute("INSERT INTO Download values (?, ?)", (resultFile[0], resultFile[1]))
+					
+					self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ('%'+resultFile[2]+'%',))
+					resultUser = self.dbReader.fetchone()
+					
+					msg = "RETR" + resultFile[0]
+					
+					setConnection(resultUser[0], int(resultUser[1]), msg)
+				else:
+					print("File non presente nel database")
+					#retr_sock.close()
 
 				
 				
@@ -358,8 +360,6 @@ class GnutellaServer(object):
 				resultFile = self.dbReader.fetchone()
 				filename=resultFile[0].replace(" ","")
 				
-				download = filename
-
 				try:
 					fd = os.open(filename, os.O_RDONLY)
 				except OSError as e:
@@ -392,10 +392,9 @@ class GnutellaServer(object):
 					
 					msg = "ARET" + str(num).zfill(6)
 					print ('Trasferimento iniziato di ', resultFile[0], '     [BYTES ', filesize, ']')
-					
+					#funzione progressBar
 					peer_socket.send(msg.encode())
 					i = 0
-					
 					while i < num:
 						buf = os.read(fd,4096)
 						if not buf: break
@@ -406,14 +405,11 @@ class GnutellaServer(object):
 						i = i + 1
 					
 					os.close(fd)
-					print('Trasferimento completato.. ')
+					print('Trasferimento completato')
 					
-					#connection.send(msg.encode())
 					peer_socket.close()
-
-
 				else: 
-					print("Errore nell'apertura del file")
+					print("Il file non esiste!")
 				
 			elif command == "ANEA":
 				print("Ricevuto "+color.recv+"ANEA"+color.end)
@@ -471,29 +467,30 @@ class GnutellaServer(object):
 					self.dbReader.execute("SELECT * FROM Download")
 					files = self.dbReader.fetchone()
 					filename = files[1]
-					print(filename)
+					filename.strip()
 					fd = open(filename, 'wb')
 					
 					numChunk = connection.recv(6).decode()
 					numChunk = int(numChunk)
 					
 					i = 0
+					
 					while i < numChunk:
 						lun = connection.recv(5).decode()
-						print(lun)
 						while len(lun) < 5:
 							lun = lun + connection.recv(1).decode()
 						lun = int(lun)
-						
 						data = connection.recv(lun)
+						time.sleep(3)
 						while len(data) < lun:
 							data += connection.recv(1)
-						i = i + 1
 						fd.write(data)
+						i = i + 1
 					fd.close()
 					connection.close()
+
 					print(color.green + "Scaricato il file" + color.end)
-							
+					
 				except OSError:
 					print("Impossibile aprire il file: controlla di avere i permessi")
 					return False
