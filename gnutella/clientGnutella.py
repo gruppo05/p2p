@@ -1,4 +1,4 @@
-import socket, sqlite3, string, subprocess, os, time
+import socket, sqlite3, string, subprocess, os, time 
 from random import *
 
 class color:
@@ -13,6 +13,10 @@ class color:
 
 def startServer():
 	os.system("gnome-terminal -e 'sh -c \"python3 serverGnutella.py\"'")
+
+def stopServer():
+	#os.system("kill $(ps aux | grep '.py' | awk '{print $2}')") #questo killa anche gedit se il file si chiama .py
+	os._exit(0)
 
 def printMenu():
 	print(color.recv+"  ____  "+ color.green+"        "+ color.send+"        "+ color.fail+" _    "+ color.recv+"       "+ color.green+" _  "+ color.send+" _  "+ color.green+"        "+ color.fail+"  ____  _____   ____  "+ color.end)
@@ -67,6 +71,7 @@ class GnutellaClient(object):
 				self.sockUDPServer.sendto((filename.ljust(20)).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				#esito operazione
 				command, useless = self.sockUDPClient.recvfrom(1)
+				
 				com = command.decode()
 				if com is "1":
 					print(color.green+"File aggiunto con successo"+color.end)
@@ -84,11 +89,10 @@ class GnutellaClient(object):
 			
 			elif cmd is "4":
 				print("INIZIO DOWNLOAD")
-				
+				self.sockUDPServer.sendto(("RETR").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				filename = input("Inserisci il nome del file da scaricare: ")
 				
-				filename = str(filename).ljust(20)
-				filename = "RETR" + filename				
+				filename = str(filename).ljust(20)				
 				self.sockUDPServer.sendto((filename).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 			
 			elif cmd is "5":
@@ -106,7 +110,7 @@ class GnutellaClient(object):
 						print(color.recv+cmd+color.end)
 
 			elif cmd is "6":
-				print("STAMPA TUTTI I FILE TROVATI")
+				print("STAMPA FILE TROVATI")
 				self.sockUDPServer.sendto(("STMF").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				while True:
 					buff, addr = self.sockUDPClient.recvfrom(159)
@@ -119,9 +123,11 @@ class GnutellaClient(object):
 						print(color.recv+cmd+color.end)
 				
 			elif cmd is "7":
-				#stopServer()
-				#os.system("sh -c \"kill $(ps aux | grep '.py' | awk '{print $2}')\"")
-				os._exit(0)
+				stopServer()
+				
+			#lasciatelo qui per ora
+			elif cmd is "8":
+				self.sockUDPServer.sendto(("1111").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 			
 if __name__ == "__main__":
     gnutella = GnutellaClient()

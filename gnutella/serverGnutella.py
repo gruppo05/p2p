@@ -1,6 +1,16 @@
-import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path, hashlib
+import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path, hashlib, sys
 import settings as var
 from random import *
+	
+class color:
+	HEADER = '\033[95m'
+	recv = '\033[36m'
+	green = '\033[32m'
+	send = '\033[33m'
+	fail = '\033[31m'
+	end = '\033[0m'
+	BOLD = '\033[1m'
+	UNDERLINE = '\033[4m'
 
 def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS User")
@@ -12,6 +22,21 @@ def clearAndSetDB(self):
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, IPP2P text)")
 	#self.dbReader.execute("CREATE TABLE download (Filemd5 text, Download integer)")
 
+def progressBar(end_val, bar_length):
+	end_val = 10
+	bar_length = 20
+	i = 0
+	while i < 11:
+		percent = float(i) / end_val
+		hashes = '#' * int(round(percent * bar_length))
+		spaces = ' ' * (bar_length - len(hashes))
+		sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+		sys.stdout.flush()
+		time.sleep(0.1)
+		i = i+1
+	print(color.green+"\nFine download!"+color.end)
+    
+    
 def PktidGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
 
@@ -36,19 +61,7 @@ def encryptMD5(filename):
 			buf = f.read(BLOCKSIZE)
 		f.close()
 	filemd5 = hasher.hexdigest()
-	#print(str(msg))
-	#res = makeStringLength(str(msg),100)
 	return(filemd5)	
-	
-class color:
-	HEADER = '\033[95m'
-	recv = '\033[36m'
-	green = '\033[32m'
-	send = '\033[33m'
-	fail = '\033[31m'
-	end = '\033[0m'
-	BOLD = '\033[1m'
-	UNDERLINE = '\033[4m'
 
 def setConnection(ip, port, msg):
 	try:
@@ -140,6 +153,10 @@ class GnutellaServer(object):
 				msg = "NEAR" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
+			
+			elif command == "1111":
+				progressBar(1,1)
+				
 			elif command == "ADDF":
 				
 				filename, useless = self.sockUDPServer.recvfrom(20)
@@ -177,21 +194,22 @@ class GnutellaServer(object):
 				
 				
 			elif command == "RETR":
-				
+				print("1")
 				filename, addr = self.sockUDPServer.recvfrom(20)
+				
 				filename = filename.decode()
+				print("2")
 				filename = filename.strip()
-				
-				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ?", ("%"+filename+"%",))
+				print("3")
+				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ? AND IPP2P NOT LIKE ?", ("%"+filename+"%","%" + self.myIPP2P+"%"))
 				resultFile = self.dbReader.fetchone()
-				
+				print(len(resultFile))
 				self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ("%"+resultFile[2]+"%",))
 				resultUser = self.dbReader.fetchone()
 				
 				msg = "RETR" + resultFile[0]
 				
-				setConnection(resultUser[0], int(resultUser[1], msg))
-				
+				setConnection(resultUser[0], int(resultUser[1]), msg)
 				'''
 				self.dbReader.execute("SELECT * FROM File WHERE IPP2P NOT LIKE ?", (self.myIPP2P,))
 				resultFile = self.dbReader.fetchall()
@@ -216,7 +234,7 @@ class GnutellaServer(object):
 				
 				#invio il retr all'utente
 				setConnection(utente[0], int(utente[1]), msg)	
-				'''			
+'''
 			elif command == "STMV":
 				self.dbReader.execute("SELECT * FROM user")
 				vicini = self.dbReader.fetchall()
@@ -326,11 +344,13 @@ class GnutellaServer(object):
 				FileMD5 = connection.recv(32).decode()
 				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
 				resultFile = self.dbReader.fetchone()
-				print(resultFile[0].strip())
-				print(os.path.dirname(os.path.abspath(__file__)))
 				filename=resultFile[0].replace(" ","")
 				print(filename)
-				fd = os.open(filename, os.O_RDONLY, 777)
+				try:
+					fd = os.open(filename, os.O_RDONLY, 777)
+				except OSError as e:
+					print(e)
+				
 				print(fd)
 				if fd is None:
 					
