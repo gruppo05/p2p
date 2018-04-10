@@ -1,4 +1,4 @@
-import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path, hashlib, sys
+import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path, hashlib, sys, stat
 import settings as var
 from random import *
 	
@@ -194,21 +194,48 @@ class GnutellaServer(object):
 				
 				
 			elif command == "RETR":
-				
+				print("1")
 				filename, addr = self.sockUDPServer.recvfrom(20)
+				
 				filename = filename.decode()
+				print("2")
 				filename = filename.strip()
-				
-				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ?", ("%"+filename+"%",))
+				print("3")
+				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ? AND IPP2P NOT LIKE ?", ("%"+filename+"%","%" + self.myIPP2P+"%"))
 				resultFile = self.dbReader.fetchone()
-				
+				print(len(resultFile))
 				self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ("%"+resultFile[2]+"%",))
 				resultUser = self.dbReader.fetchone()
 				
 				msg = "RETR" + resultFile[0]
 				
-				setConnection(resultUser[0], int(resultUser[1], msg))
+				#setConnection(resultUser[0], int(resultUser[1]), msg)
 				
+				try:
+					rnd = random()
+					rnd = 0.1
+					if(rnd<0.5):
+						ip = splitIp(ip[0:15])						
+						print(color.green+"Connessione IPv4:"+ip+color.end)
+						retr_sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+						retr_sock.connect((ip,port))
+		
+					else:
+						ip = ip[16:55]
+						print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
+						retr_sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+						retr_sock.connect((ip, port))
+		
+					print("Invio --> "+color.send+msg+color.end)
+					retr_sock.sendall(msg.encode())
+					#peer_socket.close()
+				except:
+					print("Nessun vicino trovato!")
+				connection, client_address = self.retr_sock.accept()
+				
+				print("ricevo tutta la roba")
+				retr_sock.close()
+				'''
 				self.dbReader.execute("SELECT * FROM File WHERE IPP2P NOT LIKE ?", (self.myIPP2P,))
 				resultFile = self.dbReader.fetchall()
 				print(len(resultFile))	
@@ -232,7 +259,7 @@ class GnutellaServer(object):
 				
 				#invio il retr all'utente
 				setConnection(utente[0], int(utente[1]), msg)	
-
+'''
 			elif command == "STMV":
 				self.dbReader.execute("SELECT * FROM user")
 				vicini = self.dbReader.fetchall()
@@ -342,24 +369,24 @@ class GnutellaServer(object):
 				FileMD5 = connection.recv(32).decode()
 				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
 				resultFile = self.dbReader.fetchone()
-				print(resultFile[0].strip())
-				print(os.path.dirname(os.path.abspath(__file__)))
 				filename=resultFile[0].replace(" ","")
-				print(filename)
-				fd = os.open(filename, os.O_RDONLY, 777)
-				print(fd)
-				if fd is None:
-					
-					filesize = os.fstat(fd)[stat.ST.SIZE]
+				nChunk = 0
+				try:
+					fd = os.open(filename, os.O_RDONLY)
+				except OSError as e:
+					print(e)
+				
+				if fd is not -1:
+
+					filesize = os.path.getsize(filename)
 					nChunck = filesize / 4096
-					print(filesize)
 
 					if (filesize % 4096)!= 0:
 						nChunk = nChunk + 1
 
 					nChunk = int(float(nChunk))
 					msg = "ARET" + str(nChunk).zfill(6)
-					print ('Trasferimento in corso di ', resultFile, '[BYTES ', filesize, ']')
+					print ('Trasferimento in corso di ', resultFile[0], '[BYTES ', filesize, ']')
 
 					i = 0
 
@@ -368,7 +395,7 @@ class GnutellaServer(object):
 						if not buf: break
 						lbuf = len(buf)
 						lbuf = str(lbuf).zfill(5)
-						msg = msg + lbuf + buf
+						msg = msg + str(lbuf) + str(buf)
 						i = i + 1
 					
 					os.close(fd)
