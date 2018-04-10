@@ -1,4 +1,4 @@
-import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os.path, hashlib, sys, stat
+import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, hashlib, sys, stat
 import settings as var
 from random import *
 	
@@ -371,7 +371,7 @@ class GnutellaServer(object):
 					filesize = int(os.path.getsize(filename))
 
 					print(int(filesize))
-					nChunck = int(filesize) / 4096
+					a = filesize/ 4096
 
 
 
@@ -379,7 +379,6 @@ class GnutellaServer(object):
 						a = a + 1
 
 					print("Lunghezza nChunk", a)
-					a = int(float(a))
 					
 					msg = "ARET" + str(a).zfill(6)
 					print ('Trasferimento in corso di ', resultFile[0], '[BYTES ', filesize, ']')
@@ -391,7 +390,7 @@ class GnutellaServer(object):
 						if not buf: break
 						lbuf = len(buf)
 						lbuf = str(lbuf).zfill(5)
-						msg = msg + str(lbuf) + str(buf)
+						msg += str(lbuf) + str(buf)
 						i = i + 1
 					
 					os.close(fd)
@@ -407,6 +406,8 @@ class GnutellaServer(object):
 					#invio del file, leggere l'ip dall'oggetto connection	
 
 					data = self.dbReader.fetchone()
+					print(data[0])
+					print(data[1])
 					setConnection(data[0],int(data[1]), msg)
 					
 					#connection.sendall(msg.encode())
@@ -470,28 +471,26 @@ class GnutellaServer(object):
 				try:
 					
 
-					filename = "piadina.jpg"
+					filename = "piadina"
 					print(filename)
-					fd = open(filename, 'wb', 777)
+					fd = open(filename, 'wb')
 					
 					numChunk = int(connection.recv(6).decode())
 					
 					i = 0
-					while i < numChunk:
+					while i < numChunck:
 						lun = connection.recv(5).decode()
 						while len(lun) < 5:
 							lun = lun + connection.recv(1).decode()
 						lun = int(lun)
 						
-						data = connection.recv(lun).decode()
-						while len(data) < lun:
-							data = data + connection.recv(1).decode()
-						os.flush(fd)
-						os.write(fd,data)
-						print("....FINITO...")
+						data = connection.recv(lun)
+						while len(data) <= lun:
+							data = data + connection.recv(1)
+							fd.write(data)
 						i = i + 1
 					
-					os.close(fd)
+					fd.close()
 					connection.close()
 
 					print(color.green + "Scaricato il file" + color.end)
