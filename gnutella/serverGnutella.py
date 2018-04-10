@@ -108,7 +108,6 @@ def getTime(t):
 	return time2 - time1
 
 class GnutellaServer(object):
-	download = ""
 	def __init__(self):
 		IP = ""
 		self.PORT = var.Settings.PORT
@@ -360,67 +359,57 @@ class GnutellaServer(object):
 				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
 				resultFile = self.dbReader.fetchone()
 				filename=resultFile[0].replace(" ","")
-
-
-				download = filename
-				a = 0
-
-
+				
 				try:
 					fd = os.open(filename, os.O_RDONLY)
 				except OSError as e:
 					print(e)
 				
-				if fd is not -1:
-
-					filesize = int(os.path.getsize(filename))
-
-					print(int(filesize))
-					a = filesize/ 4096
-
-
-
-					if (filesize % 4096)!= 0:
-						a = a + 1
-
-					print("Lunghezza nChunk", a)
+				if fd is not -1:					
+					addrIPv4 = str(client_address).split(":")[-1].split("'")[0]
+					#addrIPv6 = str(client_address).split("'")[1].split(":"+addrIPv4)[0]
+					addrIPv4 = str(setIp(int(addrIPv4.split(".")[0])))+"."+str(setIp(int(addrIPv4.split(".")[1])))+"."+str(setIp(int(addrIPv4.split(".")[2])))+"."+str(setIp(int(addrIPv4.split(".")[3])))
+					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P LIKE ?",('%'+addrIPv4+'%',))
+					data = self.dbReader.fetchone()
+					ip = data[0]
+					port = data[1]
 					
-					msg = "ARET" + str(a).zfill(6)
-					print ('Trasferimento in corso di ', resultFile[0], '[BYTES ', filesize, ']')
-
+					try:
+						ip = splitIp(ip[0:15])				
+						print(color.green+"Connessione IPv4:"+ip+color.end)
+						peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+						peer_socket.connect((ip,int(port)))
+					except:
+						print("Errore invio messaggio")
+					
+					filesize = int(os.path.getsize(filename))
+					num = int(filesize) / 4096
+					
+					if (filesize % 4096)!= 0:
+						num = num + 1
+					
+					num = int(num)
+					
+					msg = "ARET" + str(num).zfill(6)
+					print ('Trasferimento iniziato di ', resultFile[0], '     [BYTES ', filesize, ']')
+					#funzione progressBar
+					peer_socket.send(msg.encode())
 					i = 0
-
-					while i < a:
+					while i < num:
 						buf = os.read(fd,4096)
 						if not buf: break
 						lbuf = len(buf)
 						lbuf = str(lbuf).zfill(5)
-						msg += str(lbuf) + str(buf)
+						peer_socket.send(lbuf.encode())
+						peer_socket.send(buf)
 						i = i + 1
 					
 					os.close(fd)
-
-					print('Trasferimento completato.. ')
+					print('Trasferimento completato')
 					
-					print("Address --> "+str(client_address))
-					addrIPv4 = str(client_address).split(":")[-1].split("'")[0]
-					#addrIPv6 = str(client_address).split("'")[1].split(":"+addrIPv4)[0]
-					addrIPv4 = str(setIp(int(addrIPv4.split(".")[0])))+"."+str(setIp(int(addrIPv4.split(".")[1])))+"."+str(setIp(int(addrIPv4.split(".")[2])))+"."+str(setIp(int(addrIPv4.split(".")[3])))
-					#get port from db
-					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P LIKE ?",('%'+addrIPv4+'%',))
-					#invio del file, leggere l'ip dall'oggetto connection	
-
-					data = self.dbReader.fetchone()
-					print(data[0])
-					print(data[1])
-					setConnection(data[0],int(data[1]), msg)
-					
-					#connection.sendall(msg.encode())
-					#connection.close()
-
-
+					peer_socket.close()
 				else: 
-					print("Errore nell'apertura del file")
+					print("Il file non esiste!")
 				
 			elif command == "ANEA":
 				print("Ricevuto "+color.recv+"ANEA"+color.end)
@@ -478,40 +467,30 @@ class GnutellaServer(object):
 					self.dbReader.execute("SELECT * FROM Download")
 					files = self.dbReader.fetchone()
 					filename = files[1]
-					filename.strip()
-
+					filename = filename.strip()
 					fd = open(filename, 'wb')
 					
 					numChunk = connection.recv(6).decode()
 					numChunk = int(numChunk)
+					
 					i = 0
-	
 					
 					while i < numChunk:
-						print("mi fa quse")
 						lun = connection.recv(5).decode()
-						
 						while len(lun) < 5:
 							lun = lun + connection.recv(1).decode()
 						lun = int(lun)
 						data = connection.recv(lun)
-						print("muoio")
-						print(len(data))
-						print(lun)
 						time.sleep(3)
 						while len(data) < lun:
-							print("ehehe")
 							data += connection.recv(1)
-						print("mi fa questo 3")	
 						fd.write(data)
-						print("mi fa questo 4")
 						i = i + 1
-					
 					fd.close()
 					connection.close()
 
 					print(color.green + "Scaricato il file" + color.end)
-							
+					
 				except OSError:
 					print("Impossibile aprire il file: controlla di avere i permessi")
 					return False
