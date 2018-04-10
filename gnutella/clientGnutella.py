@@ -15,7 +15,7 @@ def startServer():
 	os.system("gnome-terminal -e 'sh -c \"python3 serverGnutella.py\"'")
 
 def stopServer():
-	#os.system("kill $(ps aux | grep '.py' | awk '{print $2}')") #questo killa anche gedit se il file si chiama .py
+	os.system("kill $(ps aux | grep '.py' | awk '{print $2}')") #questo killa anche gedit se il file si chiama .py
 	os._exit(0)
 
 def printMenu():
@@ -122,10 +122,6 @@ class GnutellaClient(object):
 				
 			elif cmd is "7":
 				stopServer()
-				
-			#lasciatelo qui per ora
-			elif cmd is "8":
-				self.sockUDPServer.sendto(("1111").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 			
 if __name__ == "__main__":
     gnutella = GnutellaClient()

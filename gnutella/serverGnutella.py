@@ -21,21 +21,6 @@ def clearAndSetDB(self):
 	self.dbReader.execute("CREATE TABLE Pktid (Pktid text, Timestamp DATETIME)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, IPP2P text)")
 	self.dbReader.execute("CREATE TABLE download (Filemd5 text, Filename text)")
-
-def progressBar(end_val, bar_length):
-	end_val = 10
-	bar_length = 20
-	i = 0
-	while i < 11:
-		percent = float(i) / end_val
-		hashes = '#' * int(round(percent * bar_length))
-		spaces = ' ' * (bar_length - len(hashes))
-		sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
-		sys.stdout.flush()
-		time.sleep(0.1)
-		i = i+1
-	print(color.green+"\nFine download!"+color.end)
-    
     
 def PktidGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
@@ -117,6 +102,7 @@ class GnutellaServer(object):
 		self.UDP_PORT_CLIENT = 50000
 		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		self.BUFF = 99999
 		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -160,9 +146,6 @@ class GnutellaServer(object):
 				msg = "NEAR" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
-			
-			elif command == "1111":
-				progressBar(1,1)
 				
 			elif command == "ADDF":
 				
@@ -220,7 +203,6 @@ class GnutellaServer(object):
 					setConnection(resultUser[0], int(resultUser[1]), msg)
 				else:
 					print("File non presente nel database")
-					#retr_sock.close()
 
 			elif command == "STMV":
 				self.dbReader.execute("SELECT * FROM user")
@@ -262,7 +244,6 @@ class GnutellaServer(object):
 				IPP2P = connection.recv(55).decode()
 				PP2P = connection.recv(5).decode()
 				TTL = connection.recv(2).decode()
-				#se non esiste il pktid, lo inserisco e propago il messaggio altrimenti lo ignoro in quanto l'ho già ricevuto e ritrasmesso
 				self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (Pktid,))
 				t = self.dbReader.fetchone()
 				
@@ -356,9 +337,9 @@ class GnutellaServer(object):
 						print("Errore invio messaggio")
 					
 					filesize = int(os.path.getsize(var.Settings.userPath+""+filename))
-					num = int(filesize) / 4096
+					num = int(filesize) / self.BUFF
 					
-					if (filesize % 4096)!= 0:
+					if (filesize % self.BUFF)!= 0:
 						num = num + 1
 					
 					num = int(num)
@@ -369,15 +350,16 @@ class GnutellaServer(object):
 					peer_socket.send(msg.encode())
 					i = 0
 					while i < num:
-						buf = os.read(fd,4096)
+						buf = os.read(fd,self.BUFF)
 						if not buf: break
 						lbuf = len(buf)
 						lbuf = str(lbuf).zfill(5)
 						peer_socket.send(lbuf.encode())
 						peer_socket.send(buf)
 						i = i + 1
-					
+						
 					os.close(fd)
+					print(color.green+"\nFine download!"+color.end)
 					print('Trasferimento completato')
 					
 					peer_socket.close()
@@ -441,15 +423,14 @@ class GnutellaServer(object):
 					files = self.dbReader.fetchone()
 					filename = files[1]
 
-					print(filename)
-					filename = filename.strip()
-					fd = open(var.Settings.userPath + "" + filename, 'wb')
-					
+					fd = open(var.Settings.userPath + "" + filename, 'wb')					
 					numChunk = connection.recv(6).decode()
 					numChunk = int(numChunk)
 					
 					i = 0
-					
+					print("Inizio download...")
+					bar_length = 60
+					time1 = time.time()
 					while i < numChunk:
 						lun = connection.recv(5).decode()
 						while len(lun) < 5:
@@ -460,16 +441,28 @@ class GnutellaServer(object):
 						while len(data) < lun:
 							data += connection.recv(1)
 						fd.write(data)
+						percent = float(i) / numChunk
+						hashes = '#' * int(round(percent * bar_length))
+						spaces = ' ' * (bar_length - len(hashes))
+						sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
 						i = i + 1
+					
+					percent = float(i) / numChunk
+					hashes = '#' * int(round(percent * bar_length))
+					spaces = ' ' * (bar_length - len(hashes))
+					sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+					time2 = time.time()
+					sys.stdout.flush()
 					fd.close()
 					connection.close()
-
-					print(color.green + "Scaricato il file" + color.end)
+					print("\n")
+					totTime = time2 - time1
+					print(color.green + "Scaricato il file" + color.end+" in "+str(int(totTime))+"s")
 					
 				except OSError:
 					print("Impossibile aprire il file: controlla di avere i permessi")
 					return False
-				print("finito baby")
+				print(color.fail+"Finito baby"+color.end)
 					
 		except:
 			connection.close()
