@@ -471,7 +471,7 @@ class GnutellaServer(object):
 					filename = files[1]
 					
 					print(filename)
-					fd = open(filename, 'wb')
+					fd = open(var.Settings.userPath + "" + filename, 'wb')
 					
 					numChunk = connection.recv(6).decode()
 					numChunk = int(numChunk)
