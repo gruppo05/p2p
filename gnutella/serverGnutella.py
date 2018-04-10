@@ -376,7 +376,11 @@ class GnutellaServer(object):
 					os.close(fd)
 					print('Trasferimento completato.. ')
 					#invio del file, leggere l'ip dall'oggetto connection	
-					setConnection(conn[0], conn[1], msg)
+					print(1)
+					connection.sendall(msg.encode())
+					#connection.close()
+					print(2)
+					#setConnection(conn[0], conn[1], msg)
 
 				else: 
 					print("Errore nell'apertura del file")
