@@ -1,4 +1,4 @@
-import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path, hashlib, sys
+import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path, hashlib, sys, stat
 import settings as var
 from random import *
 	
@@ -345,25 +345,23 @@ class GnutellaServer(object):
 				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
 				resultFile = self.dbReader.fetchone()
 				filename=resultFile[0].replace(" ","")
-				print(filename)
+				nChunk = 0
 				try:
-					fd = os.open(filename, os.O_RDONLY, 777)
+					fd = os.open(filename, os.O_RDONLY)
 				except OSError as e:
 					print(e)
 				
-				print(fd)
-				if fd is None:
-					
-					filesize = os.fstat(fd)[stat.ST.SIZE]
+				if fd is not -1:
+
+					filesize = os.path.getsize(filename)
 					nChunck = filesize / 4096
-					print(filesize)
 
 					if (filesize % 4096)!= 0:
 						nChunk = nChunk + 1
 
 					nChunk = int(float(nChunk))
 					msg = "ARET" + str(nChunk).zfill(6)
-					print ('Trasferimento in corso di ', resultFile, '[BYTES ', filesize, ']')
+					print ('Trasferimento in corso di ', resultFile[0], '[BYTES ', filesize, ']')
 
 					i = 0
 
@@ -372,7 +370,7 @@ class GnutellaServer(object):
 						if not buf: break
 						lbuf = len(buf)
 						lbuf = str(lbuf).zfill(5)
-						msg = msg + lbuf + buf
+						msg = msg + str(lbuf) + str(buf)
 						i = i + 1
 					
 					os.close(fd)
