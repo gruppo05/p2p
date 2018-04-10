@@ -89,6 +89,7 @@ def setConnection(ip, port, msg):
 		print("Invio --> "+color.send+msg+color.end)
 		peer_socket.sendall(msg.encode())
 		peer_socket.close()
+		
 	except:
 		print("Nessun vicino trovato!")
 
@@ -359,7 +360,7 @@ class GnutellaServer(object):
 				filename=resultFile[0].replace(" ","")
 
 				download = filename
-				num = 0
+				a = 0
 				
 				try:
 					fd = os.open(filename, os.O_RDONLY)
@@ -370,19 +371,20 @@ class GnutellaServer(object):
 
 					filesize = int(os.path.getsize(filename))
 					print("filesize =",filesize)
-					num = filesize/4096
+					a = filesize/4096
 					
 					if (filesize % 4096)!= 0:
-						num = num + 1
+						a = a + 1
 
-					num = int(float(num))
+					print("Lunghezza nChunk", a)
+					a = int(float(a))
 					
-					msg = "ARET" + str(num).zfill(6)
+					msg = "ARET" + str(a).zfill(6)
 					print ('Trasferimento in corso di ', resultFile[0], '[BYTES ', filesize, ']')
 
 					i = 0
 
-					while i < num:
+					while i < a:
 						buf = os.read(fd,4096)
 						if not buf: break
 						lbuf = len(buf)
@@ -391,7 +393,7 @@ class GnutellaServer(object):
 						i = i + 1
 					
 					os.close(fd)
-					time.sleep(2)
+					
 					print('Trasferimento completato.. ')
 					
 					print("Address --> "+str(client_address))
@@ -405,8 +407,8 @@ class GnutellaServer(object):
 					data = self.dbReader.fetchone()
 					setConnection(data[0],int(data[1]), msg)
 					
-					connection.sendall(msg.encode())
-					connection.close()
+					#connection.sendall(msg.encode())
+					#connection.close()
 
 
 				else: 
@@ -467,14 +469,14 @@ class GnutellaServer(object):
 					
 					filename = download
 					fd = os.open(filename, os.O_WRONLY | os.O_CREAT, 777)
-					num = int(connection.recv(6).decode())
+					nChunk = int(connection.recv(6).decode())
 					i=0;
 						
-					while i < num:
+					while i < nChunk:
 						lun = int(connection.recv(5).decode())
 						data = connection.recv(lun).decode()
 							#scrittura del file
-						os.write(fd,data)
+						os.write(fd,data)				
 						
 					print(color.green + "Scaricato il file" + color.end)
 							
