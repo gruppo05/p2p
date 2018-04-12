@@ -359,9 +359,7 @@ class GnutellaServer(object):
 						i = i + 1
 						
 					os.close(fd)
-					print(color.green+"\nFine download!"+color.end)
-					print('Trasferimento completato')
-					
+					print(color.green+"\nFine UPLOAD"+color.end)					
 					peer_socket.close()
 				else: 
 					print("Il file non esiste!")
