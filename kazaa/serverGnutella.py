@@ -80,7 +80,7 @@ def setConnection(ip, port, msg):
 
 def getTime(t):
 	a = str(datetime.datetime.now())
-
+	
 	ht = int(t.split(" ")[1].split(":")[0]) * 60 * 60
 	mt = int(t.split(" ")[1].split(":")[1]) * 60
 	st = int(t.split(" ")[1].split(":")[2].split(".")[0])
