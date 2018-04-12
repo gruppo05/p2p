@@ -53,8 +53,8 @@ class GnutellaClient(object):
 				continue
 			
 			if cmd is "1":
-				print("RICERCA VICINI")
-				self.sockUDPServer.sendto(("NEAR").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				print("RICERCA SUPER-NODO")
+				self.sockUDPServer.sendto(("SUPE").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				
 			if cmd is "2":
 				self.sockUDPServer.close()

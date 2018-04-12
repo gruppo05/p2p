@@ -11,7 +11,91 @@ class color:
 	end = '\033[0m'
 	BOLD = '\033[1m'
 	UNDERLINE = '\033[4m'
+
+def clearAndSetDB(self):
+	self.dbReader.execute("DROP TABLE IF EXISTS User")
+	self.dbReader.execute("DROP TABLE IF EXISTS Pktid")
+	self.dbReader.execute("DROP TABLE IF EXISTS File")
+	self.dbReader.execute("DROP TABLE IF EXISTS download")
+	# 1 -> supernodo, #0 nodo
+	self.dbReader.execute("CREATE TABLE User (Super text, IPP2P text, PP2P text)")
+	self.dbReader.execute("CREATE TABLE Pktid (Pktid text, Timestamp DATETIME)")
+	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, IPP2P text)")
+	self.dbReader.execute("CREATE TABLE download (Filemd5 text, Filename text)")
+    
+def PktidGenerator():
+	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
+
+def setNumber(n):
+	if n < 10:
+		n = "0"+str(n)
+	return n
+
+def setIp(n):
+	if n < 10:
+		n = "00"+str(n)
+	elif n < 100:
+		n = "0"+str(n)
+	return n
+
+def splitIp(ip):
+	splitted = ip.split(".")
+	ip = str(int(splitted[0]))+"."+str(int(splitted[1]))+"."+str(int(splitted[2]))+"."+str(int(splitted[3]))
+	return ip
 	
+def encryptMD5(filename):
+	#calcolo hash file
+	BLOCKSIZE = 128
+	hasher = hashlib.md5()
+	with open(filename, 'rb') as f:
+		buf = f.read(BLOCKSIZE)
+		while len(buf) > 0:
+			hasher.update(buf)
+			buf = f.read(BLOCKSIZE)
+		f.close()
+	filemd5 = hasher.hexdigest()
+	return(filemd5)	
+
+def setConnection(ip, port, msg):
+	try:
+		rnd = random()
+		rnd = 0.1
+		if(rnd<0.5):
+			ip = splitIp(ip[0:15])						
+			print(color.green+"Connessione IPv4:"+ip+color.end)
+			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+			peer_socket.connect((ip,port))
+		
+		else:
+			ip = ip[16:55]
+			print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
+			peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+			peer_socket.connect((ip, port))
+		
+		print("Invio --> "+color.send+msg+color.end)
+		peer_socket.sendall(msg.encode())
+		peer_socket.close()
+		
+	except:
+		print("Nessun vicino trovato!")
+
+def getTime(t):
+	a = str(datetime.datetime.now())
+
+	ht = int(t.split(" ")[1].split(":")[0]) * 60 * 60
+	mt = int(t.split(" ")[1].split(":")[1]) * 60
+	st = int(t.split(" ")[1].split(":")[2].split(".")[0])
+	time1 = ht + mt + st
+	
+	ha = int(a.split(" ")[1].split(":")[0]) * 60 * 60
+	ma = int(a.split(" ")[1].split(":")[1]) * 60
+	sa = int(a.split(" ")[1].split(":")[2].split(".")[0])
+	time2 = ha + ma + sa
+	return time2 - time1
+
+
+
+
 class Kazaa(object):
 	def __init__(self):
 		IP = ""
@@ -23,6 +107,22 @@ class Kazaa(object):
 		self.endUDP1 = "";
 		self.endUDP2 = "";
 		self.BUFF = 99999
+		
+		self.super = ""
+		# Creo DB
+		conn = sqlite3.connect(':memory:', check_same_thread=False)
+		self.dbReader = conn.cursor()
+		
+		# Creo tabella user
+		clearAndSetDB(self)
+		
+		#inserisco l'utente root
+		if self.myIPP2P != var.Settings.root_IP:
+			self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('"+var.Settings.root_IP+"', '"+var.Settings.root_PORT+"')")
+			self.super = 0
+		else:
+			print("Loggato come root")
+			self.super = 1
 		
 		# Socket ipv4/ipv6 port 3000
 		self.server_address = (IP, self.PORT)
@@ -37,6 +137,7 @@ class Kazaa(object):
 		
 		# socket upd ipv4 client in uscita
 		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		
 		
 	def server(self):
 		#crea thread interno per far comunicare client e server
@@ -57,12 +158,83 @@ class Kazaa(object):
 			data, addr = self.sockUDPServer.recvfrom(4)
 			command = data.decode()
 			print("\n\nRicevuto comando dal client: "+color.recv+command+color.end)
-			if command == "NEAR":
-				print("near")
+			if command == "SUPE":
+				myPktid = PktidGenerator()
+				self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)",(myPktid,datetime.datetime.now()))
+				TTL = setNumber(4)
+				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
+				resultUser = self.dbReader.fetchall()
+				msg = "SUPE" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
+				for user in resultUser:
+					setConnection(user[0], int(user[1]), msg)
+			
 	
 	
 	def serverTCP(self, connection, client_address):
 		command = connection.recv(4).decode()
+		try:
+			if command == "SUPE":
+				print("Ricevuto "+color.recv+"SUPE"+color.end)
+				Pktid = connection.recv(16).decode()
+				IPP2P = connection.recv(55).decode()
+				PP2P = connection.recv(5).decode()
+				TTL = connection.recv(2).decode()
+				self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (Pktid,))
+				t = self.dbReader.fetchone()
+			
+				if t is None:
+					self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)",(Pktid,datetime.datetime.now()))
+					self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
+					data = self.dbReader.fetchone()
+					if data is None:
+						#aggiungo l'utente come user
+						self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values (?, ?)",(0, IPP2P, PP2P))
+						print(color.green + "Aggiunto nuovo user" + color.end)
+					else:
+						print(color.fail + "User già presente" + color.end)
+				
+					if self.super == 1:
+						print("Sono un supernodo e rispondo alla richiesta") 
+						msg = "ASUP" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
+						setConnection(IPP2P, int(PP2P), msg)
+		
+					TTL = setNumber(int(TTL) - 1)
+			
+					if int(TTL) > 0:
+						msg = "SUPE" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
+						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=?", (IPP2P,self.myIPP2P,))
+						resultUser = self.dbReader.fetchall()
+			
+						for user in resultUser:
+							setConnection(user[0], int(user[1]), msg)
+				
+			elif command == "ASUP":
+					print("Ricevuto "+color.recv+"ASUP"+color.end)
+					Pktid = connection.recv(16).decode()
+					IPP2P = connection.recv(55).decode()
+					PP2P = connection.recv(5).decode()
+					
+					#verifico se c'è il pktid			
+					self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (Pktid,))
+					t = self.dbReader.fetchone() #retrieve the first row
+					if getTime(t[0]) < 20:
+						#verifico se l'utente super è già salvato nel db oppure lo aggiungo
+						self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
+
+						data = self.dbReader.fetchone() 
+						if data is None:
+							self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values (?, ?)",(1, IPP2P, PP2P))
+							print(color.green + "Aggiunto nuovo supernodo" + color.end)
+						else:
+							#verifico se ho salvato l'utente come user normale. In questo caso lo aggiorno come root
+							self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(1,data[0],))
+							print(color.fail + "Aggiornato user in supernodo" + color.end)	
+					else:
+						print(color.fail+"ricevuto pacchetto dopo 20s"+color.end)
+			
+		except:
+			connection.close()
+			return False
 	
 	
 		
