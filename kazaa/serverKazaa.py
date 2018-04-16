@@ -181,6 +181,7 @@ class Kazaa(object):
 				nodo = self.dbReader.fetchone()
 				self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,nodo[0],))
 				print("yeah")
+				self.sockUDPClient.sendto(("SET1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 	
 	def serverTCP(self, connection, client_address):
 		command = connection.recv(4).decode()
