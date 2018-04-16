@@ -181,14 +181,13 @@ class Kazaa(object):
 				TTL = connection.recv(2).decode()
 				self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (Pktid,))
 				t = self.dbReader.fetchone()
-			
 				if t is None:
 					self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)",(Pktid,datetime.datetime.now()))
 					self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
 					data = self.dbReader.fetchone()
 					if data is None:
 						#aggiungo l'utente come user
-						self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values (?, ?)",(0, IPP2P, PP2P))
+						self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values (?, ?, ?)",(0, IPP2P, PP2P))
 						print(color.green + "Aggiunto nuovo user" + color.end)
 					else:
 						print(color.fail + "User già presente" + color.end)

@@ -1,4 +1,4 @@
-import socket, sqlite3, string, subprocess, os, time 
+import socket, sqlite3, string, subprocess, os, time, sys
 from random import *
 
 class color:
@@ -28,8 +28,15 @@ def printMenu():
 	print("\n")
 	print("« 1 » RICERCA VICINI")
 	print(color.fail+"« 2 » CHIUDI IL CLIENT"+color.end)
+
+def progBar(i):
+	bar_length = 60
+	hashes = '#' * i * 3
+	spaces = ' ' * (bar_length - len(hashes))
+	sys.stdout.write("\r[{0}] {1}s".format(hashes + spaces, int(i)))
 	
-class GnutellaClient(object):
+	
+class kazaaClient(object):
 	def __init__(self):
 		self.UDP_IP = "127.0.0.1"
 		self.UDP_PORT_SERVER = 49999
@@ -55,6 +62,13 @@ class GnutellaClient(object):
 			if cmd is "1":
 				print("RICERCA SUPER-NODO")
 				self.sockUDPServer.sendto(("SUPE").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				# aspetto 20 s e poi invio SETS al server
+				i = 0
+				while i < 20:
+					progBar(i)
+					time.sleep(1)
+					i = i+1
+				self.sockUDPServer.sendto(("SETS").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				
 			if cmd is "2":
 				self.sockUDPServer.close()
@@ -63,8 +77,8 @@ class GnutellaClient(object):
 			
 	
 if __name__ == "__main__":
-    gnutella = GnutellaClient()
-gnutella.start()
+    kazaa = kazaaClient()
+kazaa.start()
 
 
 
