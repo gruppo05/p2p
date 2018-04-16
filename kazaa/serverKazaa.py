@@ -17,7 +17,9 @@ def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS Pktid")
 	self.dbReader.execute("DROP TABLE IF EXISTS File")
 	self.dbReader.execute("DROP TABLE IF EXISTS download")
-	# 1 -> supernodo, #0 nodo
+	# 0 -> user
+	# 1 -> supernodo
+	# 2 -> supernodo scelto	
 	self.dbReader.execute("CREATE TABLE User (Super text, IPP2P text, PP2P text)")
 	self.dbReader.execute("CREATE TABLE Pktid (Pktid text, Timestamp DATETIME)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, IPP2P text)")
@@ -168,7 +170,17 @@ class Kazaa(object):
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
 			
-	
+			elif command == "SETS":
+				# scelgo random tra i supernodi
+				self.dbReader.execute("SELECT count(*) FROM user WHERE Super=?", (1,))
+				data = self.dbReader.fetchone()
+				print("supernodi trovati:", data[0])
+				rnd = random.uniform(1, data[0])
+				#prendo tutti i supernodi
+				self.dbReader.execute("SELECT IPP2P FROM user OFFSET ? LIMIT 1", (rnd,))
+				nodo = self.dbReader.fetchone()
+				self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,nodo[0],))
+				print("yeah")
 	
 	def serverTCP(self, connection, client_address):
 		command = connection.recv(4).decode()
