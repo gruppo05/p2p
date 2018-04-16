@@ -20,7 +20,7 @@ def clearAndSetDB(self):
 	# 0 -> user
 	# 1 -> supernodo
 	# 2 -> supernodo scelto	
-	self.dbReader.execute("CREATE TABLE User (Super text, IPP2P text, PP2P text)")
+	self.dbReader.execute("CREATE TABLE User (Super text, IPP2P text, PP2P text, SessionID text)")
 	self.dbReader.execute("CREATE TABLE Pktid (Pktid text, Timestamp DATETIME)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, IPP2P text)")
 	self.dbReader.execute("CREATE TABLE download (Filemd5 text, Filename text)")
@@ -171,17 +171,22 @@ class Kazaa(object):
 					setConnection(user[0], int(user[1]), msg)
 			
 			elif command == "SETS":
-				# scelgo random tra i supernodi
-				self.dbReader.execute("SELECT count(*) FROM user WHERE Super=?", (1,))
-				data = self.dbReader.fetchone()
-				print("supernodi trovati:", data[0])
-				rnd = random.uniform(1, data[0])
-				#prendo tutti i supernodi
-				self.dbReader.execute("SELECT IPP2P FROM user OFFSET ? LIMIT 1", (rnd,))
-				nodo = self.dbReader.fetchone()
-				self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,nodo[0],))
-				print("yeah")
-	
+				try:
+					# scelgo random tra i supernodi
+					self.dbReader.execute("SELECT count(*) FROM user WHERE Super=?", (1,))
+					data = self.dbReader.fetchone()
+					print("supernodi trovati:", data[0])
+					rnd = randint(1, int(data[0]))-1
+				
+					self.dbReader.execute("SELECT IPP2P FROM user LIMIT 1 OFFSET ?", (rnd,))
+					data = self.dbReader.fetchone()
+					self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,data[0]))
+					print(color.green + "SUPERNODO con IP:"+data[0]+" selezionato con successo"+ color.end)
+					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				except: 
+					print(color.fail + "Errore SET supernodo"+ color.end)
+					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					
 	def serverTCP(self, connection, client_address):
 		command = connection.recv(4).decode()
 		try:
@@ -242,6 +247,26 @@ class Kazaa(object):
 							print(color.fail + "Aggiornato user in supernodo" + color.end)	
 					else:
 						print(color.fail+"ricevuto pacchetto dopo 20s"+color.end)
+			
+			# se sono un supernodo
+			elif command == "LOGI":
+					try:
+						IPP2P = connection.recv(55).decode()
+						IPP = connection.recv(5).decode()
+						print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + IPP2P + color.end + " - " + color.recv + IPP + color.end)
+						self.dbReader.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
+						data = self.dbReader.fetchone() #retrieve the first row
+						if data is None:
+							print(color.green + "NUOVO UTENTE" + color.end);
+							SessionID = sessionIdGenerator()
+							self.dbReader.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(SessionID, IPP2P, IPP))
+						else:
+							print(color.fail + "UTENTE GIÀ PRESENTE" + color.end)
+							SessionID = str(data[0])
+					except:
+						SessionID = "0000000000000000"
+					finally:
+						connection.sendall(("ALGI"+SessionID).encode())
 			
 		except:
 			connection.close()

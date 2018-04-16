@@ -66,7 +66,7 @@ class kazaaClient(object):
 				i = 0
 				while i < 20:
 					progBar(i)
-					time.sleep(1)
+					time.sleep(0.1)
 					i = i+1
 				self.sockUDPServer.sendto(("SETS").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				
