@@ -1,5 +1,5 @@
 import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, hashlib, sys, stat
-import settings as var
+import setting as var
 from random import *
 
 class color:
