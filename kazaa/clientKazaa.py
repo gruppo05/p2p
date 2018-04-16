@@ -26,15 +26,19 @@ def printMenu():
 	print(color.recv+"| | \  "+ color.green+"| (_| | "+ color.send+" / /_  "+ color.fail+"| (_| | "+ color.recv+"| (_| | "+ color.fail+" |  __/ / __/  |  __/ "+ color.end)
 	print(color.recv+"|_|\_\ "+ color.green+" \__,_/ "+ color.send+"/____\ "+ color.fail+" \__,_| "+ color.recv+" \__,_| "+ color.fail+" |_|   |_____| |_|    "+ color.end)
 	print("\n")
-	print("« 1 » RICERCA VICINI")
-	print(color.fail+"« 2 » CHIUDI IL CLIENT"+color.end)
+	print("« 1 » LOGIN")
+	print("« 2 » AGGIUNTA FILE")
+	print("« 3 » RIMOZIONE FILE")
+	print("« 4 » RICERCA FILE")
+	print("« 5 » DOWNLOAD FILE")
+	print("« 6 » LOGOUT")
+	print(color.fail+"« 7 » CHIUDI IL CLIENT"+color.end)
 
 def progBar(i):
 	bar_length = 60
 	hashes = '#' * i * 3
 	spaces = ' ' * (bar_length - len(hashes))
 	sys.stdout.write("\r[{0}] {1}s".format(hashes + spaces, int(i)))
-	
 	
 class kazaaClient(object):
 	def __init__(self):
@@ -52,6 +56,28 @@ class kazaaClient(object):
 	
 	def start(self):
 		startServer()
+		os.system('cls' if os.name == 'nt' else 'clear')
+		
+		#ricerca super nodi
+		time.sleep(0.1)
+		print("RICERCA SUPERNODI"+color.green)
+		self.sockUDPServer.sendto(("SUPE").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+		i = 0
+		while i < 20:
+			progBar(i)
+			time.sleep(0.1)
+			i = i+1
+		self.sockUDPServer.sendto(("SETS").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+		#socketUDP che verifica che sia supernodo
+		data, addr = self.sockUDPClient.recvfrom(4)
+		command = data.decode()
+		if command == "SET1":
+			print("\n"+color.recv+"SUPERNODO settato"+color.end)
+			time.sleep(2)
+		else:
+			print("\n"+color.fail+"SUPERNODO non trovato"+color.end)
+			return False
+		
 		while True:
 			printMenu()
 			try:
@@ -60,17 +86,19 @@ class kazaaClient(object):
 				continue
 			
 			if cmd is "1":
-				print("RICERCA SUPER-NODO")
-				self.sockUDPServer.sendto(("SUPE").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
-				# aspetto 20 s e poi invio SETS al server
-				i = 0
-				while i < 20:
-					progBar(i)
-					time.sleep(0.1)
-					i = i+1
-				self.sockUDPServer.sendto(("SETS").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
-				
-			if cmd is "2":
+				print(color.recv+"LOGI"+color.end)
+			elif cmd is "2":
+				print(color.recv+"ADDF"+color.end)
+			elif cmd is "3":
+				print(color.recv+"DELF"+color.end)
+			elif cmd is "4":
+				print(color.recv+"FIND"+color.end)
+			elif cmd is "5":
+				print(color.recv+"RETR"+color.end)
+			elif cmd is "6":
+				print(color.recv+"LOGO"+color.end)
+			elif cmd is "7":
+				print(color.recv+"LOGO"+color.end)
 				self.sockUDPServer.close()
 				self.sockUDPClient.close()
 				stopServer()

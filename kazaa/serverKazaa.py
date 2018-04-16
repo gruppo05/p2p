@@ -186,7 +186,7 @@ class Kazaa(object):
 				except: 
 					print(color.fail + "Errore SET supernodo"+ color.end)
 					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-					
+
 	def serverTCP(self, connection, client_address):
 		command = connection.recv(4).decode()
 		try:
