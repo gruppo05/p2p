@@ -97,6 +97,23 @@ def getTime(t):
 	time2 = ha + ma + sa
 	return time2 - time1
 
+def sendAfin(sessionID):
+	self.dbReader.execute("SELECT DISTINC Filemd5, Filename FROM TrackedFile")
+	resultFile = self.dbReader.fetchall()
+	lunMd5 = len(resultFile)
+	msg = "AFIN" + setIp(lunMd5)
+	for f in resultFile:
+		
+		self.dbReader.execute("SELECT IPP2P, PP2P FROM TrackedFile WHERE IPP2P", (resultFile[0],))
+		resultIP = self.dbReader.fetchall()
+		msg = msg + resultFile[0] + resultFile[1] + setIp(resultIp)
+		for i in resultIP:
+			msg = resultIP[0] + resultIP[1]
+	
+	self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE SessionID LIKE ?", (sessionID,))
+	ip = self.dbReader.fetchone()
+	
+	setConnection(ip[0], int(ip[1]), msg)
 
 
 
@@ -193,7 +210,19 @@ class Kazaa(object):
 					self.sockUDPServer.close()
 					self.sockUDPClient.close()
 					os._exit(0)
+			
+			elif command == "FIND":
+				self.dbReader.execute("SELECT SessionID FROM User WHERE IPP2P LIKE ?", (self.myIPP2P,))
+				sessionID = self.dbReader.fetchone()
+				sessionID = sessionID[0]
+				ricerca, useless = self.sockUDPServer.recvfrom(20).decode()
+				msg = "FIND" + str(sessionID) + str(ricerca)
+				self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE Super = 2")
+				superUser = self.dbReader.fetchone()
+				print("Invio messaggio -> " + msg)
 					
+				setConnection(superUser[0], int(superUser[1]), msg)
+		
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
 				self.sockUDPServer.close()
@@ -280,7 +309,67 @@ class Kazaa(object):
 					SessionID = "0000000000000000"
 				finally:
 					connection.sendall(("ALGI"+SessionID).encode())
+					
+			elif command == "FIND":
+				sessionID = connection.recv(16).decode()
+				ricerca = connection.recv(20).decode()
+				self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE Super = 1 AND IPP2P != ", (self.myIPP2P,)) #da controllare
+				superUser = self.dbReader.fetchall()
+				myPktid = PktidGenerator()
+				self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)", (myPktid, datetime.datetime.now()))
+				ttl = setNumber(4)
+				msg = "QUER" + str(myPktId) + self.myIPP2P + self.myPort + ttl + ricerca
+				t = (20.0, sendAfin(sessionID))
+				t.start()
+				for s in superUser:
+					setConnection(superUser[0], int(superUser[1]), msg)
 			
+			elif command == "QUER":
+				pktId = connection.recv(16).decode()
+				ipp2p = connection.recv(55).decode()
+				pp2p = connection.recv(5).decode()
+				ttl = connection.recv(2).decode()
+				ricerca = connection.recv(20).decode()
+				
+				self.dbReader.execute("SELECT * FROM Pktid WHERE Pktid LIKE ?", (pktId,))
+				resultPkt = self.dbReader.fetchall()
+				
+				#elaboro la richiesta se non ho il pktid
+				if resultPkt is None:
+					self.dbReader.execute("INSER INTO Pktid (Pktid, timestamp) values (?, ?)", (pktId, datetime.datetime.now()))
+					self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ?", (ricerca,))
+					resultFile = self.dbReader.fetchall()
+					msg = "AQUE" + pktId
+					
+					#invio le aque a chi mi ha fatto la richiesta
+					for f in resultFile:
+						self.dbReader.execute("SELECT PP2P FROM User WHERE IPP2P = ?", (f[2],))
+						port = self.dbReader.fetchone()
+						personalizeMsg = msg + f[2] + port + f[0] + f[1]
+						setConnection(ipp2p, int(pp2p), personalizeMsg)
+					
+					#controllo il ttl per la ritrasmissione della richiesta
+					if int(ttl) > 1:
+						ttl = setNumber(int(ttl) - 1)
+						self.dbReader.execute("SELECT * User WHERE Super = 1")
+						resultSuper = self.dbReader.fetchall()
+						#ritrasmetto a tutti i super
+						for s in resultSuper:
+							setConnection (s[0], int(s[1]), "QUER" + pktId + ipp2p + pp2p + ttl + ricerca)
+			
+			elif command == "AQUE":
+				pktid = connection.recv(16).decode()
+				ipp2p = connection.recv(55).decode()
+				pp2p = connection.recv(5).decode()
+				filemd5 = connection.recv(32).decode()
+				filename = connection.recv(100).decode()
+				
+				self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (Pktid,))
+				t = self.dbReader.fetchone() #retrieve the first row
+				if getTime(t[0]) < 20:
+					#se il pacchetto esiste faccio quello che devo fare
+					self.dbReader.execute("INSERT INTO TrackedFile (IPP2P, PP2P, Filemd5, Filename) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, filename))
+					
 		except:
 			connection.close()
 			return False
@@ -290,20 +379,3 @@ class Kazaa(object):
 if __name__ == "__main__":
     gnutella = Kazaa()
 gnutella.server()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

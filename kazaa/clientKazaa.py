@@ -119,12 +119,22 @@ class kazaaClient(object):
 				print(color.recv+"DELF"+color.end)
 			elif cmd is "4":
 				print(color.recv+"FIND"+color.end)
+				self.sockUDPServer.sendto(("FIND").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				ricerca = input("Inserisci il nome del file da cercare: ")
+				ricerca = filename.ljust(20)
+				self.sockUDPClient.sendto(filename.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				print("Ricerca File: ")
+				while i < 20:
+					progBar(i)
+					time.sleep(1)
+					i = i+1
+				#leggere da server
 			elif cmd is "5":
 				print(color.recv+"RETR"+color.end)
 			elif cmd is "6":
 				print(color.recv+"LOGO"+color.end)
 			elif cmd is "7":
-				print(color.recv+"LOGO"+color.end)
+				print(color.recv+"USCITA DAL CLIENT"+color.end)
 				self.sockUDPServer.sendto(("STOP").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				self.sockUDPServer.close()
 				self.sockUDPClient.close()
