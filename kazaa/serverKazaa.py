@@ -86,7 +86,6 @@ def setConnection(ip, port, msg):
 def sendToSuper(self, messaggio):
 	self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
 	mySuper = self.dbReader.fetchone()
-	print("Ciao:  ", messaggio)
 	setConnection(mySuper[0], int(mySuper[1]), messaggio)
 
 def sessionIdGenerator():
@@ -253,10 +252,7 @@ class Kazaa(object):
 			
 			elif command == "STMF":
 				
-				self.dbReader.execute("SELECT SessionID FROM User where IPP2P=?", (self.myIPP2P,))
-				sessionID = self.dbReader.fetchone()
-
-				self.dbReader.execute("SELECT Filename, SessionID, Filemd5 FROM File WHERE SessionID=?", (sessionID[0],))
+				self.dbReader.execute("SELECT Filename, SessionID, Filemd5 FROM File")
 				files = self.dbReader.fetchall()
 				for f in files:
 					self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
