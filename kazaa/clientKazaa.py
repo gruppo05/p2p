@@ -128,8 +128,7 @@ class kazaaClient(object):
 				self.sockUDPServer.sendto(("STOP").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				self.sockUDPServer.close()
 				self.sockUDPClient.close()
-				stopServer()
-			
+				stopServer()			
 	
 if __name__ == "__main__":
     kazaa = kazaaClient()

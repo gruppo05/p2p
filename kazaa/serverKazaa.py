@@ -81,6 +81,11 @@ def setConnection(ip, port, msg):
 	except:
 		print("Nessun vicino trovato!")
 
+def sendToSuper(msg)
+	self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
+	mySuper = self.dbReader.fetchone()
+	setConnection(mySuper[0], int(mySuper[1]), msg)
+
 def getTime(t):
 	a = str(datetime.datetime.now())
 
@@ -118,7 +123,11 @@ class Kazaa(object):
 		# Creo tabella user
 		clearAndSetDB(self)
 		
+		#Setto i supernodi noti
+		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "192.168.043.012|fe80:0000:0000:0000:8888:4887:b7f4:9999",5000))
+	
 		#inserisco l'utente root
+		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "192.168.043.078|fe80:0000:0000:0000:5bf8:4887:b7f4:6974", 3000))
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('"+var.Settings.root_IP+"', '"+var.Settings.root_PORT+"')")
 			self.super = 0
@@ -161,6 +170,7 @@ class Kazaa(object):
 			data, addr = self.sockUDPServer.recvfrom(4)
 			command = data.decode()
 			print("\n\nRicevuto comando dal client: "+color.recv+command+color.end)
+			
 			if command == "SUPE":
 				myPktid = PktidGenerator()
 				self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)",(myPktid,datetime.datetime.now()))
@@ -185,7 +195,12 @@ class Kazaa(object):
 					self.sockUDPClient.sendto(("SET1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				except: 
 					print(color.fail+"Errore SET supernodo"+color.end)
-					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT)
+
+			elif command == "LOGI":
+				mgs = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
+				sendToSuper(msg)
+			
 
 			elif command == "LOGO":
 				#ottengo il mio sessionID dal db
@@ -193,15 +208,14 @@ class Kazaa(object):
 				data = self.dbReader.fetchone()
 				SessionID = data[0]
 				#seleziono tutti gli utenti
-				self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
-				mySuper = self.dbReader.fetchone()
-				print(mySuper[0])
 				msg = "LOGO" + SessionID
-				setConnection(mySuper[0], int(mySuper[1]), msg)
+				sendToSuper(msg)
 
+					
+			
+							
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
-				time.sleep(2)
 				self.sockUDPServer.close()
 				self.sockUDPClient.close()
 				os._exit(0)
