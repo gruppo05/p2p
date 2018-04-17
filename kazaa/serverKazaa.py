@@ -22,7 +22,7 @@ def clearAndSetDB(self):
 	# 2 -> supernodo scelto	
 	self.dbReader.execute("CREATE TABLE User (Super text, IPP2P text, PP2P text, SessionID text)")
 	self.dbReader.execute("CREATE TABLE Pktid (Pktid text, Timestamp DATETIME)")
-	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, IPP2P text)")
+	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, IPP2P text, SessionID text)")
 	self.dbReader.execute("CREATE TABLE download (Filemd5 text, Filename text)")
     
 def PktidGenerator():
@@ -97,7 +97,6 @@ def getTime(t):
 
 
 
-
 class Kazaa(object):
 	def __init__(self):
 		IP = ""
@@ -106,8 +105,7 @@ class Kazaa(object):
 		self.UDP_IP = "127.0.0.1"
 		UDP_PORT_SERVER = 49999
 		self.UDP_PORT_CLIENT = 50000
-		self.endUDP1 = "";
-		self.endUDP2 = "";
+		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 		self.BUFF = 99999
 		
 		self.super = ""
@@ -191,7 +189,64 @@ class Kazaa(object):
 					self.sockUDPServer.close()
 					self.sockUDPClient.close()
 					os._exit(0)
+			
+			
+			
+			
+			
+			
+				
+			
+			elif command == "ADDF":
+				filename, useless = self.sockUDPServer.recvfrom(100)
+				filename = filename.decode()
+				print("-"+filename+"-")
+				
+				PATH = var.Settings.userPath+filename.strip()
+				
+				#DA METTERE BENE QUANDO CI SARÀ IL SESSION ID
+				#self.dbReader.execute("SELECT SessionID FROM user where IPP2P=?", (self.myIPP2P,))
+				#sessionID = self.dbReader.fetchone()
+				sessionID = "1234567891234567"
+				
+				if os.path.isfile(PATH) and os.access(PATH, os.R_OK):
+					filemd5 = encryptMD5(PATH)
+					msg = "1"
+					self.dbReader.execute("INSERT INTO File (filemd5, filename, SessionID) values (?, ?, ?)", (filemd5, filename, sessionID))
+					print(color.green+"Trovato. Aggiunto file in condivisione"+color.end)
+				else:
+					msg = "0"
+					print(color.fail+"File non presente. Impossibile aggiungerlo in condivisione"+color.end)
+
 					
+				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				
+				msg = "ADFF" + sessionID + filemd5 + filename
+				#sendToSuper(self, msg)
+				print("Invio -> "+color.recv+msg+color.end)
+				
+				
+
+
+			elif command == "STMF":
+				#da sistemare quando ci sarà il sessionID
+				'''
+				self.dbReader.execute("SELECT SessionID FROM User where IPP2P=?", (self.myIPP2P,))
+				data = self.dbReader.fetchone()
+				if data is None:
+					data[0] = ""
+					
+				print("-"+str(data[0])+"-")	
+					
+				#self.dbReader.execute("SELECT Filename, SessionID, Filemd5 FROM File WHERE SessionID=?", (data[0],))
+				'''
+				sessionID = "1234567891234567"
+				self.dbReader.execute("SELECT Filename, SessionID, Filemd5 FROM File WHERE SessionID=?", (sessionID,))
+				files = self.dbReader.fetchall()
+				for f in files:
+					self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.sockUDPClient.sendto((self.endUDP1).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+			
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
 				self.sockUDPServer.close()
@@ -278,6 +333,23 @@ class Kazaa(object):
 					SessionID = "0000000000000000"
 				finally:
 					connection.sendall(("ALGI"+SessionID).encode())
+					
+			elif command == "ADFF":
+				SessionID = connection.recv(16).decode()
+				print("Ricevuto "+ color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
+				Filemd5 = connection.recv(32).decode()
+				Filename = connection.recv(100).decode()
+			
+				self.dbReader.execute("SELECT SessionID from File where Filemd5=? and SessionID=?",(Filemd5,SessionID,))
+				data = self.dbReader.fetchone()
+			
+				if data is None:
+					self.dbReader.execute("INSERT INTO File (Filemd5, Filename, SessionID) values (?, ?, ?)",(Filemd5, Filename, SessionID))
+					print(color.green+"File aggiunto con successo"+color.end)
+				else:
+					self.dbReader.execute("UPDATE File SET Filename=? where Filemd5=?",(Filename,Filemd5,))
+					print(color.fail+"File già presente"+color.end)
+					print(color.green+"Aggiornato filename"+color.end)
 			
 		except:
 			connection.close()
