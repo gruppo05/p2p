@@ -94,7 +94,6 @@ class kazaaClient(object):
 			print("\n"+color.fail+"LOGIN fallito!"+color.end)
 			stopServer(self)
 
-
 		while True:
 			printMenu()
 			try:
@@ -115,6 +114,7 @@ class kazaaClient(object):
 				else:
 					print(color.fail+"Impossibile aggiungere il file"+color.end)
 				time.sleep(1)
+				
 			elif cmd is "2":
 				print(color.recv+"DEFF"+color.end)
 				
