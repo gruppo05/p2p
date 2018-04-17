@@ -83,7 +83,7 @@ def setConnection(ip, port, msg):
 	except:
 		print("Nessun vicino trovato!")
 
-def sendToSuper(self,messaggio):
+def sendToSuper(self, messaggio):
 	self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
 	mySuper = self.dbReader.fetchone()
 	print("Ciao:  ", messaggio)
@@ -129,7 +129,7 @@ class Kazaa(object):
 		self.UDP_IP = "127.0.0.1"
 		UDP_PORT_SERVER = 49999
 		self.UDP_PORT_CLIENT = 50000
-		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 		self.BUFF = 99999
 		
 		self.super = ""
@@ -370,7 +370,6 @@ class Kazaa(object):
 				finally:
 					connection.sendall(("ALGI"+SessionID).encode())
 					
-<<<<<<< HEAD
 			elif command == "ADFF":
 				SessionID = connection.recv(16).decode()
 				print("Ricevuto "+ color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
@@ -387,7 +386,7 @@ class Kazaa(object):
 					self.dbReader.execute("UPDATE File SET Filename=? where Filemd5=?",(Filename,Filemd5,))
 					print(color.fail+"File già presente"+color.end)
 					print(color.green+"Aggiornato filename"+color.end)
-=======
+
 			elif command == "FIND":
 				sessionID = connection.recv(16).decode()
 				ricerca = connection.recv(20).decode()
@@ -403,11 +402,11 @@ class Kazaa(object):
 					setConnection(superUser[0], int(superUser[1]), msg)
 				
 			elif command == "ALGI":
+				print("Ricevuto ALGI")
 				try:
 					SessionID = connection.recv(16).decode()
-					#Mi inserisco nel db
-					self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P, SessionID) values (?, ?, ?)",(0, self.myIPP2P, self.PORT, SessionID))
-					print(color.green + "Session salvato con successo"+ color.end)
+					self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P, SessionID) values (?, ?, ?, ?)",(0, self.myIPP2P, self.PORT, SessionID))
+					print(color.green + "SessionID salvato con successo"+ color.end)
 					self.sockUDPClient.sendto(("LOG1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				except:
 					print(color.fail+"Errore salvataggio SessionID"+color.end)
@@ -431,7 +430,6 @@ class Kazaa(object):
 				nDeleted = connection.recv(3).decode()
 				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
 				#self.sockUDPClient.sendto(("ALGO"+nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
->>>>>>> 19d8398995582038dc387af302258e40b86de18c
 			
 			elif command == "QUER":
 				pktId = connection.recv(16).decode()
@@ -482,9 +480,7 @@ class Kazaa(object):
 		except:
 			connection.close()
 			return False
-	
-	
-		
+
 if __name__ == "__main__":
     gnutella = Kazaa()
 gnutella.server()

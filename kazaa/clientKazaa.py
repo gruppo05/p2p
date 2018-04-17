@@ -14,8 +14,12 @@ class color:
 def startServer():
 	os.system("gnome-terminal -e 'sh -c \"python3 serverKazaa.py\"'")
 
-def stopServer():
+def stopServer(self):
 	##os.system("kill $(ps aux | grep '.py' | awk '{print $2}')") #questo killa anche gedit se il file si chiama .py
+	time.sleep(2)
+	self.sockUDPServer.sendto(("STOP").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+	self.sockUDPServer.close()
+	self.sockUDPClient.close()
 	os._exit(0)
 
 def printMenu():
@@ -26,16 +30,16 @@ def printMenu():
 	print(color.recv+"| | \  "+ color.green+"| (_| | "+ color.send+" / /_  "+ color.fail+"| (_| | "+ color.recv+"| (_| | "+ color.fail+" |  __/ / __/  |  __/ "+ color.end)
 	print(color.recv+"|_|\_\ "+ color.green+" \__,_/ "+ color.send+"/____\ "+ color.fail+" \__,_| "+ color.recv+" \__,_| "+ color.fail+" |_|   |_____| |_|    "+ color.end)
 	print("\n")
-	print("« 1 » LOGIN")
-	print("« 2 » AGGIUNTA FILE")
-	print("« 3 » RIMOZIONE FILE")
-	print("« 4 » RICERCA FILE")
-	print("« 5 » DOWNLOAD FILE")
-	print("« 6 » LOGOUT")
-	print("« 7 » STAMPA FILE IN CONDIVISIONE")
-	print(color.fail+"« 8 » CHIUDI IL CLIENT"+color.end)
+	print("« 1 » AGGIUNTA FILE")
+	print("« 2 » RIMOZIONE FILE")
+	print("« 3 » RICERCA FILE")
+	print("« 4 » DOWNLOAD FILE")
+	print("« 5 » LOGOUT")
+	print("« 6 » STAMPA FILE IN CONDIVISIONE")
+	print(color.fail+"« 7 » CHIUDI IL CLIENT"+color.end)
 
 def progBar(i):
+	i = i+1
 	bar_length = 60
 	hashes = '#' * i * 3
 	spaces = ' ' * (bar_length - len(hashes))
@@ -46,7 +50,7 @@ class kazaaClient(object):
 		self.UDP_IP = "127.0.0.1"
 		self.UDP_PORT_SERVER = 49999
 		UDP_PORT_CLIENT = 50000
-		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 		
 		# Socket UPD ipv4 client in attesa
 		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -75,14 +79,20 @@ class kazaaClient(object):
 		command = data.decode()
 		if command == "SET1":
 			print("\n"+color.recv+"SUPERNODO settato"+color.end)
-			time.sleep(2)
 		else:
 			print("\n"+color.fail+"SUPERNODO non trovato"+color.end)
 			return False
 		
-		
-		
-		
+		print(color.recv+"Effettuo LOGIN"+color.end)
+		self.sockUDPServer.sendto(("LOGI").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+		result, addr = self.sockUDPClient.recvfrom(4)
+		result = result.decode()
+		if result == "LOG1":
+			print("\n"+color.recv+"LOGIN effettuato con successo"+color.end)
+			time.sleep(2)
+		else:
+			print("\n"+color.fail+"LOGIN fallito!"+color.end)
+			stopServer(self)
 		
 		while True:
 			printMenu()
@@ -90,19 +100,8 @@ class kazaaClient(object):
 				cmd = input("\nDigita cosa vuoi fare: ")
 			except:
 				continue
-			
-			if cmd is "1":
-				print(color.recv+"LOGI"+color.end)
-				self.sockUDPServer.sendto(("LOGI").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
-				result, addr = self.sockUDPClient.recvfrom(4)
-				if result == "LOG1":
-					print("\n"+color.recv+"LOGIN EFFETTUATO CON SUCCESSO"+color.end)
-					time.sleep(2)
-				else:
-					print("\n"+color.fail+"LOGIN FALLITO!!!"+color.end)
-					return False
 						
-			elif cmd is "2":
+			if cmd is "1":
 				print(color.recv+"AGGIUNTA FILE"+color.end)
 				self.sockUDPServer.sendto(("ADDF").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				filename = input("Inserisci il nome del file da aggiungere: ")
@@ -118,10 +117,10 @@ class kazaaClient(object):
 				
 				
 				
-			elif cmd is "3":
+			elif cmd is "2":
 				print(color.recv+"DELF"+color.end)
 				
-			elif cmd is "4":
+			elif cmd is "3":
 				print(color.recv+"FIND"+color.end)
 				self.sockUDPServer.sendto(("FIND").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				ricerca = input("Inserisci il nome del file da cercare: ")
@@ -134,12 +133,12 @@ class kazaaClient(object):
 					i = i+1
 				#leggere da server
 				
-			elif cmd is "5":
+			elif cmd is "4":
 				print(color.recv+"RETR"+color.end)
-			elif cmd is "6":
+			elif cmd is "5":
 				print(color.recv+"LOGO"+color.end)
 				
-			elif cmd is "7":
+			elif cmd is "6":
 				print(color.recv+"STAMPA FILE IN CONDIVISIONE"+color.end)
 				self.sockUDPServer.sendto(("STMF").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				while True:
@@ -152,12 +151,9 @@ class kazaaClient(object):
 					else:
 						print(color.recv+cmd+color.end)
 				
-			elif cmd is "8":
+			elif cmd is "7":
 				print(color.recv+"LOGO"+color.end)
-				self.sockUDPServer.sendto(("STOP").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
-				self.sockUDPServer.close()
-				self.sockUDPClient.close()
-				stopServer()			
+				stopServer(self)
 	
 if __name__ == "__main__":
     kazaa = kazaaClient()
