@@ -113,7 +113,15 @@ class kazaaClient(object):
 			
 			if cmd is "1":
 				print(color.recv+"LOGI"+color.end)
-				self.sockUDPServer.sendto(("LOGI").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))	
+				self.sockUDPServer.sendto(("LOGI").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				result, addr = self.sockUDPClient.recvfrom(4)
+				if result == "LOG1":
+					print("\n"+color.recv+"LOGIN EFFETTUATO CON SUCCESSO"+color.end)
+					time.sleep(2)
+				else:
+					print("\n"+color.fail+"LOGIN FALLITO!!!"+color.end)
+					return False
+						
 			elif cmd is "2":
 				print(color.recv+"ADDF"+color.end)
 			elif cmd is "3":

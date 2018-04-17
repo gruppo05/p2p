@@ -81,10 +81,11 @@ def setConnection(ip, port, msg):
 	except:
 		print("Nessun vicino trovato!")
 
-def sendToSuper(msg):
+def sendToSuper(self,messaggio):
 	self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
 	mySuper = self.dbReader.fetchone()
-	setConnection(mySuper[0], int(mySuper[1]), msg)
+	print("Ciao:  ", messaggio)
+	setConnection(mySuper[0], int(mySuper[1]), messaggio)
 
 def getTime(t):
 	a = str(datetime.datetime.now())
@@ -125,7 +126,7 @@ class Kazaa(object):
 		#self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "192.168.043.012|fe80:0000:0000:0000:8888:4887:b7f4:9999",5000))
 	
 		if self.myIPP2P != var.Settings.root_IP:
-			self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('"+var.Settings.root_IP+"', '"+var.Settings.root_PORT+"')")
+			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, var.Settings.root_IP,var.Settings.root_PORT))
 			self.super = 0
 		else:
 			print("Loggato come root")
@@ -177,10 +178,9 @@ class Kazaa(object):
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
 			
-			elif command is "LOGI":
-				mgs = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
-				sendToSuper(msg)
-
+			elif command == "LOGI":
+				msg = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
+				sendToSuper(self, msg)
 			
 			elif command == "SETS":
 				try:
@@ -205,7 +205,7 @@ class Kazaa(object):
 				SessionID = data[0]
 				#seleziono tutti gli utenti
 				msg = "LOGO" + SessionID
-				sendToSuper(msg)
+				sendToSuper(self, msg)
 		
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
@@ -278,14 +278,14 @@ class Kazaa(object):
 			elif command == "LOGI":
 				try:
 					IPP2P = connection.recv(55).decode()
-					IPP = connection.recv(5).decode()
+					PORT = connection.recv(5).decode()
 					print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + IPP2P + color.end + " - " + color.recv + IPP + color.end)
 					self.dbReader.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
 					data = self.dbReader.fetchone() #retrieve the first row
 					if data is None:
 						print(color.green + "NUOVO UTENTE" + color.end);
 						SessionID = sessionIdGenerator()
-						self.dbReader.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(SessionID, IPP2P, IPP))
+						self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P, SessionID) values (?, ?, ?)",(0, IPP2P, PORT, SessionID))
 					else:
 						print(color.fail + "UTENTE GIÀ PRESENTE" + color.end)
 						SessionID = str(data[0])
@@ -294,6 +294,17 @@ class Kazaa(object):
 				finally:
 					connection.sendall(("ALGI"+SessionID).encode())
 				
+			elif command == "ALGI":
+				try:
+					SessionID = connection.recv(16).decode()
+					#Mi inserisco nel db
+					self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P, SessionID) values (?, ?, ?)",(0, self.myIPP2P, self.PORT, SessionID))
+					print(color.green + "Session salvato con successo"+ color.end)
+					self.sockUDPClient.sendto(("LOG1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				except:
+					print(color.fail+"Errore salvataggio SessionID"+color.end)
+					self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					
 			elif command == "LOGO":
 				SessionID = connection.recv(16).decode()
 				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
