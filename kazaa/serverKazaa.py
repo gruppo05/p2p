@@ -81,6 +81,11 @@ def setConnection(ip, port, msg):
 	except:
 		print("Nessun vicino trovato!")
 
+def sendToSuper(msg)
+	self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
+	mySuper = self.dbReader.fetchone()
+	setConnection(mySuper[0], int(mySuper[1]), msg)
+
 def getTime(t):
 	a = str(datetime.datetime.now())
 
@@ -117,6 +122,9 @@ class Kazaa(object):
 		
 		# Creo tabella user
 		clearAndSetDB(self)
+		
+		#Setto i supernodi noti
+		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "192.168.043.012|fe80:0000:0000:0000:8888:4887:b7f4:9999",5000))
 		
 		#inserisco l'utente root
 		if self.myIPP2P != var.Settings.root_IP:
@@ -161,6 +169,7 @@ class Kazaa(object):
 			data, addr = self.sockUDPServer.recvfrom(4)
 			command = data.decode()
 			print("\n\nRicevuto comando dal client: "+color.recv+command+color.end)
+			
 			if command == "SUPE":
 				myPktid = PktidGenerator()
 				self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)",(myPktid,datetime.datetime.now()))
@@ -187,6 +196,10 @@ class Kazaa(object):
 					print(color.fail+"Errore SET supernodo"+color.end)
 					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 					
+			elif command == "LOGI":
+				mgs = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
+				sendToSuper(msg)
+							
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
 				time.sleep(2)
