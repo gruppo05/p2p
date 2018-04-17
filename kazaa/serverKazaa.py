@@ -101,8 +101,6 @@ def getTime(t):
 	return time2 - time1
 
 
-
-
 class Kazaa(object):
 	def __init__(self):
 		IP = ""
@@ -124,10 +122,8 @@ class Kazaa(object):
 		clearAndSetDB(self)
 		
 		#Setto i supernodi noti
-		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "192.168.043.012|fe80:0000:0000:0000:8888:4887:b7f4:9999",5000))
+		#self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "192.168.043.012|fe80:0000:0000:0000:8888:4887:b7f4:9999",5000))
 	
-		#inserisco l'utente root
-		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "192.168.043.078|fe80:0000:0000:0000:5bf8:4887:b7f4:6974", 3000))
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('"+var.Settings.root_IP+"', '"+var.Settings.root_PORT+"')")
 			self.super = 0
@@ -180,7 +176,12 @@ class Kazaa(object):
 				msg = "SUPE" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
-				
+			
+			elif command is "LOGI":
+				mgs = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
+				sendToSuper(msg)
+
+			
 			elif command == "SETS":
 				try:
 					# scelgo random tra i supernodi
@@ -196,11 +197,10 @@ class Kazaa(object):
 				except: 
 					print(color.fail+"Errore SET supernodo"+color.end)
 					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-
+			
 			elif command == "LOGI":
 				mgs = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
 				sendToSuper(msg)
-		
 
 			elif command == "LOGO":
 				#ottengo il mio sessionID dal db
@@ -211,9 +211,6 @@ class Kazaa(object):
 				msg = "LOGO" + SessionID
 				sendToSuper(msg)
 
-				
-		
-						
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
 				self.sockUDPServer.close()
