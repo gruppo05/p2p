@@ -71,7 +71,7 @@ def setConnection(ip, port, msg):
 			peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 			peer_socket.connect((ip, port))
 		
-		print("Invio --> "+color.send+msg+color.end)
+		#print("Invio --> "+color.send+msg+color.end)
 		peer_socket.sendall(msg.encode())
 		peer_socket.close()
 		
@@ -318,7 +318,6 @@ class GnutellaServer(object):
 					fd = os.open(var.Settings.userPath+""+filename, os.O_RDONLY)
 				except OSError as e:
 					print(e)
-				
 				if fd is not -1:					
 					addrIPv4 = str(client_address).split(":")[-1].split("'")[0]
 					#addrIPv6 = str(client_address).split("'")[1].split(":"+addrIPv4)[0]
@@ -351,6 +350,7 @@ class GnutellaServer(object):
 					i = 0
 					while i < num:
 						buf = os.read(fd,self.BUFF)
+
 						if not buf: break
 						lbuf = len(buf)
 						lbuf = str(lbuf).zfill(5)
