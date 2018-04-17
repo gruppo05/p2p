@@ -17,6 +17,7 @@ def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS Pktid")
 	self.dbReader.execute("DROP TABLE IF EXISTS File")
 	self.dbReader.execute("DROP TABLE IF EXISTS download")
+	self.dbReader.execute("DROP TABLE IF EXISTS TrackedFile")
 	# 0 -> user
 	# 1 -> supernodo
 	# 2 -> supernodo scelto	
@@ -24,6 +25,7 @@ def clearAndSetDB(self):
 	self.dbReader.execute("CREATE TABLE Pktid (Pktid text, Timestamp DATETIME)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, IPP2P text)")
 	self.dbReader.execute("CREATE TABLE download (Filemd5 text, Filename text)")
+	self.dbReader.execute("CREATE TABLE TrackedFile (IPP2P text, PP2P text, Filemd5 text, Filename text)")
     
 def PktidGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
