@@ -181,11 +181,17 @@ class Kazaa(object):
 					self.dbReader.execute("SELECT IPP2P FROM user LIMIT 1 OFFSET ?", (rnd,))
 					data = self.dbReader.fetchone()
 					self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,data[0]))
-					print(color.green + "SUPERNODO con IP:"+data[0]+" selezionato con successo"+ color.end)
-					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					#print(color.green + "SUPERNODO con IP:"+data[0]+" selezionato con successo"+ color.end)
+					self.sockUDPClient.sendto(("SET1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				except: 
-					print(color.fail + "Errore SET supernodo"+ color.end)
+					print(color.fail+"Errore SET supernodo"+color.end)
 					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+			elif command == "STOP":
+				print(color.fail+"Server fermato"+color.end)
+				time.sleep(2)
+				self.sockUDPServer.close()
+				self.sockUDPClient.close()
+				os._exit(0)
 
 	def serverTCP(self, connection, client_address):
 		command = connection.recv(4).decode()
