@@ -110,7 +110,7 @@ class Kazaa(object):
 		self.endUDP2 = "";
 		self.BUFF = 99999
 		
-		self.super = ""
+		self.mySuper = ""
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
@@ -121,10 +121,11 @@ class Kazaa(object):
 		#inserisco l'utente root
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('"+var.Settings.root_IP+"', '"+var.Settings.root_PORT+"')")
-			self.super = 0
+			self.mySuper = 0
 		else:
 			print("Loggato come root")
-			self.super = 1
+			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, var.Settings.root_IP,var.Settings.root_PORT))
+			self.mySuper = 1
 		
 		# Socket ipv4/ipv6 port 3000
 		self.server_address = (IP, self.PORT)
@@ -182,10 +183,29 @@ class Kazaa(object):
 					data = self.dbReader.fetchone()
 					self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,data[0]))
 					print(color.green + "SUPERNODO con IP:"+data[0]+" selezionato con successo"+ color.end)
-					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					self.sockUDPClient.sendto(("SET1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				except: 
-					print(color.fail + "Errore SET supernodo"+ color.end)
+					print(color.fail+"Errore SET supernodo"+color.end)
 					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+
+			elif command == "LOGO":
+				#ottengo il mio sessionID dal db
+				self.dbReader.execute("SELECT SessionID FROM User Where IPP2P = ?",(myIPP2P,))
+				data = self.dbReader.fetchone()
+				SessionID = data[0]
+				#seleziono tutti gli utenti
+				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
+				resultUser = self.dbReader.fetchall()
+				msg = "LOGO" + SessionID
+				for user in resultUser:
+					setConnection(user[0], int(user[1]), msg)
+
+			elif command == "STOP":
+				print(color.fail+"Server fermato"+color.end)
+				time.sleep(2)
+				self.sockUDPServer.close()
+				self.sockUDPClient.close()
+				os._exit(0)
 
 	def serverTCP(self, connection, client_address):
 		command = connection.recv(4).decode()
@@ -209,7 +229,7 @@ class Kazaa(object):
 					else:
 						print(color.fail + "User già presente" + color.end)
 				
-					if self.super == 1:
+					if self.mySuper == 1:
 						print("Sono un supernodo e rispondo alla richiesta") 
 						msg = "ASUP" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
 						setConnection(IPP2P, int(PP2P), msg)
@@ -225,54 +245,62 @@ class Kazaa(object):
 							setConnection(user[0], int(user[1]), msg)
 				
 			elif command == "ASUP":
-					print("Ricevuto "+color.recv+"ASUP"+color.end)
-					Pktid = connection.recv(16).decode()
-					IPP2P = connection.recv(55).decode()
-					PP2P = connection.recv(5).decode()
-					
-					#verifico se c'è il pktid			
-					self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (Pktid,))
-					t = self.dbReader.fetchone() #retrieve the first row
-					if getTime(t[0]) < 20:
-						#verifico se l'utente super è già salvato nel db oppure lo aggiungo
-						self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
+				print("Ricevuto "+color.recv+"ASUP"+color.end)
+				Pktid = connection.recv(16).decode()
+				IPP2P = connection.recv(55).decode()
+				PP2P = connection.recv(5).decode()
+				
+				#verifico se c'è il pktid			
+				self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (Pktid,))
+				t = self.dbReader.fetchone() #retrieve the first row
+				if getTime(t[0]) < 20:
+					#verifico se l'utente super è già salvato nel db oppure lo aggiungo
+					self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
 
-						data = self.dbReader.fetchone() 
-						if data is None:
-							self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values (?, ?)",(1, IPP2P, PP2P))
-							print(color.green + "Aggiunto nuovo supernodo" + color.end)
-						else:
-							#verifico se ho salvato l'utente come user normale. In questo caso lo aggiorno come root
-							self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(1,data[0],))
-							print(color.fail + "Aggiornato user in supernodo" + color.end)	
+					data = self.dbReader.fetchone() 
+					if data is None:
+						self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values (?, ?)",(1, IPP2P, PP2P))
+						print(color.green + "Aggiunto nuovo supernodo" + color.end)
 					else:
-						print(color.fail+"ricevuto pacchetto dopo 20s"+color.end)
+						#verifico se ho salvato l'utente come user normale. In questo caso lo aggiorno come root
+						self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(1,data[0],))
+						print(color.fail + "Aggiornato user in supernodo" + color.end)	
+				else:
+					print(color.fail+"ricevuto pacchetto dopo 20s"+color.end)
 			
 			# se sono un supernodo
 			elif command == "LOGI":
-					try:
-						IPP2P = connection.recv(55).decode()
-						IPP = connection.recv(5).decode()
-						print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + IPP2P + color.end + " - " + color.recv + IPP + color.end)
-						self.dbReader.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
-						data = self.dbReader.fetchone() #retrieve the first row
-						if data is None:
-							print(color.green + "NUOVO UTENTE" + color.end);
-							SessionID = sessionIdGenerator()
-							self.dbReader.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(SessionID, IPP2P, IPP))
-						else:
-							print(color.fail + "UTENTE GIÀ PRESENTE" + color.end)
-							SessionID = str(data[0])
-					except:
-						SessionID = "0000000000000000"
-					finally:
-						connection.sendall(("ALGI"+SessionID).encode())
-
-			elif command == "LOGO":
 				try:
+					IPP2P = connection.recv(55).decode()
+					IPP = connection.recv(5).decode()
+					print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + IPP2P + color.end + " - " + color.recv + IPP + color.end)
+					self.dbReader.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
+					data = self.dbReader.fetchone() #retrieve the first row
+					if data is None:
+						print(color.green + "NUOVO UTENTE" + color.end);
+						SessionID = sessionIdGenerator()
+						self.dbReader.execute("INSERT INTO user (SessionID, IPP2P, PP2P) values (?, ?, ?)",(SessionID, IPP2P, IPP))
+					else:
+						print(color.fail + "UTENTE GIÀ PRESENTE" + color.end)
+						SessionID = str(data[0])
+				except:
+					SessionID = "0000000000000000"
+				finally:
+					connection.sendall(("ALGI"+SessionID).encode())
+				
+			elif command == "LOGO":
 					SessionID = connection.recv(16).decode()
-					print("Ricevuto " + color.recv + command + color.end + " con SessionID= " + color.recv + SessionID + color.end)
-					
+					print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
+					#conto i file associati all'utente
+					self.dbReader.execute("SELECT COUNT(Filemd5) from File where SessionID=?",(SessionID,))
+					delete = self.dbReader.fetchone()
+					delete = int(delete[0])
+					delete = setCopy(delete)
+					self.dbReader.execute("DELETE FROM File WHERE SessionID=?", (SessionID,))
+					self.dbReader.execute("DELETE FROM User WHERE SessionID=?", (SessionID,))
+					print("Invio --> "+ color.send + "ALGO" + delete + color.end)
+					connection.sendall(("ALGO"+delete).encode())
+					connection.close()
 			
 		except:
 			connection.close()
