@@ -1,4 +1,4 @@
-import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, os, os.path, hashlib, sys, stat
+import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, hashlib, sys, stat
 import settings as var
 from random import *
 	
@@ -107,9 +107,9 @@ def getTime(t):
 	return time2 - time1
 
 class GnutellaServer(object):
+	download = ""
 	def __init__(self):
 		IP = ""
-		self.download = ""
 		self.PORT = var.Settings.PORT
 		self.myIPP2P = var.Settings.myIPP2P
 		self.UDP_IP = "127.0.0.1"
@@ -213,10 +213,9 @@ class GnutellaServer(object):
 				
 				msg = "RETR" + resultFile[0]
 				setConnection(resultUser[0], int(resultUser[1]), msg)
-				
-				
-				print("finito programma")
-				
+
+				#retr_sock.close()
+
 				
 				
 				'''
@@ -270,7 +269,6 @@ class GnutellaServer(object):
 		while True:
 			try:
 				connection, client_address = self.sock.accept()
-				print("ADDRESS --------------------------------------->"+str(client_address))
 				#connection.settimeout(60)
 				threading.Thread(target = self.startServer, args = (connection,client_address)).start()
 			except:
@@ -355,8 +353,11 @@ class GnutellaServer(object):
 				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
 				resultFile = self.dbReader.fetchone()
 				filename=resultFile[0].replace(" ","")
-				self.download = filename
-				nChunk = 0
+				
+				download = filename
+				porcodio = 0
+
+
 				try:
 					fd = os.open(filename, os.O_RDONLY)
 				except OSError as e:
@@ -377,6 +378,7 @@ class GnutellaServer(object):
 
 					print(pippo)
 					msg = "ARET" + str(pippo).zfill(6)
+
 					print ('Trasferimento in corso di ', resultFile[0], '[BYTES ', filesize, ']')
 
 					i = 0
@@ -390,6 +392,7 @@ class GnutellaServer(object):
 						i = i + 1
 					
 					os.close(fd)
+					time.sleep(2)
 					print('Trasferimento completato.. ')
 					
 					print("Address --> "+str(client_address))
@@ -399,11 +402,13 @@ class GnutellaServer(object):
 					#get port from db
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P LIKE ?",('%'+addrIPv4+'%',))
 					#invio del file, leggere l'ip dall'oggetto connection	
+
 					data = self.dbReader.fetchone()
 					setConnection(data[0],int(data[1]), msg)
 					
 					connection.sendall(msg.encode())
 					connection.close()
+
 
 				else: 
 					print("Errore nell'apertura del file")
@@ -461,24 +466,33 @@ class GnutellaServer(object):
 				print("Ricevuto "+color.recv+"ARET"+color.end)
 				try:
 					
-					filename = self.download
+					filename = "piadina"
+					print(filename)
+					fd = open(filename, 'wb')
 					
-					fd = os.open(filename, os.O_WRONLY | os.O_CREAT, 777)
+					numChunk = int(connection.recv(6).decode())
+					
+					i = 0
+					while i < numChunck:
+						lun = connection.recv(5).decode()
+						while len(lun) < 5:
+							lun = lun + connection.recv(1).decode()
+						lun = int(lun)
 						
-					nChunk = int(connection.recv(6).decode())
-					i=0;
-						
-					while i < nChunk:
-						lun = int(connection.recv(5).decode())
-						data = connection.recv(lun).decode()
-							#scrittura del file
-						os.write(fd,data)
-						
+						data = connection.recv(lun)
+						while len(data) <= lun:
+							data = data + connection.recv(1)
+							fd.write(data)
+						i = i + 1
+					
+					fd.close()
+					connection.close()
 					print(color.green + "Scaricato il file" + color.end)
 							
 				except OSError:
 					print("Impossibile aprire il file: controlla di avere i permessi")
 					return False
+				print("finito baby")
 					
 		except:
 			connection.close()
