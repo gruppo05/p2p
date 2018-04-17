@@ -46,7 +46,7 @@ class kazaaClient(object):
 		self.UDP_IP = "127.0.0.1"
 		self.UDP_PORT_SERVER = 49999
 		UDP_PORT_CLIENT = 50000
-		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 		
 		# Socket UPD ipv4 client in attesa
 		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -80,10 +80,6 @@ class kazaaClient(object):
 			print("\n"+color.fail+"SUPERNODO non trovato"+color.end)
 			return False
 		
-		
-		
-		
-		
 		while True:
 			printMenu()
 			try:
@@ -115,9 +111,7 @@ class kazaaClient(object):
 				else:
 					print(color.fail+"Impossibile aggiungere il file"+color.end)
 				time.sleep(1)
-				
-				
-				
+						
 			elif cmd is "3":
 				print(color.recv+"DELF"+color.end)
 				

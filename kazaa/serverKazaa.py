@@ -89,6 +89,10 @@ def sendToSuper(self,messaggio):
 	print("Ciao:  ", messaggio)
 	setConnection(mySuper[0], int(mySuper[1]), messaggio)
 
+def sessionIdGenerator():
+	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
+	
+
 def getTime(t):
 	a = str(datetime.datetime.now())
 
@@ -129,7 +133,7 @@ class Kazaa(object):
 		self.UDP_IP = "127.0.0.1"
 		UDP_PORT_SERVER = 49999
 		self.UDP_PORT_CLIENT = 50000
-		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 		self.BUFF = 99999
 		
 		self.super = ""
@@ -354,23 +358,30 @@ class Kazaa(object):
 			elif command == "LOGI":
 				try:
 					IPP2P = connection.recv(55).decode()
-					PORT = connection.recv(5).decode()
-					print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + IPP2P + color.end + " - " + color.recv + IPP + color.end)
+					PP2P = connection.recv(5).decode()
+					print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + IPP2P + color.end + " - " + color.recv + PP2P + color.end)
 					self.dbReader.execute("SELECT SessionID FROM user WHERE IPP2P=?", (IPP2P,))
 					data = self.dbReader.fetchone() #retrieve the first row
 					if data is None:
-						print(color.green + "NUOVO UTENTE" + color.end);
+						print(color.green + "Nuovo utente aggiunto" + color.end);
 						SessionID = sessionIdGenerator()
-						self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P, SessionID) values (?, ?, ?)",(0, IPP2P, PORT, SessionID))
+						self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P, SessionID) values (?, ?, ?, ?)",(0, IPP2P, PP2P, SessionID))
 					else:
-						print(color.fail + "UTENTE GIÀ PRESENTE" + color.end)
-						SessionID = str(data[0])
+						print(color.fail + "Utente già presente" + color.end)
+						if data[0] is None:
+							#ho l'utente ma non ha ancora un SessionID quindi ne creo un e lo aggiungo
+							SessionID = sessionIdGenerator()
+							self.dbReader.execute("UPDATE user SET SessionID=? where IPP2P=?",(SessionID,IPP2P))
+						else:
+							SessionID = data[0]
 				except:
 					SessionID = "0000000000000000"
+					Print("Errore nella procedura di login lato server")
 				finally:
-					connection.sendall(("ALGI"+SessionID).encode())
+					msg = "ALGI"+SessionID
+					print(msg)
+					setConnection(IPP2P, int(PP2P), msg)
 					
-<<<<<<< HEAD
 			elif command == "ADFF":
 				SessionID = connection.recv(16).decode()
 				print("Ricevuto "+ color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
@@ -387,7 +398,7 @@ class Kazaa(object):
 					self.dbReader.execute("UPDATE File SET Filename=? where Filemd5=?",(Filename,Filemd5,))
 					print(color.fail+"File già presente"+color.end)
 					print(color.green+"Aggiornato filename"+color.end)
-=======
+					
 			elif command == "FIND":
 				sessionID = connection.recv(16).decode()
 				ricerca = connection.recv(20).decode()
@@ -406,7 +417,7 @@ class Kazaa(object):
 				try:
 					SessionID = connection.recv(16).decode()
 					#Mi inserisco nel db
-					self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P, SessionID) values (?, ?, ?)",(0, self.myIPP2P, self.PORT, SessionID))
+					self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P, SessionID) values (?, ?, ?, ?)",(0, self.myIPP2P, self.PORT, SessionID))
 					print(color.green + "Session salvato con successo"+ color.end)
 					self.sockUDPClient.sendto(("LOG1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				except:
@@ -431,7 +442,6 @@ class Kazaa(object):
 				nDeleted = connection.recv(3).decode()
 				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
 				#self.sockUDPClient.sendto(("ALGO"+nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
->>>>>>> 19d8398995582038dc387af302258e40b86de18c
 			
 			elif command == "QUER":
 				pktId = connection.recv(16).decode()
