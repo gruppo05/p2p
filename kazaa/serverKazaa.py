@@ -110,7 +110,7 @@ class Kazaa(object):
 		self.endUDP2 = "";
 		self.BUFF = 99999
 		
-		self.mySuper = ""
+		self.super = ""
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
@@ -121,11 +121,11 @@ class Kazaa(object):
 		#inserisco l'utente root
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('"+var.Settings.root_IP+"', '"+var.Settings.root_PORT+"')")
-			self.mySuper = 0
+			self.super = 0
 		else:
 			print("Loggato come root")
 			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, var.Settings.root_IP,var.Settings.root_PORT))
-			self.mySuper = 1
+			self.super = 1
 		
 		# Socket ipv4/ipv6 port 3000
 		self.server_address = (IP, self.PORT)
@@ -170,15 +170,14 @@ class Kazaa(object):
 				msg = "SUPE" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
-			
+				
 			elif command == "SETS":
 				try:
 					# scelgo random tra i supernodi
 					self.dbReader.execute("SELECT count(*) FROM user WHERE Super=?", (1,))
 					data = self.dbReader.fetchone()
-					print("supernodi trovati:", data[0])
-					rnd = randint(1, int(data[0]))-1
-				
+					print("Supernodi trovati:", data[0])
+					rnd = randint(1, int(data[0])) - 1
 					self.dbReader.execute("SELECT IPP2P FROM user LIMIT 1 OFFSET ?", (rnd,))
 					data = self.dbReader.fetchone()
 					self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,data[0]))
@@ -190,15 +189,15 @@ class Kazaa(object):
 
 			elif command == "LOGO":
 				#ottengo il mio sessionID dal db
-				self.dbReader.execute("SELECT SessionID FROM User Where IPP2P = ?",(myIPP2P,))
+				self.dbReader.execute("SELECT SessionID FROM User Where IPP2P = ?",(self.myIPP2P,))
 				data = self.dbReader.fetchone()
 				SessionID = data[0]
 				#seleziono tutti gli utenti
-				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
-				resultUser = self.dbReader.fetchall()
+				self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
+				mySuper = self.dbReader.fetchone()
+				print(mySuper[0])
 				msg = "LOGO" + SessionID
-				for user in resultUser:
-					setConnection(user[0], int(user[1]), msg)
+				setConnection(mySuper[0], int(mySuper[1]), msg)
 
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
@@ -229,7 +228,7 @@ class Kazaa(object):
 					else:
 						print(color.fail + "User già presente" + color.end)
 				
-					if self.mySuper == 1:
+					if self.super == 1:
 						print("Sono un supernodo e rispondo alla richiesta") 
 						msg = "ASUP" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
 						setConnection(IPP2P, int(PP2P), msg)
@@ -289,18 +288,24 @@ class Kazaa(object):
 					connection.sendall(("ALGI"+SessionID).encode())
 				
 			elif command == "LOGO":
-					SessionID = connection.recv(16).decode()
-					print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
-					#conto i file associati all'utente
-					self.dbReader.execute("SELECT COUNT(Filemd5) from File where SessionID=?",(SessionID,))
-					delete = self.dbReader.fetchone()
-					delete = int(delete[0])
-					delete = setCopy(delete)
-					self.dbReader.execute("DELETE FROM File WHERE SessionID=?", (SessionID,))
-					self.dbReader.execute("DELETE FROM User WHERE SessionID=?", (SessionID,))
-					print("Invio --> "+ color.send + "ALGO" + delete + color.end)
-					connection.sendall(("ALGO"+delete).encode())
-					connection.close()
+				SessionID = connection.recv(16).decode()
+				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
+				#conto i file associati all'utente
+				self.dbReader.execute("SELECT COUNT(Filemd5) from File where SessionID=?",(SessionID,))
+				delete = self.dbReader.fetchone()
+				delete = int(delete[0])
+				delete = setNumber(delete)
+				self.dbReader.execute("DELETE FROM File WHERE SessionID=?", (SessionID,))
+				self.dbReader.execute("DELETE FROM User WHERE SessionID=?", (SessionID,))
+				print("Invio --> "+ color.send + "ALGO" + delete + color.end)
+				connection.sendall(("ALGO"+delete.ljust(3)).encode())
+				connection.close()
+
+			elif command == "ALGO":
+				nDeleted = connection.recv(3).decode()
+				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
+				#self.sockUDPClient.sendto(("ALGO"+nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				
 			
 		except:
 			connection.close()

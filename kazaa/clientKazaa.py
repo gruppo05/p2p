@@ -57,6 +57,27 @@ class kazaaClient(object):
 	def start(self):
 		startServer()
 		os.system('cls' if os.name == 'nt' else 'clear')
+		'''
+		print(color.recv+" _  __ "+ color.green+"        "+ color.send+"       "+ color.fail+"        "+ color.recv+"        "+ color.fail+"  ____  _____   ____  "+ color.end)
+		print(color.recv+"| |/ / "+ color.green+"  __ _  "+ color.send+" ____  "+ color.fail+"  __ _  "+ color.recv+"  __ _  "+ color.fail+" |  _ \ \__  \ |  _ \ "+ color.end)
+		print(color.recv+"| ' /  "+ color.green+" / _` | "+ color.send+"|_  /  "+ color.fail+" / _` | "+ color.recv+" / _` | "+ color.fail+" | |_) | __) | | |_) |"+ color.end)
+		print(color.recv+"| | \  "+ color.green+"| (_| | "+ color.send+" / /_  "+ color.fail+"| (_| | "+ color.recv+"| (_| | "+ color.fail+" |  __/ / __/  |  __/ "+ color.end)
+		print(color.recv+"|_|\_\ "+ color.green+" \__,_/ "+ color.send+"/____\ "+ color.fail+" \__,_| "+ color.recv+" \__,_| "+ color.fail+" |_|   |_____| |_|    "+ color.end)
+		print("\n")
+		print("« 1 » PEER")
+		print("« 2 » SUPER")
+		print(color.fail+"« 3 » CHIUDI IL CLIENT"+color.end)
+		cmd = input("\nDigita cosa vuoi fare: ")
+		
+			
+		
+		if cmd is "1":
+			
+		elif cmd is "3":
+			self.sockUDPServer.close()
+			self.sockUDPClient.close()
+			stopServer()
+		'''
 		
 		#ricerca super nodi
 		time.sleep(0.1)
@@ -67,6 +88,7 @@ class kazaaClient(object):
 			progBar(i)
 			time.sleep(0.1)
 			i = i+1
+
 		self.sockUDPServer.sendto(("SETS").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 		#socketUDP che verifica che sia supernodo
 		data, addr = self.sockUDPClient.recvfrom(4)
@@ -77,6 +99,10 @@ class kazaaClient(object):
 		else:
 			print("\n"+color.fail+"SUPERNODO non trovato"+color.end)
 			return False
+		
+		
+		
+		
 		
 		while True:
 			printMenu()
