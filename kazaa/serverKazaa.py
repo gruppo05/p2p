@@ -83,6 +83,11 @@ def setConnection(ip, port, msg):
 	except:
 		print("Nessun vicino trovato!")
 
+def sendToSuper(msg):
+	self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
+	mySuper = self.dbReader.fetchone()
+	setConnection(mySuper[0], int(mySuper[1]), msg)
+
 def getTime(t):
 	a = str(datetime.datetime.now())
 
@@ -115,8 +120,6 @@ def sendAfin(sessionID):
 	
 	setConnection(ip[0], int(ip[1]), msg)
 
-
-
 class Kazaa(object):
 	def __init__(self):
 		IP = ""
@@ -137,9 +140,9 @@ class Kazaa(object):
 		# Creo tabella user
 		clearAndSetDB(self)
 		
-		
-		#inserisco l'utente root
-		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "192.168.043.078|fe80:0000:0000:0000:5bf8:4887:b7f4:6974", 3000))
+		#Setto i supernodi noti
+		#self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "192.168.043.012|fe80:0000:0000:0000:8888:4887:b7f4:9999",5000))
+	
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('"+var.Settings.root_IP+"', '"+var.Settings.root_PORT+"')")
 			self.super = 0
@@ -182,6 +185,7 @@ class Kazaa(object):
 			data, addr = self.sockUDPServer.recvfrom(4)
 			command = data.decode()
 			print("\n\nRicevuto comando dal client: "+color.recv+command+color.end)
+			
 			if command == "SUPE":
 				myPktid = PktidGenerator()
 				self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)",(myPktid,datetime.datetime.now()))
@@ -191,7 +195,12 @@ class Kazaa(object):
 				msg = "SUPE" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
 				for user in resultUser:
 					setConnection(user[0], int(user[1]), msg)
-				
+			
+			elif command is "LOGI":
+				mgs = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
+				sendToSuper(msg)
+
+			
 			elif command == "SETS":
 				try:
 					# scelgo random tra i supernodi
@@ -207,6 +216,7 @@ class Kazaa(object):
 				except: 
 					print(color.fail+"Errore SET supernodo"+color.end)
 					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+<<<<<<< HEAD
 					self.sockUDPServer.close()
 					self.sockUDPClient.close()
 					os._exit(0)
@@ -222,6 +232,17 @@ class Kazaa(object):
 				print("Invio messaggio -> " + msg)
 					
 				setConnection(superUser[0], int(superUser[1]), msg)
+=======
+			
+			elif command == "LOGO":
+				#ottengo il mio sessionID dal db
+				self.dbReader.execute("SELECT SessionID FROM User Where IPP2P = ?",(self.myIPP2P,))
+				data = self.dbReader.fetchone()
+				SessionID = data[0]
+				#seleziono tutti gli utenti
+				msg = "LOGO" + SessionID
+				sendToSuper(msg)
+>>>>>>> 8fe0dbc45430490168581c4d82fd25ac2eee5c7b
 		
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
@@ -323,6 +344,25 @@ class Kazaa(object):
 				t.start()
 				for s in superUser:
 					setConnection(superUser[0], int(superUser[1]), msg)
+				
+			elif command == "LOGO":
+				SessionID = connection.recv(16).decode()
+				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
+				#conto i file associati all'utente
+				self.dbReader.execute("SELECT COUNT(Filemd5) from File where SessionID=?",(SessionID,))
+				delete = self.dbReader.fetchone()
+				delete = int(delete[0])
+				delete = setNumber(delete)
+				self.dbReader.execute("DELETE FROM File WHERE SessionID=?", (SessionID,))
+				self.dbReader.execute("DELETE FROM User WHERE SessionID=?", (SessionID,))
+				print("Invio --> "+ color.send + "ALGO" + delete + color.end)
+				connection.sendall(("ALGO"+delete.ljust(3)).encode())
+				connection.close()
+
+			elif command == "ALGO":
+				nDeleted = connection.recv(3).decode()
+				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
+				#self.sockUDPClient.sendto(("ALGO"+nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			elif command == "QUER":
 				pktId = connection.recv(16).decode()

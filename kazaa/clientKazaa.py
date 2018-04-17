@@ -113,6 +113,7 @@ class kazaaClient(object):
 			
 			if cmd is "1":
 				print(color.recv+"LOGI"+color.end)
+				self.sockUDPServer.sendto(("LOGI").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))	
 			elif cmd is "2":
 				print(color.recv+"ADDF"+color.end)
 			elif cmd is "3":
