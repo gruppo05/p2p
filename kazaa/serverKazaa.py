@@ -175,12 +175,15 @@ class Kazaa(object):
 					# scelgo random tra i supernodi
 					self.dbReader.execute("SELECT count(*) FROM user WHERE Super=?", (1,))
 					data = self.dbReader.fetchone()
-					print("supernodi trovati:", data[0])
-					rnd = randint(1, int(data[0]))-1
-				
+					print("Supernodi trovati:", data[0])
+					rnd = random.randint(1, int(data[0])) - 1
+					print("pino")
+					print(rnd)
 					self.dbReader.execute("SELECT IPP2P FROM user LIMIT 1 OFFSET ?", (rnd,))
 					data = self.dbReader.fetchone()
+					print("dopo fetchone data")
 					self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,data[0]))
+					print("dopo UPDATE")
 					#print(color.green + "SUPERNODO con IP:"+data[0]+" selezionato con successo"+ color.end)
 					self.sockUDPClient.sendto(("SET1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				except: 
