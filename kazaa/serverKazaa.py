@@ -110,7 +110,7 @@ class Kazaa(object):
 		self.endUDP2 = "";
 		self.BUFF = 99999
 		
-		self.super = ""
+		self.mySuper = ""
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
@@ -121,11 +121,11 @@ class Kazaa(object):
 		#inserisco l'utente root
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('"+var.Settings.root_IP+"', '"+var.Settings.root_PORT+"')")
-			self.super = 0
+			self.mySuper = 0
 		else:
 			print("Loggato come root")
 			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, var.Settings.root_IP,var.Settings.root_PORT))
-			self.super = 1
+			self.mySuper = 1
 		
 		# Socket ipv4/ipv6 port 3000
 		self.server_address = (IP, self.PORT)
@@ -185,8 +185,14 @@ class Kazaa(object):
 					print(color.green + "SUPERNODO con IP:"+data[0]+" selezionato con successo"+ color.end)
 					self.sockUDPClient.sendto(("SET1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				except: 
-					print(color.fail + "Errore SET supernodo"+ color.end)
+					print(color.fail+"Errore SET supernodo"+color.end)
 					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+			elif command == "STOP":
+				print(color.fail+"Server fermato"+color.end)
+				time.sleep(2)
+				self.sockUDPServer.close()
+				self.sockUDPClient.close()
+				os._exit(0)
 
 	def serverTCP(self, connection, client_address):
 		command = connection.recv(4).decode()
@@ -210,7 +216,7 @@ class Kazaa(object):
 					else:
 						print(color.fail + "User già presente" + color.end)
 				
-					if self.super == 1:
+					if self.mySuper == 1:
 						print("Sono un supernodo e rispondo alla richiesta") 
 						msg = "ASUP" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
 						setConnection(IPP2P, int(PP2P), msg)
