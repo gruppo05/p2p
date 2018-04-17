@@ -20,7 +20,7 @@ def clearAndSetDB(self):
 	# 0 -> user
 	# 1 -> supernodo
 	# 2 -> supernodo scelto	
-	self.dbReader.execute("CREATE TABLE User (Super text, IPP2P text, PP2P text)")
+	self.dbReader.execute("CREATE TABLE User (Super text, IPP2P text, PP2P text, SessionID text)")
 	self.dbReader.execute("CREATE TABLE Pktid (Pktid text, Timestamp DATETIME)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, IPP2P text)")
 	self.dbReader.execute("CREATE TABLE download (Filemd5 text, Filename text)")
@@ -63,13 +63,10 @@ def setConnection(ip, port, msg):
 		rnd = random()
 		rnd = 0.1
 		if(rnd<0.5):
-			ip = splitIp(ip[0:15])	
-			print(port)					
+			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+color.end)
 			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-			print(1)
-			peer_socket.connect((ip,5000))
-			print(2)
+			peer_socket.connect((ip,port))
 		
 		else:
 			ip = ip[16:55]
@@ -113,7 +110,7 @@ class Kazaa(object):
 		self.endUDP2 = "";
 		self.BUFF = 99999
 		
-		self.mySuper = ""
+		self.super = ""
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
@@ -123,12 +120,12 @@ class Kazaa(object):
 		
 		#inserisco l'utente root
 		if self.myIPP2P != var.Settings.root_IP:
-			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, var.Settings.root_IP,var.Settings.root_PORT))
-			self.mySuper = 0
+			self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('"+var.Settings.root_IP+"', '"+var.Settings.root_PORT+"')")
+			self.super = 0
 		else:
 			print("Loggato come root")
 			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, var.Settings.root_IP,var.Settings.root_PORT))
-			self.mySuper = 1
+			self.super = 1
 		
 		# Socket ipv4/ipv6 port 3000
 		self.server_address = (IP, self.PORT)
@@ -181,7 +178,7 @@ class Kazaa(object):
 					data = self.dbReader.fetchone()
 					print("supernodi trovati:", data[0])
 					rnd = randint(1, int(data[0]))-1
-
+				
 					self.dbReader.execute("SELECT IPP2P FROM user LIMIT 1 OFFSET ?", (rnd,))
 					data = self.dbReader.fetchone()
 					self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,data[0]))
@@ -190,7 +187,6 @@ class Kazaa(object):
 				except: 
 					print(color.fail+"Errore SET supernodo"+color.end)
 					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-					
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
 				time.sleep(2)
@@ -220,7 +216,7 @@ class Kazaa(object):
 					else:
 						print(color.fail + "User già presente" + color.end)
 				
-					if self.mySuper == 1:
+					if self.super == 1:
 						print("Sono un supernodo e rispondo alla richiesta") 
 						msg = "ASUP" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
 						setConnection(IPP2P, int(PP2P), msg)
