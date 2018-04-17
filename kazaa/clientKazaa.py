@@ -123,6 +123,7 @@ class kazaaClient(object):
 				print(color.recv+"RETR"+color.end)
 			elif cmd is "6":
 				print(color.recv+"LOGO"+color.end)
+				self.sockUDPServer.sendto(("LOGO").encode(),(self.UDP_IP, self.UDP_PORT_SERVER))
 			elif cmd is "7":
 				print(color.recv+"LOGO"+color.end)
 				self.sockUDPServer.sendto(("STOP").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))

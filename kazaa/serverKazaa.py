@@ -81,7 +81,7 @@ def setConnection(ip, port, msg):
 	except:
 		print("Nessun vicino trovato!")
 
-def sendToSuper(msg)
+def sendToSuper(msg):
 	self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
 	mySuper = self.dbReader.fetchone()
 	setConnection(mySuper[0], int(mySuper[1]), msg)
@@ -195,12 +195,12 @@ class Kazaa(object):
 					self.sockUDPClient.sendto(("SET1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				except: 
 					print(color.fail+"Errore SET supernodo"+color.end)
-					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT)
+					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 
 			elif command == "LOGI":
 				mgs = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
 				sendToSuper(msg)
-			
+		
 
 			elif command == "LOGO":
 				#ottengo il mio sessionID dal db
@@ -211,9 +211,9 @@ class Kazaa(object):
 				msg = "LOGO" + SessionID
 				sendToSuper(msg)
 
-					
-			
-							
+				
+		
+						
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
 				self.sockUDPServer.close()
