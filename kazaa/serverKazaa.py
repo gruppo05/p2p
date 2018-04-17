@@ -118,7 +118,9 @@ class Kazaa(object):
 		# Creo tabella user
 		clearAndSetDB(self)
 		
+		
 		#inserisco l'utente root
+		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "192.168.043.078|fe80:0000:0000:0000:5bf8:4887:b7f4:6974", 3000))
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (IPP2P, PP2P) values ('"+var.Settings.root_IP+"', '"+var.Settings.root_PORT+"')")
 			self.super = 0
@@ -186,10 +188,12 @@ class Kazaa(object):
 				except: 
 					print(color.fail+"Errore SET supernodo"+color.end)
 					self.sockUDPClient.sendto(("SET0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					self.sockUDPServer.close()
+					self.sockUDPClient.close()
+					os._exit(0)
 					
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
-				time.sleep(2)
 				self.sockUDPServer.close()
 				self.sockUDPClient.close()
 				os._exit(0)
