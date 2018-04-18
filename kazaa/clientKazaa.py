@@ -94,7 +94,6 @@ class kazaaClient(object):
 			print("\n"+color.fail+"LOGIN fallito!"+color.end)
 			stopServer(self)
 
-
 		while True:
 			printMenu()
 			try:

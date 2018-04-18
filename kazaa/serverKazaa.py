@@ -86,7 +86,6 @@ def setConnection(ip, port, msg):
 def sendToSuper(self, messaggio):
 	self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
 	mySuper = self.dbReader.fetchone()
-	print("Ciao:  ", messaggio)
 	setConnection(mySuper[0], int(mySuper[1]), messaggio)
 
 def sessionIdGenerator():
@@ -291,12 +290,12 @@ class Kazaa(object):
 				self.sockUDPClient.sendto((self.endUDP1).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			
-			
 			elif command == "FIND":
 				self.dbReader.execute("SELECT SessionID FROM User WHERE IPP2P LIKE ?", (self.myIPP2P,))
 				sessionID = self.dbReader.fetchone()
 				sessionID = sessionID[0]
-				ricerca, useless = self.sockUDPServer.recvfrom(20).decode()
+				ricerca, useless = self.sockUDPServer.recvfrom(20)
+				ricerca = ricerca.decode()
 				msg = "FIND" + str(sessionID) + str(ricerca)
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE Super = 2")
 				superUser = self.dbReader.fetchone()
@@ -426,7 +425,6 @@ class Kazaa(object):
 					self.dbReader.execute("UPDATE File SET Filename=? where Filemd5=?",(Filename,Filemd5,))
 					print(color.fail+"File già presente"+color.end)
 					print(color.green+"Aggiornato filename"+color.end)
-			
 			
 			elif command == "DEFF":
 				SessionID = connection.recv(16).decode()
