@@ -235,28 +235,56 @@ class Kazaa(object):
 				
 				if os.path.isfile(PATH) and os.access(PATH, os.R_OK):
 					filemd5 = encryptMD5(PATH)
+					
+					self.dbReader.execute("SELECT filename FROM File WHERE filemd5=?",(filemd5,))
+					data = self.dbReader.fetchone()
+					if data is None:
+						self.dbReader.execute("INSERT INTO File (filemd5, filename, SessionID) values (?, ?, ?)", (filemd5, filename, sessionID[0]))
+						print(color.green+"Trovato. Aggiunto file in condivisione"+color.end)
+					else:
+						self.dbReader.execute("UPDATE File SET filename=? WHERE filemd5=?",(filename,filemd5))
+					
+					msg = "ADFF" + sessionID[0] + filemd5 + filename
+					sendToSuper(self, msg)
+					print("Invio -> "+color.recv+msg+color.end)
 					msg = "1"
-					self.dbReader.execute("INSERT INTO File (filemd5, filename, SessionID) values (?, ?, ?)", (filemd5, filename, sessionID[0]))
-					print(color.green+"Trovato. Aggiunto file in condivisione"+color.end)
 				else:
 					msg = "0"
 					print(color.fail+"File non presente. Impossibile aggiungerlo in condivisione"+color.end)
-
 					
 				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+			
+			
+			elif command == "DELF":
+				filename, useless = self.sockUDPServer.recvfrom(100)
+				filename = filename.decode()
+				print("-"+filename+"-")
 				
-				msg = "ADFF" + sessionID[0] + filemd5 + filename
-				sendToSuper(self, msg)
-				print("Invio -> "+color.recv+msg+color.end)
+				self.dbReader.execute("SELECT filename FROM File WHERE filemd5=?",(filemd5,))
+				data = self.dbReader.fetchone()
 				
+				if data is None:
+					msg = "0"
+					print(color.fail+"File non presente. Impossibile rimuovere il file"+color.end)
+					
+				else:
+					filemd5 = encryptMD5(PATH)
+					self.dbReader.execute("DELETE FROM File WHERE filemd5=?",(filemd5,))
+					print(color.green+"Rimosso file dalla condivisione"+color.end)
+					
+					self.dbReader.execute("SELECT SessionID FROM user where IPP2P=?", (self.myIPP2P,))
+					sessionID = self.dbReader.fetchone()
+					
+					msg = "DEFF" + sessionID[0] + filemd5
+					sendToSuper(self, msg)
+					print("Invio -> "+color.recv+msg+color.end)
+					msg = "1"
+
+				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			
 			elif command == "STMF":
-				
-				self.dbReader.execute("SELECT SessionID FROM User where IPP2P=?", (self.myIPP2P,))
-				sessionID = self.dbReader.fetchone()
-
-				self.dbReader.execute("SELECT Filename, SessionID, Filemd5 FROM File WHERE SessionID=?", (sessionID[0],))
+				self.dbReader.execute("SELECT Filename, SessionID, Filemd5 FROM File")
 				files = self.dbReader.fetchall()
 				for f in files:
 					self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
@@ -398,7 +426,22 @@ class Kazaa(object):
 					self.dbReader.execute("UPDATE File SET Filename=? where Filemd5=?",(Filename,Filemd5,))
 					print(color.fail+"File già presente"+color.end)
 					print(color.green+"Aggiornato filename"+color.end)
-
+			
+			
+			elif command == "DEFF":
+				SessionID = connection.recv(16).decode()
+				Filemd5 = connection.recv(32).decode()
+				print("Ricevuto "+ color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
+				
+				#verifico che l'utente abbia il file
+				self.dbReader.execute("SELECT * FROM file WHERE Filemd5=? AND SessionID=?", (Filemd5,SessionID,))
+				data = self.dbReader.fetchone()
+				
+				if data is None:
+					print(color.fail+ "Nessun file trovato" + color.end);
+				else:
+					self.dbReader.execute("DELETE FROM file WHERE Filemd5=? AND SessionID=?", (Filemd5,SessionID,))					
+			
 			elif command == "FIND":
 				sessionID = connection.recv(16).decode()
 				ricerca = connection.recv(20).decode()
@@ -418,7 +461,7 @@ class Kazaa(object):
 				try:
 					SessionID = connection.recv(16).decode()
 					self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P, SessionID) values (?, ?, ?, ?)",(0, self.myIPP2P, self.PORT, SessionID))
-					print(color.green + "Session salvato con successo"+ color.end)
+					print(color.green + "SessionID salvato con successo"+ color.end)
 					self.sockUDPClient.sendto(("LOG1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				except:
 					print(color.fail+"Errore salvataggio SessionID"+color.end)

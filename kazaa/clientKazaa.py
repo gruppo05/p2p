@@ -16,7 +16,7 @@ def startServer():
 
 def stopServer(self):
 	##os.system("kill $(ps aux | grep '.py' | awk '{print $2}')") #questo killa anche gedit se il file si chiama .py
-	time.sleep(2)
+	time.sleep(0.1)
 	self.sockUDPServer.sendto(("STOP").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 	self.sockUDPServer.close()
 	self.sockUDPClient.close()
@@ -115,8 +115,20 @@ class kazaaClient(object):
 				else:
 					print(color.fail+"Impossibile aggiungere il file"+color.end)
 				time.sleep(1)
+				
 			elif cmd is "2":
-				print(color.recv+"DEFF"+color.end)
+				print(color.recv+"DELF"+color.end)
+				self.sockUDPServer.sendto(("DELF").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				filename = input("Inserisci il nome del file da cancellare: ")
+				self.sockUDPServer.sendto((filename.ljust(100)).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				
+				command, useless = self.sockUDPClient.recvfrom(1)
+				com = command.decode()
+				if com is "1":
+					print(color.green+"File rimosso con successo"+color.end)
+				else:
+					print(color.fail+"Impossibile rimuovere il file"+color.end)
+				time.sleep(1)
 				
 			elif cmd is "3":
 				print(color.recv+"FIND"+color.end)
