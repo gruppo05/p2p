@@ -1,5 +1,6 @@
 import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, hashlib, sys, stat
 import setting as var
+from threading import Timer
 from random import *
 
 class color:
@@ -106,22 +107,25 @@ def getTime(t):
 	time2 = ha + ma + sa
 	return time2 - time1
 
-def sendAfin(sessionID):
-	self.dbReader.execute("SELECT DISTINC Filemd5, Filename FROM TrackedFile")
+def sendAfin(self, sessionID):
+	time.sleep(5)
+	self.dbReader.execute("SELECT DISTINCT Filemd5, Filename FROM TrackedFile")
 	resultFile = self.dbReader.fetchall()
-	lunMd5 = len(resultFile)
-	msg = "AFIN" + setIp(lunMd5)
+	print("lunghezza dei file da tracked(1): " + str(len(resultFile)))
+	msg = "AFIN" + setIp(len(resultFile))
 	for f in resultFile:
-		
-		self.dbReader.execute("SELECT IPP2P, PP2P FROM TrackedFile WHERE IPP2P", (resultFile[0],))
+		print("ciao" + f[0])
+		self.dbReader.execute("SELECT IPP2P, PP2P FROM TrackedFile WHERE Filemd5 LIKE ?", ("%" + f[0] + "%",))
 		resultIP = self.dbReader.fetchall()
-		msg = msg + resultFile[0] + resultFile[1] + setIp(resultIp)
+		print("ok dbreader  con " + setIp(len(resultIP)))
+		msg = msg + str(f[0]) + str(f[1]) + str(setIp(len(resultIP)))
 		for i in resultIP:
-			msg = resultIP[0] + resultIP[1]
+			msg = msg + str(i[0]) + str(i[1])
 	
 	self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE SessionID LIKE ?", (sessionID,))
 	ip = self.dbReader.fetchone()
-	
+	print(msg)
+	time.sleep(30)
 	setConnection(ip[0], int(ip[1]), msg)
 
 class Kazaa(object):
@@ -196,7 +200,9 @@ class Kazaa(object):
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user")
 				resultUser = self.dbReader.fetchall()
 				msg = "SUPE" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
+				
 				for user in resultUser:
+					print("Invio-> " +msg)
 					setConnection(user[0], int(user[1]), msg)
 			
 			elif command == "LOGI":
@@ -296,12 +302,12 @@ class Kazaa(object):
 				sessionID = sessionID[0]
 				ricerca, useless = self.sockUDPServer.recvfrom(20)
 				ricerca = ricerca.decode()
-				msg = "FIND" + str(sessionID) + str(ricerca)
+				msg = "FIND" + str(sessionID) + str(ricerca).ljust(20)
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE Super = 2")
 				superUser = self.dbReader.fetchone()
-				print("Invio messaggio -> " + msg)
+				print("Invio messaggio -> " + msg + " a " + superUser[0] + " Porta " +superUser[1])
 					
-				setConnection(superUser[0], int(superUser[1]), msg)
+				sendToSuper(self, msg)
 
 
 			
@@ -443,16 +449,40 @@ class Kazaa(object):
 			elif command == "FIND":
 				sessionID = connection.recv(16).decode()
 				ricerca = connection.recv(20).decode()
-				self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE Super = 1 AND IPP2P != ", (self.myIPP2P,)) #da controllare
+				self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE Super LIKE ?", (1,)) #da controllare
 				superUser = self.dbReader.fetchall()
 				myPktid = PktidGenerator()
 				self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)", (myPktid, datetime.datetime.now()))
 				ttl = setNumber(4)
-				msg = "QUER" + str(myPktId) + self.myIPP2P + self.myPort + ttl + ricerca
-				t = (20.0, sendAfin(sessionID))
-				t.start()
+				msg = "QUER" + str(myPktid) + str(self.myIPP2P) + str(self.PORT) + str(ttl) + str(ricerca)
+				print("la lunghezza deve essere 0 infatti è " + str(len(superUser)))
+				#controllo tra i miei file quali mettere in tracked file
+				self.dbReader.execute("SELECT DISTINCT u.IPP2P, u.PP2P, f.Filemd5, f.Filename FROM user as u, file as f WHERE u.SessionID = f.SessionID")
+				resultFile = self.dbReader.fetchall()
+				print("resultFile con (1) "+ str(len(resultFile)) + "Fil")
+				for f in resultFile:
+					print("inserisco il file:" + f[0]+" " +f[1] + " " + f[2]+" " + f[3])
+					self.dbReader.execute("INSERT INTO TrackedFile (IPP2P, PP2P, Filemd5, Filename) values (?, ?,?,?)", (f[0], f[1], f[2],f[3]))
+				
+				#threading.Thread(target = self.serverTCP, args = (connection,client_address)).start()
+				try:
+					threading.Thread(target = sendAfin(self, sessionID)).start()
+					print("Riesce a lanciare il thread")
+				except:
+					print("Non riesce a lanciare il thread")
+					
 				for s in superUser:
 					setConnection(superUser[0], int(superUser[1]), msg)
+					
+				print("invio di messaggi a "+str(len(superUser)))
+				self.dbReader.execute("SELECT Filename, SessionID, Filemd5 FROM File")
+				files = self.dbReader.fetchall()
+				ricerca = ricerca.strip()
+				self.dbReader.execute("SELECT Filemd5, Filename FROM File WHERE Filename LIKE ?",("%"+ricerca+"%",))
+				resultFile = self.dbReader.fetchall()
+				for f in resultFile:
+					self.dbReader.execute("INSERT INTO TrackedFile (IPP2P, PP2P, Filemd5, Filename) values (?, ?, ?, ?)", (self.myIPP2P, self.PORT, f[0], f[1]))
+					print("Inserito un file in tracked file")
 				
 			elif command == "ALGI":
 				print("Ricevuto ALGI")
