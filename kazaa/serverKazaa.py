@@ -500,8 +500,8 @@ class Kazaa(object):
 
 			elif command == "ALGO":
 				nDeleted = connection.recv(3).decode()
-				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
-				self.sockUDPClient.sendto(("ALGO"+nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				print("Ricevuto " + color.recv + command + color.end + "\n#Copie " + color.recv + nDeleted + color.end)
+				self.sockUDPClient.sendto((nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			elif command == "QUER":
 				pktId = connection.recv(16).decode()

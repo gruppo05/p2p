@@ -22,7 +22,7 @@ def stopServer(self):
 	self.sockUDPClient.close()
 	os._exit(0)
 
-def printMenu():
+def printMenu(sup):
 	os.system('cls' if os.name == 'nt' else 'clear')
 	print(color.recv+" _  __ "+ color.green+"        "+ color.send+"       "+ color.fail+"        "+ color.recv+"        "+ color.fail+"  ____  _____   ____  "+ color.end)
 	print(color.recv+"| |/ / "+ color.green+"  __ _  "+ color.send+" ____  "+ color.fail+"  __ _  "+ color.recv+"  __ _  "+ color.fail+" |  _ \ \__  \ |  _ \ "+ color.end)
@@ -36,7 +36,8 @@ def printMenu():
 	print("« 4 » DOWNLOAD FILE")
 	print("« 5 » LOGOUT")
 	print("« 6 » STAMPA FILE IN CONDIVISIONE")
-	print(color.fail+"« 7 » CHIUDI IL CLIENT"+color.end)
+	print("« 7 » STAMPA PEER VICINI")
+	print(color.fail+"« 0 » CHIUDI IL CLIENT"+color.end)
 
 def progBar(i):
 	i = i+1
@@ -50,7 +51,8 @@ class kazaaClient(object):
 		self.UDP_IP = "127.0.0.1"
 		self.UDP_PORT_SERVER = 49999
 		UDP_PORT_CLIENT = 50000
-		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+		self.endUDP2 = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 		
 		# Socket UPD ipv4 client in attesa
 		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -93,7 +95,7 @@ class kazaaClient(object):
 		else:
 			print("\n"+color.fail+"LOGIN fallito!"+color.end)
 			stopServer(self)
-
+		
 		while True:
 			printMenu()
 			try:
@@ -165,8 +167,21 @@ class kazaaClient(object):
 						break;
 					else:
 						print(color.recv+cmd+color.end)
-				
+			
 			elif cmd is "7":
+				print(color.recv+"STAMPA FILE IN CONDIVISIONE"+color.end)
+				self.sockUDPServer.sendto(("STMP").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				while True:
+					buff, addr = self.sockUDPClient.recvfrom(80)
+					cmd = buff.decode()
+					if cmd == self.endUDP2:
+						print(color.recv+"Lista peer terminata"+color.end)
+						cmd = input("Premi invio per continuare:")
+						break;
+					else:
+						print(color.recv+cmd+color.end)
+				
+			elif cmd is "0":
 				print(color.recv+"LOGOUT"+color.end)
 				self.sockUDPServer.sendto(("LOGO").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				stopServer(self)
