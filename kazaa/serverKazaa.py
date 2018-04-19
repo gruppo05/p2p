@@ -257,28 +257,33 @@ class Kazaa(object):
 			elif command == "DELF":
 				filename, useless = self.sockUDPServer.recvfrom(100)
 				filename = filename.decode()
-				print("-"+filename+"-")
+				msg = ""
 				
-				self.dbReader.execute("SELECT filename FROM File WHERE filemd5=?",(filemd5,))
-				data = self.dbReader.fetchone()
-				
-				if data is None:
-					msg = "0"
-					print(color.fail+"File non presente. Impossibile rimuovere il file"+color.end)
-					
-				else:
+				try:
+					PATH = var.Settings.userPath+filename.strip()
 					filemd5 = encryptMD5(PATH)
-					self.dbReader.execute("DELETE FROM File WHERE filemd5=?",(filemd5,))
-					print(color.green+"Rimosso file dalla condivisione"+color.end)
 					
-					self.dbReader.execute("SELECT SessionID FROM user where IPP2P=?", (self.myIPP2P,))
-					sessionID = self.dbReader.fetchone()
+					self.dbReader.execute("SELECT filename FROM File WHERE filemd5=?",(filemd5,))
+					data = self.dbReader.fetchone()
+				
+					if data is None:
+						msg = "0"
+						print(color.fail+"File non presente. Impossibile rimuovere il file"+color.end)
+					else:
+						self.dbReader.execute("DELETE FROM File WHERE filemd5=?",(filemd5,))
+						print(color.green+"Rimosso file dalla condivisione"+color.end)
 					
-					msg = "DEFF" + sessionID[0] + filemd5
-					sendToSuper(self, msg)
-					print("Invio -> "+color.recv+msg+color.end)
-					msg = "1"
-
+						self.dbReader.execute("SELECT SessionID FROM user where IPP2P=?", (self.myIPP2P,))
+						sessionID = self.dbReader.fetchone()
+					
+						msg = "DEFF" + sessionID[0] + filemd5
+						sendToSuper(self, msg)
+						print("Invio -> "+color.recv+msg+color.end)
+						msg = "1"
+				except:
+					msg = "0"
+					print(color.fail+"File non presente nella cartella. Errore"+color.end)
+				
 				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			
