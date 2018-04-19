@@ -35,6 +35,15 @@ def setNumber(n):
 		n = "0"+str(n)
 	return n
 
+def setCopy(copy):
+	if copy > 1000:
+		copy = 999
+	elif copy < 100 and copy > 9:
+		copy = "0"+str(copy)
+	elif copy < 10:
+		copy = "00"+str(copy)
+	return copy
+	
 def setIp(n):
 	if n < 10:
 		n = "00"+str(n)
@@ -405,7 +414,6 @@ class Kazaa(object):
 					Print("Errore nella procedura di login lato server")
 				finally:
 					msg = "ALGI"+SessionID
-					print(msg)
 					setConnection(IPP2P, int(PP2P), msg)
 					
 			elif command == "ADFF":
@@ -468,20 +476,27 @@ class Kazaa(object):
 				SessionID = connection.recv(16).decode()
 				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
 				#conto i file associati all'utente
-				self.dbReader.execute("SELECT COUNT(Filemd5) from File where SessionID=?",(SessionID,))
+				self.dbReader.execute("SELECT COUNT(Filemd5), IPP2P, PP2P from File where SessionID=?",(SessionID, IPP2P, PP2P))
 				delete = self.dbReader.fetchone()
+				
 				delete = int(delete[0])
-				delete = setNumber(delete)
+				IPP2P = delete[1];
+				PP2P = delete[2];
+				delete = setCopy(delete)
+				
+				#preparo il msg
+				msg  = "ALGO"+str(delete)
 				self.dbReader.execute("DELETE FROM File WHERE SessionID=?", (SessionID,))
 				self.dbReader.execute("DELETE FROM User WHERE SessionID=?", (SessionID,))
-				print("Invio --> "+ color.send + "ALGO" + delete + color.end)
-				connection.sendall(("ALGO"+delete.ljust(3)).encode())
-				connection.close()
+				
+				print("Invio --> "+ color.send + msg + color.end)
+				setConnection(IPP2P, int(PP2P), msg)
+				
 
 			elif command == "ALGO":
 				nDeleted = connection.recv(3).decode()
 				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
-				#self.sockUDPClient.sendto(("ALGO"+nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.sockUDPClient.sendto(("ALGO"+nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			elif command == "QUER":
 				pktId = connection.recv(16).decode()
