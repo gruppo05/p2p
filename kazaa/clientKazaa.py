@@ -144,9 +144,14 @@ class kazaaClient(object):
 				
 			elif cmd is "4":
 				print(color.recv+"RETR"+color.end)
+				
 			elif cmd is "5":
 				print(color.recv+"LOGOUT"+color.end)
 				self.sockUDPServer.sendto(("LOGO").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				command, useless = self.sockUDPClient.recvfrom(3)
+				nCopy = command.decode()
+				print("Cancellato "+color.recv+nCopy+color.end)
+				stopServer(self)
 				
 			elif cmd is "6":
 				print(color.recv+"STAMPA FILE IN CONDIVISIONE"+color.end)
@@ -165,7 +170,7 @@ class kazaaClient(object):
 				print(color.recv+"LOGOUT"+color.end)
 				self.sockUDPServer.sendto(("LOGO").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				stopServer(self)
-	
+				
 if __name__ == "__main__":
     kazaa = kazaaClient()
 kazaa.start()
