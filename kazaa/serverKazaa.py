@@ -303,6 +303,13 @@ class Kazaa(object):
 					self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				self.sockUDPClient.sendto((self.endUDP1).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
+			elif command == "STMP":
+				self.dbReader.execute("SELECT * FROM User")
+				files = self.dbReader.fetchall()
+				for f in files:
+					self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]+"-"+f[3]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.sockUDPClient.sendto((self.endUDP1).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+			
 			
 			elif command == "FIND":
 				self.dbReader.execute("SELECT SessionID FROM User WHERE IPP2P LIKE ?", (self.myIPP2P,))
@@ -481,20 +488,20 @@ class Kazaa(object):
 				SessionID = connection.recv(16).decode()
 				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
 				#conto i file associati all'utente
-				self.dbReader.execute("SELECT COUNT(Filemd5), IPP2P, PP2P from File where SessionID=?",(SessionID, IPP2P, PP2P))
+				self.dbReader.execute("SELECT COUNT(Filemd5) from File where SessionID=?",(SessionID,))
 				delete = self.dbReader.fetchone()
-				
-				delete = int(delete[0])
-				IPP2P = delete[1];
-				PP2P = delete[2];
-				delete = setCopy(delete)
+				nDeleted = int(delete[0])
+				self.dbReader.execute("SELECT IPP2P, PP2P from User where SessionID=?",(SessionID,))
+				data = self.dbReader.fetchone()
+				IPP2P = data[0]
+				PP2P = data[1]
+				nDeleted = setCopy(nDeleted)
 				
 				#preparo il msg
-				msg  = "ALGO"+str(delete)
+				msg  = "ALGO"+str(nDeleted)
+				print(msg)
 				self.dbReader.execute("DELETE FROM File WHERE SessionID=?", (SessionID,))
 				self.dbReader.execute("DELETE FROM User WHERE SessionID=?", (SessionID,))
-				
-				print("Invio --> "+ color.send + msg + color.end)
 				setConnection(IPP2P, int(PP2P), msg)
 				
 
