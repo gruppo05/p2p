@@ -36,6 +36,15 @@ def setNumber(n):
 		n = "0"+str(n)
 	return n
 
+def setCopy(copy):
+	if copy > 1000:
+		copy = 999
+	elif copy < 100 and copy > 9:
+		copy = "0"+str(copy)
+	elif copy < 10:
+		copy = "00"+str(copy)
+	return copy
+	
 def setIp(n):
 	if n < 10:
 		n = "00"+str(n)
@@ -136,7 +145,8 @@ class Kazaa(object):
 		self.UDP_IP = "127.0.0.1"
 		UDP_PORT_SERVER = 49999
 		self.UDP_PORT_CLIENT = 50000
-		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.BUFF = 99999
 		
 		self.super = ""
@@ -263,28 +273,33 @@ class Kazaa(object):
 			elif command == "DELF":
 				filename, useless = self.sockUDPServer.recvfrom(100)
 				filename = filename.decode()
-				print("-"+filename+"-")
+				msg = ""
 				
-				self.dbReader.execute("SELECT filename FROM File WHERE filemd5=?",(filemd5,))
-				data = self.dbReader.fetchone()
-				
-				if data is None:
-					msg = "0"
-					print(color.fail+"File non presente. Impossibile rimuovere il file"+color.end)
-					
-				else:
+				try:
+					PATH = var.Settings.userPath+filename.strip()
 					filemd5 = encryptMD5(PATH)
-					self.dbReader.execute("DELETE FROM File WHERE filemd5=?",(filemd5,))
-					print(color.green+"Rimosso file dalla condivisione"+color.end)
 					
-					self.dbReader.execute("SELECT SessionID FROM user where IPP2P=?", (self.myIPP2P,))
-					sessionID = self.dbReader.fetchone()
+					self.dbReader.execute("SELECT filename FROM File WHERE filemd5=?",(filemd5,))
+					data = self.dbReader.fetchone()
+				
+					if data is None:
+						msg = "0"
+						print(color.fail+"File non presente. Impossibile rimuovere il file"+color.end)
+					else:
+						self.dbReader.execute("DELETE FROM File WHERE filemd5=?",(filemd5,))
+						print(color.green+"Rimosso file dalla condivisione"+color.end)
 					
-					msg = "DEFF" + sessionID[0] + filemd5
-					sendToSuper(self, msg)
-					print("Invio -> "+color.recv+msg+color.end)
-					msg = "1"
-
+						self.dbReader.execute("SELECT SessionID FROM user where IPP2P=?", (self.myIPP2P,))
+						sessionID = self.dbReader.fetchone()
+					
+						msg = "DEFF" + sessionID[0] + filemd5
+						sendToSuper(self, msg)
+						print("Invio -> "+color.recv+msg+color.end)
+						msg = "1"
+				except:
+					msg = "0"
+					print(color.fail+"File non presente nella cartella. Errore"+color.end)
+				
 				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			
@@ -294,6 +309,16 @@ class Kazaa(object):
 				for f in files:
 					self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				self.sockUDPClient.sendto((self.endUDP1).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+			
+			elif command == "STMP":
+				self.dbReader.execute("SELECT * FROM User")
+				files = self.dbReader.fetchall()
+				for f in files:
+					if(f[3] is None):
+						self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]+"-|--------------|").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					else:
+						self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]+"-"+f[3]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.sockUDPClient.sendto((self.endUDP2).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			
 			elif command == "FIND":
@@ -308,8 +333,6 @@ class Kazaa(object):
 				print("Invio messaggio -> " + msg + " a " + superUser[0] + " Porta " +superUser[1])
 					
 				sendToSuper(self, msg)
-
-
 			
 			elif command == "LOGO":
 				#ottengo il mio sessionID dal db
@@ -412,7 +435,6 @@ class Kazaa(object):
 					Print("Errore nella procedura di login lato server")
 				finally:
 					msg = "ALGI"+SessionID
-					print(msg)
 					setConnection(IPP2P, int(PP2P), msg)
 					
 			elif command == "ADFF":
@@ -501,18 +523,25 @@ class Kazaa(object):
 				#conto i file associati all'utente
 				self.dbReader.execute("SELECT COUNT(Filemd5) from File where SessionID=?",(SessionID,))
 				delete = self.dbReader.fetchone()
-				delete = int(delete[0])
-				delete = setNumber(delete)
+				nDeleted = int(delete[0])
+				self.dbReader.execute("SELECT IPP2P, PP2P from User where SessionID=?",(SessionID,))
+				data = self.dbReader.fetchone()
+				IPP2P = data[0]
+				PP2P = data[1]
+				nDeleted = setCopy(nDeleted)
+				
+				#preparo il msg
+				msg  = "ALGO"+str(nDeleted)
+				print(msg)
 				self.dbReader.execute("DELETE FROM File WHERE SessionID=?", (SessionID,))
 				self.dbReader.execute("DELETE FROM User WHERE SessionID=?", (SessionID,))
-				print("Invio --> "+ color.send + "ALGO" + delete + color.end)
-				connection.sendall(("ALGO"+delete.ljust(3)).encode())
-				connection.close()
+				setConnection(IPP2P, int(PP2P), msg)
+				
 
 			elif command == "ALGO":
 				nDeleted = connection.recv(3).decode()
-				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
-				#self.sockUDPClient.sendto(("ALGO"+nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				print("Ricevuto " + color.recv + command + color.end + "\n#Copie " + color.recv + nDeleted + color.end)
+				self.sockUDPClient.sendto((nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			elif command == "QUER":
 				pktId = connection.recv(16).decode()
