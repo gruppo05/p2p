@@ -308,7 +308,10 @@ class Kazaa(object):
 				self.dbReader.execute("SELECT * FROM User")
 				files = self.dbReader.fetchall()
 				for f in files:
-					self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]+"-"+(f[3]).ljust(16)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					if(f[3] is None):
+						self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]+"-|--------------|").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					else:
+						self.sockUDPClient.sendto((f[0]+"-"+f[1]+"-"+f[2]+"-"+f[3]).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				self.sockUDPClient.sendto((self.endUDP2).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			
