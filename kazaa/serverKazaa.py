@@ -302,8 +302,7 @@ class Kazaa(object):
 				print("Invio messaggio -> " + msg)
 					
 				setConnection(superUser[0], int(superUser[1]), msg)
-
-
+			
 			
 			elif command == "LOGO":
 				#ottengo il mio sessionID dal db
