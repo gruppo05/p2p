@@ -123,18 +123,17 @@ def sendAfin(self, sessionID):
 	print("lunghezza dei file da tracked(1): " + str(len(resultFile)))
 	msg = "AFIN" + setIp(len(resultFile))
 	for f in resultFile:
-		print("ciao" + f[0])
 		self.dbReader.execute("SELECT IPP2P, PP2P FROM TrackedFile WHERE Filemd5 LIKE ?", ("%" + f[0] + "%",))
 		resultIP = self.dbReader.fetchall()
-		print("ok dbreader  con " + setIp(len(resultIP)))
+		print("ho trovato " + setIp(len(resultIP))+" utenti col file")
+		print(str(f[0]))
 		msg = msg + str(f[0]) + str(f[1]) + str(setIp(len(resultIP)))
 		for i in resultIP:
 			msg = msg + str(i[0]) + str(i[1])
 	
 	self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE SessionID LIKE ?", (sessionID,))
 	ip = self.dbReader.fetchone()
-	print(msg)
-	time.sleep(30)
+	print("RICEVUTE RISPOSTE. INVIO RISPOSTA AL CLIENT con ip: "+ str(ip[0]) + " e porta "+ str(ip[1]))
 	setConnection(ip[0], int(ip[1]), msg)
 
 class Kazaa(object):
@@ -471,40 +470,33 @@ class Kazaa(object):
 			elif command == "FIND":
 				sessionID = connection.recv(16).decode()
 				ricerca = connection.recv(20).decode()
-				self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE Super LIKE ?", (1,)) #da controllare
+				#seleziono tutti gli altri peer e ritrasmetto il messaggio
+				self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE Super LIKE ?", (1,))
 				superUser = self.dbReader.fetchall()
 				myPktid = PktidGenerator()
 				self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)", (myPktid, datetime.datetime.now()))
 				ttl = setNumber(4)
+				#messaggio da ritrasmettere
 				msg = "QUER" + str(myPktid) + str(self.myIPP2P) + str(self.PORT) + str(ttl) + str(ricerca)
-				print("la lunghezza deve essere 0 infatti è " + str(len(superUser)))
+				
 				#controllo tra i miei file quali mettere in tracked file
-				self.dbReader.execute("SELECT DISTINCT u.IPP2P, u.PP2P, f.Filemd5, f.Filename FROM user as u, file as f WHERE u.SessionID = f.SessionID")
+				ricerca = ricerca.strip()
+				self.dbReader.execute("SELECT DISTINCT f.Filemd5, u.IPP2P, u.PP2P, f.Filename FROM user as u JOIN file as f WHERE u.sessionId = f.sessionID AND Filename LIKE ?",("%"+ricerca+"%",) )
 				resultFile = self.dbReader.fetchall()
-				print("resultFile con (1) "+ str(len(resultFile)) + "Fil")
+				print("resultFile con (1) "+ str(len(resultFile)) + " File")
 				for f in resultFile:
-					print("inserisco il file:" + f[0]+" " +f[1] + " " + f[2]+" " + f[3])
-					self.dbReader.execute("INSERT INTO TrackedFile (IPP2P, PP2P, Filemd5, Filename) values (?, ?,?,?)", (f[0], f[1], f[2],f[3]))
+					print("inserisco il file:" + f[0]+"-" +f[1] + "-" + f[2]+"-" + f[3])
+					self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, IPP2P, PP2P, Filename) values (?, ?,?,?)", (f[0], f[1], f[2],f[3]))
 				
 				#threading.Thread(target = self.serverTCP, args = (connection,client_address)).start()
 				try:
 					threading.Thread(target = sendAfin(self, sessionID)).start()
-					print("Riesce a lanciare il thread")
 				except:
 					print("Non riesce a lanciare il thread")
-					
+				#dopo aver creato il thread che ascolta tutti i messaggi inviati, ritrasmetto a tutti
+				print("Invio a "+ str(len(superUser)) + " superPeer vicini")
 				for s in superUser:
 					setConnection(superUser[0], int(superUser[1]), msg)
-					
-				print("invio di messaggi a "+str(len(superUser)))
-				self.dbReader.execute("SELECT Filename, SessionID, Filemd5 FROM File")
-				files = self.dbReader.fetchall()
-				ricerca = ricerca.strip()
-				self.dbReader.execute("SELECT Filemd5, Filename FROM File WHERE Filename LIKE ?",("%"+ricerca+"%",))
-				resultFile = self.dbReader.fetchall()
-				for f in resultFile:
-					self.dbReader.execute("INSERT INTO TrackedFile (IPP2P, PP2P, Filemd5, Filename) values (?, ?, ?, ?)", (self.myIPP2P, self.PORT, f[0], f[1]))
-					print("Inserito un file in tracked file")
 				
 			elif command == "ALGI":
 				print("Ricevuto ALGI")
@@ -588,7 +580,28 @@ class Kazaa(object):
 				if getTime(t[0]) < 20:
 					#se il pacchetto esiste faccio quello che devo fare
 					self.dbReader.execute("INSERT INTO TrackedFile (IPP2P, PP2P, Filemd5, Filename) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, filename))
-					
+			
+			elif command == "AFIN":
+				print("Ricevuto " + color.recv + command + color.end)
+				nIdMd5 = int(connection.recv(3).decode())
+				i=0
+				while nIdMd5 > 0:
+					print("tutto bene 1")
+					filemd5 = connection.recv(32).decode()
+					filename = connection.recv(100).decode()
+					nCopie = int(connection.recv(3).decode())
+					while nCopie > 0:
+						ipp2p = connection.recv(55).decode()
+						pp2p = connection.recv(5).decode()
+						i = i+1
+						print("inserito: " + str(filename))
+						self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, Filename, Ipp2p, Pp2p) values (?,?,?,?)", (filename.strip(), filemd5, ipp2p, pp2p))
+						nCopie = nCopie - 1
+						
+					print("tutto bene 3")
+					nIdMd5 = nIdMd5 -1
+				print("Inseriti i file dentro a tracked file "+ str(i)+" file" )
+				
 		except:
 			connection.close()
 			return False
