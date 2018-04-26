@@ -157,7 +157,7 @@ class Kazaa(object):
 		clearAndSetDB(self)
 		
 		#Setto i supernodi noti
-		#self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "192.168.043.012|fe80:0000:0000:0000:8888:4887:b7f4:9999",5000))
+		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, "172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001",3000))
 	
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, var.Settings.root_IP,var.Settings.root_PORT))
@@ -244,7 +244,7 @@ class Kazaa(object):
 				
 				PATH = var.Settings.userPath+filename.strip()
 				
-				self.dbReader.execute("SELECT SessionID FROM user where IPP2P=?", (self.myIPP2P,))
+				self.dbReader.execute("SELECT SessionID FROM user where IPP2P=? AND Super = ?", (self.myIPP2P,0))
 				sessionID = self.dbReader.fetchone()
 				
 				if os.path.isfile(PATH) and os.access(PATH, os.R_OK):
@@ -335,7 +335,7 @@ class Kazaa(object):
 			
 			elif command == "LOGO":
 				#ottengo il mio sessionID dal db
-				self.dbReader.execute("SELECT SessionID FROM User Where IPP2P = ?",(self.myIPP2P,))
+				self.dbReader.execute("SELECT SessionID FROM User Where IPP2P = ? AND Super = ?",(self.myIPP2P,0))
 				data = self.dbReader.fetchone()
 				SessionID = data[0]
 				#seleziono tutti gli utenti
@@ -468,6 +468,7 @@ class Kazaa(object):
 					self.dbReader.execute("DELETE FROM file WHERE Filemd5=? AND SessionID=?", (Filemd5,SessionID,))					
 			
 			elif command == "FIND":
+				self.dbReader.execute("DELETE * FROM TrackedFile")
 				sessionID = connection.recv(16).decode()
 				ricerca = connection.recv(20).decode()
 				#seleziono tutti gli altri peer e ritrasmetto il messaggio
@@ -496,7 +497,7 @@ class Kazaa(object):
 				#dopo aver creato il thread che ascolta tutti i messaggi inviati, ritrasmetto a tutti
 				print("Invio a "+ str(len(superUser)) + " superPeer vicini")
 				for s in superUser:
-					setConnection(superUser[0], int(superUser[1]), msg)
+					setConnection(s[0], int(s[1]), msg)
 				
 			elif command == "ALGI":
 				print("Ricevuto ALGI")
@@ -525,6 +526,7 @@ class Kazaa(object):
 				#preparo il msg
 				msg  = "ALGO"+str(nDeleted)
 				print(msg)
+				print(SessionID)
 				self.dbReader.execute("DELETE FROM File WHERE SessionID=?", (SessionID,))
 				self.dbReader.execute("DELETE FROM User WHERE SessionID=?", (SessionID,))
 				setConnection(IPP2P, int(PP2P), msg)
