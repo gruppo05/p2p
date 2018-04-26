@@ -73,7 +73,7 @@ def encryptMD5(filename):
 def setConnection(ip, port, msg):
 	try:
 		rnd = random()
-		rnd = 0.1
+		#rnd = 0.6
 		if(rnd<0.5):
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+color.end)
@@ -117,7 +117,7 @@ def getTime(t):
 	return time2 - time1
 
 def sendAfin(self, sessionID):
-	time.sleep(5)
+	time.sleep(10)
 	self.dbReader.execute("SELECT DISTINCT Filemd5, Filename FROM TrackedFile")
 	resultFile = self.dbReader.fetchall()
 	print("lunghezza dei file da tracked(1): " + str(len(resultFile)))
@@ -158,7 +158,7 @@ class Kazaa(object):
 		clearAndSetDB(self)
 		
 		#Setto i supernodi noti
-		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001",3000))
+		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002",3000))
 
 	
 		if self.myIPP2P != var.Settings.root_IP:
@@ -496,7 +496,6 @@ class Kazaa(object):
 					self.dbReader.execute("DELETE FROM file WHERE Filemd5=? AND SessionID=?", (Filemd5,SessionID,))					
 			
 			elif command == "FIND":
-				self.dbReader.execute("DELETE FROM TrackedFile")
 				sessionID = connection.recv(16).decode()
 				ricerca = connection.recv(20).decode()
 				#seleziono tutti gli altri peer e ritrasmetto il messaggio
