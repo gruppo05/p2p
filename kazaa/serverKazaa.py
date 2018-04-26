@@ -135,6 +135,7 @@ def sendAfin(self, sessionID):
 	ip = self.dbReader.fetchone()
 	print("RICEVUTE RISPOSTE. INVIO RISPOSTA AL CLIENT con ip: "+ str(ip[0]) + " e porta "+ str(ip[1]))
 	setConnection(ip[0], int(ip[1]), msg)
+	self.dbReader.execute("DELETE FROM TrackedFile")
 
 class Kazaa(object):
 	def __init__(self):
@@ -157,7 +158,7 @@ class Kazaa(object):
 		clearAndSetDB(self)
 		
 		#Setto i supernodi noti
-		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, "172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001",3000))
+		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, "172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002",3000))
 	
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, var.Settings.root_IP,var.Settings.root_PORT))
@@ -288,7 +289,7 @@ class Kazaa(object):
 						self.dbReader.execute("DELETE FROM File WHERE filemd5=?",(filemd5,))
 						print(color.green+"Rimosso file dalla condivisione"+color.end)
 					
-						self.dbReader.execute("SELECT SessionID FROM user where IPP2P=?", (self.myIPP2P,))
+						self.dbReader.execute("SELECT SessionID FROM user where IPP2P=? AND Super=?", (self.myIPP2P,0))
 						sessionID = self.dbReader.fetchone()
 					
 						msg = "DEFF" + sessionID[0] + filemd5
@@ -321,7 +322,7 @@ class Kazaa(object):
 			
 			
 			elif command == "FIND":
-				self.dbReader.execute("SELECT SessionID FROM User WHERE IPP2P LIKE ?", (self.myIPP2P,))
+				self.dbReader.execute("SELECT SessionID FROM User WHERE IPP2P LIKE ? AND Super=?", (self.myIPP2P,0))
 				sessionID = self.dbReader.fetchone()
 				sessionID = sessionID[0]
 				ricerca, useless = self.sockUDPServer.recvfrom(20)
@@ -468,7 +469,7 @@ class Kazaa(object):
 					self.dbReader.execute("DELETE FROM file WHERE Filemd5=? AND SessionID=?", (Filemd5,SessionID,))					
 			
 			elif command == "FIND":
-				self.dbReader.execute("DELETE * FROM TrackedFile")
+				self.dbReader.execute("DELETE FROM TrackedFile")
 				sessionID = connection.recv(16).decode()
 				ricerca = connection.recv(20).decode()
 				#seleziono tutti gli altri peer e ritrasmetto il messaggio
@@ -528,7 +529,7 @@ class Kazaa(object):
 				print(msg)
 				print(SessionID)
 				self.dbReader.execute("DELETE FROM File WHERE SessionID=?", (SessionID,))
-				self.dbReader.execute("DELETE FROM User WHERE SessionID=?", (SessionID,))
+				self.dbReader.execute("DELETE FROM User WHERE SessionID=? AND Super=?", (SessionID,0))
 				setConnection(IPP2P, int(PP2P), msg)
 				
 
