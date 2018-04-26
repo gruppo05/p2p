@@ -158,7 +158,7 @@ class Kazaa(object):
 		clearAndSetDB(self)
 		
 		#Setto i supernodi noti
-		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, "172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002",3000))
+		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001",3000))
 	
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, var.Settings.root_IP,var.Settings.root_PORT))
@@ -222,14 +222,21 @@ class Kazaa(object):
 			elif command == "SETS":
 				try:
 					# scelgo random tra i supernodi
-					self.dbReader.execute("SELECT count(*) FROM user WHERE Super=?", (1,))
-					data = self.dbReader.fetchone()
-					print("Supernodi trovati:", data[0])
-					rnd = randint(1, int(data[0])) - 1
-					self.dbReader.execute("SELECT IPP2P FROM user LIMIT 1 OFFSET ?", (rnd,))
-					data = self.dbReader.fetchone()
-					self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,data[0]))
-					print(color.green + "SUPERNODO con IP:"+data[0]+" selezionato con successo"+ color.end)
+					#parte da buttare
+					print("entrato sets")
+					if self.super == 1:
+						self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,self.myIPP2P))
+						print(color.green + "SUPERNODO con IP:"+self.myIPP2P+" selezionato con successo"+ color.end)
+					else:
+						self.dbReader.execute("SELECT count(*) FROM user WHERE Super=?", (1,))
+						data = self.dbReader.fetchone()
+						print("Supernodi trovati:", data[0])
+						rnd = randint(1, int(data[0])) - 1
+						self.dbReader.execute("SELECT IPP2P FROM user LIMIT 1 OFFSET ?", (rnd,))
+						data = self.dbReader.fetchone()
+						self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,data[0]))
+						print(color.green + "SUPERNODO con IP:"+data[0]+" selezionato con successo"+ color.end)
+					#fino qua
 					self.sockUDPClient.sendto(("SET1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				except: 
 					print(color.fail+"Errore SET supernodo"+color.end)
@@ -479,7 +486,7 @@ class Kazaa(object):
 				self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)", (myPktid, datetime.datetime.now()))
 				ttl = setNumber(4)
 				#messaggio da ritrasmettere
-				msg = "QUER" + str(myPktid) + str(self.myIPP2P) + str(self.PORT) + str(ttl) + str(ricerca)
+				msg = "QUER" + str(myPktid) + str(self.myIPP2P) + str(self.PORT).ljust(5) + str(ttl) + str(ricerca)
 				
 				#controllo tra i miei file quali mettere in tracked file
 				ricerca = ricerca.strip()
@@ -498,6 +505,7 @@ class Kazaa(object):
 				#dopo aver creato il thread che ascolta tutti i messaggi inviati, ritrasmetto a tutti
 				print("Invio a "+ str(len(superUser)) + " superPeer vicini")
 				for s in superUser:
+					
 					setConnection(s[0], int(s[1]), msg)
 				
 			elif command == "ALGI":
@@ -550,10 +558,11 @@ class Kazaa(object):
 				
 				#elaboro la richiesta se non ho il pktid
 				if resultPkt is None:
-					self.dbReader.execute("INSER INTO Pktid (Pktid, timestamp) values (?, ?)", (pktId, datetime.datetime.now()))
-					self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ?", (ricerca,))
+					self.dbReader.execute("INSERT INTO Pktid (Pktid, timestamp) values (?, ?)", (pktId, datetime.datetime.now()))
+					self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
 					resultFile = self.dbReader.fetchall()
 					msg = "AQUE" + pktId
+					print(msg)
 					
 					#invio le aque a chi mi ha fatto la richiesta
 					for f in resultFile:
@@ -572,17 +581,20 @@ class Kazaa(object):
 							setConnection (s[0], int(s[1]), "QUER" + pktId + ipp2p + pp2p + ttl + ricerca)
 			
 			elif command == "AQUE":
+				print("Ricevuto " + color.recv + command + color.end)
 				pktid = connection.recv(16).decode()
 				ipp2p = connection.recv(55).decode()
 				pp2p = connection.recv(5).decode()
 				filemd5 = connection.recv(32).decode()
 				filename = connection.recv(100).decode()
 				
-				self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (Pktid,))
+				self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (pktid,))
 				t = self.dbReader.fetchone() #retrieve the first row
+				print("uguale a 1", len(t))
 				if getTime(t[0]) < 20:
 					#se il pacchetto esiste faccio quello che devo fare
 					self.dbReader.execute("INSERT INTO TrackedFile (IPP2P, PP2P, Filemd5, Filename) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, filename))
+					print("Inserito " + filename + " con md5 " + filemd5)
 			
 			elif command == "AFIN":
 				print("Ricevuto " + color.recv + command + color.end)
