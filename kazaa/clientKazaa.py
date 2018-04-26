@@ -135,8 +135,9 @@ class kazaaClient(object):
 				print(color.recv+"FIND"+color.end)
 				self.sockUDPServer.sendto(("FIND").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				ricerca = input("Inserisci il nome del file da cercare: ")
-				ricerca = filename.ljust(20)
-				self.sockUDPClient.sendto(filename.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				ricerca = ricerca.ljust(20)
+				print(ricerca)
+				self.sockUDPClient.sendto(ricerca.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				print("Ricerca File: ")
 				while i < 20:
 					progBar(i)
