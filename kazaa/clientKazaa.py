@@ -146,7 +146,12 @@ class kazaaClient(object):
 				#leggere da server
 				
 			elif cmd is "4":
-				print(color.recv+"RETR"+color.end)
+				print(color.recv+"DOWNLOAD"+color.end)
+				self.sockUDPServer.sendto(("RETR").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				filename = input("Inserisci il nome del file da scaricare: ")
+				
+				filename = str(filename).ljust(20)				
+				self.sockUDPServer.sendto((filename).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				
 			elif cmd is "5":
 				print(color.recv+"LOGOUT"+color.end)
