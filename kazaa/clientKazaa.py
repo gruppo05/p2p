@@ -53,7 +53,8 @@ class kazaaClient(object):
 		UDP_PORT_CLIENT = 50000
 		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-
+		self.endUDP3 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+		
 		# Socket UPD ipv4 client in attesa
 		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.sockUDPClient.bind((self.UDP_IP, UDP_PORT_CLIENT))
@@ -143,8 +144,38 @@ class kazaaClient(object):
 					progBar(i)
 					time.sleep(1)
 					i = i+1
+					
+					
+					
 				#leggere da server
-				
+				msg = "FDWN"+ricerca.ljust(20)
+				#Invio il messaggio
+				self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				count = 1;
+				print(color.recv+"RISULTATI TROVATI:"+color.end)
+				while True:
+					buff, addr = self.sockUDPClient.recvfrom(159)
+					cmd = buff.decode()
+					if cmd == self.endUDP3:
+						print(color.recv+"0 - Annulla\n______________________________\n"+color.end)
+						cmd = input("Quale risultato vuoi scaricare? ")
+						if cmd == "0":
+							break;
+						else:
+							msg = "RETR"+ricerca.ljust(20)+cmd.ljust(3)
+							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+					else:
+						print(color.recv+str(count)+" - "++cmd+color.end)
+						count = count+1
+			
+			
+			
+			
+			
+			
+			
+			
+			#**************************************** Da rimuovere ****************************************
 			elif cmd is "4":
 				print(color.recv+"DOWNLOAD"+color.end)
 				self.sockUDPServer.sendto(("RETR").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
@@ -152,7 +183,7 @@ class kazaaClient(object):
 				
 				filename = str(filename).ljust(20)				
 				self.sockUDPServer.sendto((filename).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
-				
+			# **********************************************************************************	
 			elif cmd is "5":
 				print(color.recv+"LOGOUT"+color.end)
 				self.sockUDPServer.sendto(("LOGO").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
@@ -175,7 +206,7 @@ class kazaaClient(object):
 						print(color.recv+cmd+color.end)
 			
 			elif cmd is "7":
-				print(color.recv+"STAMPA FILE IN CONDIVISIONE"+color.end)
+				print(color.recv+"STAMPA PEER IN CONDIVISIONE"+color.end)
 				self.sockUDPServer.sendto(("STMP").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				while True:
 					buff, addr = self.sockUDPClient.recvfrom(80)

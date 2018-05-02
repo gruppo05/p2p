@@ -146,6 +146,7 @@ class Kazaa(object):
 		self.UDP_PORT_CLIENT = 50000
 		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+		self.endUDP3 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.BUFF = 99999
 		
 		self.super = ""
@@ -157,7 +158,7 @@ class Kazaa(object):
 		clearAndSetDB(self)
 		
 		#Setto i supernodi noti
-		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002",3000))
+		#self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002",3000))
 	
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, var.Settings.root_IP,var.Settings.root_PORT))
@@ -307,6 +308,27 @@ class Kazaa(object):
 				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			
+			
+			
+			
+			
+			# Novità bertino 2.0
+			elif command == "FDWN":
+				filename, useless = self.sockUDPServer.recvfrom(20)
+				filename = filename.decode()
+				self.dbReader.execute("SELECT IPP2P, PP2P, Filemd5, Filename FROM TrackedFile WHERE Filename LIKE ?", ("%"+filename+"%",))
+				files = self.dbReader.fetchall()
+				for f in files:
+					self.sockUDPClient.sendto((f[0].ljust(55)+"-"+str(f[1]).ljust(5)+"-"+f[2].ljust(32)+"-"+f[3].ljust(100)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.sockUDPClient.sendto((self.endUDP3).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+			
+			#************************
+			
+			
+			
+			
+			
+			
 			elif command == "STMF":
 				self.dbReader.execute("SELECT Filename, SessionID, Filemd5 FROM File")
 				files = self.dbReader.fetchall()
@@ -350,7 +372,45 @@ class Kazaa(object):
 				#seleziono tutti gli utenti
 				msg = "LOGO" + SessionID
 				sendToSuper(self, msg)
-
+			
+			
+			
+			
+			
+			
+			#Novità Bertino 2.0
+			
+			elif command == "RETR":
+				filename, useless = self.sockUDPServer.recvfrom(20)
+				filename = filename.decode()
+				filename = filename.strip()
+			
+				cmd, addr = self.sockUDPServer.recvfrom(3)
+				cmd = cmd.decode()
+			
+				#fix per offset
+				cmd = int(cmd)-1
+				#Recupero il file
+				self.dbReader.execute("SELECT * FROM TrackedFile WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
+				resultFile = self.dbReader.fetchone()
+				if resultFile is not None:
+					self.dbReader.execute("DELETE FROM Download")
+					self.dbReader.execute("INSERT INTO Download values (?, ?)", (resultFile[0], resultFile[1]))
+					self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ('%'+resultFile[2]+'%',))
+					resultUser = self.dbReader.fetchone()
+					msg = "RETR" + resultFile[0]
+					setConnection(resultUser[0], int(resultUser[1]), msg)
+				else:
+					print("Errore nella procedura di download")
+			
+			
+			
+			
+			
+			
+			
+			#**************************************** Da rimuovere ****************************************
+			
 			elif command == "RETR":
 				filename, addr = self.sockUDPServer.recvfrom(20)
 				filename = filename.decode()
@@ -366,6 +426,8 @@ class Kazaa(object):
 					setConnection(resultUser[0], int(resultUser[1]), msg)
 				else:
 					print("File non presente nel database")
+			
+			#********************************************************************************** 
 			
 
 			elif command == "STOP":
