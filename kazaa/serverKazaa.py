@@ -368,6 +368,7 @@ class Kazaa(object):
 				
 				#fix per offset
 				cmd = int(cmd)-1
+				
 				#Recupero il file
 				self.dbReader.execute("SELECT * FROM TrackedFile WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
 				resultFile = self.dbReader.fetchone()
@@ -656,6 +657,7 @@ class Kazaa(object):
 				
 				#inviare un file che ho
 				FileMD5 = connection.recv(32).decode()
+				print("FileMD5", FileMD5)
 				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
 				resultFile = self.dbReader.fetchone()
 				filename=resultFile[0].replace(" ","")
