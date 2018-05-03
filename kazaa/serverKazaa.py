@@ -119,22 +119,23 @@ def getTime(t):
 def sendAfin(self, sessionID):
 	self.dbReader.execute("SELECT DISTINCT Filemd5, Filename FROM TrackedFile")
 	resultFile = self.dbReader.fetchall()
-	print("lunghezza dei file da tracked(1): " + str(len(resultFile)))
+	print("Num file trovati: " + str(len(resultFile)))
 	msg = "AFIN" + setIp(len(resultFile))
 	for f in resultFile:
 		self.dbReader.execute("SELECT IPP2P, PP2P FROM TrackedFile WHERE Filemd5 LIKE ?", ("%" + f[0] + "%",))
 		resultIP = self.dbReader.fetchall()
-		print("ho trovato " + setIp(len(resultIP))+" utenti col file")
-		print(str(f[0]))
 		msg = msg + str(f[0]) + str(f[1]) + str(setIp(len(resultIP)))
 		for i in resultIP:
 			msg = msg + str(i[0]) + str(i[1])
 	
+	print("MESSAGGIO\n"+msg)
 	self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE SessionID LIKE ?", (sessionID,))
 	ip = self.dbReader.fetchone()
-	print("RICEVUTE RISPOSTE. INVIO RISPOSTA AL CLIENT con ip: "+ str(ip[0]) + " e porta "+ str(ip[1]))
+	#print("RICEVUTE RISPOSTE. INVIO RISPOSTA AL CLIENT con ip: "+ str(ip[0]) + " e porta "+ str(ip[1]))
 	setConnection(ip[0], int(ip[1]), msg)
-	#self.dbReader.execute("DELETE FROM TrackedFile")
+	self.dbReader.execute("DELETE FROM TrackedFile")
+
+
 
 class Kazaa(object):
 	def __init__(self):
@@ -574,8 +575,8 @@ class Kazaa(object):
 				resultFile = self.dbReader.fetchall()
 				for f in resultFile:
 					print("inserisco il file:" + f[0]+ "-" +f[1] + "-" + f[2]+ "-" + f[3])
-					self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, IPP2P, PP2P, Filename) values (?, ?,?,?)", (f[0], f[1], f[2],f[3]))
-				
+					self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, IPP2P, PP2P, Filename) values (?,?,?,?)", (f[0], f[1], f[2],f[3]))
+
 				#threading.Thread(target = self.serverTCP, args = (connection,client_address)).start()
 				
 				for s in superUser:
@@ -592,6 +593,7 @@ class Kazaa(object):
 					sendAfin(self, sessionID)
 				except:
 					print("Non riesce a lanciare il thread")
+					
 				
 				
 			elif command == "ALGI":
@@ -684,7 +686,6 @@ class Kazaa(object):
 				nIdMd5 = int(connection.recv(3).decode())
 				i=0
 				while nIdMd5 > 0:
-					print("tutto bene 1")
 					filemd5 = connection.recv(32).decode()
 					filename = connection.recv(100).decode()
 					nCopie = int(connection.recv(3).decode())
@@ -692,14 +693,15 @@ class Kazaa(object):
 						ipp2p = connection.recv(55).decode()
 						pp2p = connection.recv(5).decode()
 						i = i+1
-						print("inserito: " + str(filename))
-						self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, Filename, Ipp2p, Pp2p) values (?,?,?,?)", (filemd5, filename.strip(), ipp2p, pp2p))
+						self.dbReader.execute("INSERT INTO TrackedFile (Filename, Filemd5, Ipp2p, Pp2p) values (?,?,?,?)", (filename.strip(), filemd5, ipp2p, pp2p))
 						nCopie = nCopie - 1
-						
-					print("tutto bene 3")
 					nIdMd5 = nIdMd5 -1
-				print("Inseriti i file dentro a tracked file "+ str(i)+" file" )
-
+				print("Stampo i file trovati")
+				self.dbReader.execute("SELECT * FROM TrackedFile")
+				files = self.dbReader.fetchall()
+				for f in files:
+					print(f[0] + " - " + f[1] + " - " + f[2] + " - " + f[3])
+			
 			elif command == "RETR":
 				print("Ricevuto "+color.recv+"RETR"+color.end)
 				
