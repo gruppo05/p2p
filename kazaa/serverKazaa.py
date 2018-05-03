@@ -115,8 +115,8 @@ def getTime(t):
 	time2 = ha + ma + sa
 	return time2 - time1
 
-def sendAfin(self, sessionID):
-	self.dbReader.execute("SELECT DISTINCT Filemd5, Filename FROM TrackedFile")
+def sendAfin(self, sessionID, ricerca):
+	self.dbReader.execute("SELECT DISTINCT Filemd5, Filename FROM TrackedFile WHERE filename LIKE ?", ("%"+ricerca+"%", ))
 	resultFile = self.dbReader.fetchall()
 	#print("Num file trovati: " + str(len(resultFile)))
 	msg = "AFIN" + setIp(len(resultFile))
@@ -130,9 +130,7 @@ def sendAfin(self, sessionID):
 	ip = self.dbReader.fetchone()
 	#print("RICEVUTE RISPOSTE. INVIO RISPOSTA AL CLIENT con ip: "+ str(ip[0]) + " e porta "+ str(ip[1]))
 	setConnection(ip[0], int(ip[1]), msg)
-	self.dbReader.execute("DELETE FROM TrackedFile")
-
-
+	self.dbReader.execute("DELETE FROM TrackedFile WHERE filename LIKE ?", ("%"+ricerca+"%", ))
 
 class Kazaa(object):
 	def __init__(self):
@@ -530,10 +528,11 @@ class Kazaa(object):
 				resultFile = self.dbReader.fetchall()
 				for f in resultFile:
 					print("inserisco il file:" + f[0]+ "-" +f[1] + "-" + f[2]+ "-" + f[3])
-					self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, IPP2P, PP2P, Filename) values (?,?,?,?)", (f[0], f[1], f[2],f[3]))
-
+					self.dbReader.execute("SELECT * FROM TrackedFile WHERE Filemd5=?", (f[0],))
+					data = self.dbReader.fetchone()
+					if data is None:
+						self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, IPP2P, PP2P, Filename) values (?,?,?,?)", (f[0], f[1], f[2],f[3]))
 				#threading.Thread(target = self.serverTCP, args = (connection,client_address)).start()
-				
 				for s in superUser:
 					setConnection(s[0], int(s[1]), msg)
 					
@@ -545,7 +544,7 @@ class Kazaa(object):
 					print(n)
 				
 				try:
-					sendAfin(self, sessionID)
+					sendAfin(self, sessionID,ricerca)
 				except:
 					print("Non riesce a lanciare il thread")
 					
