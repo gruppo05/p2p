@@ -146,7 +146,7 @@ class Kazaa(object):
 		self.UDP_PORT_CLIENT = 50000
 		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-		self.endUDP3 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+		self.endUDP3 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.BUFF = 99999
 		
 		self.super = ""
@@ -320,7 +320,8 @@ class Kazaa(object):
 				self.dbReader.execute("SELECT IPP2P, PP2P, Filemd5, Filename FROM TrackedFile WHERE Filename LIKE ?", ("%"+filename+"%",))
 				files = self.dbReader.fetchall()
 				for f in files:
-					self.sockUDPClient.sendto((f[0].ljust(55)+"-"+str(f[1]).ljust(5)+"-"+f[2].ljust(32)+"-"+f[3].ljust(100)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					print("ciao")
+					self.sockUDPClient.sendto((str(f[0].ljust(55))+"-"+str(f[1]).ljust(5)+"-"+str(f[2].ljust(32))+"-"+str(f[3].ljust(100))).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				self.sockUDPClient.sendto((self.endUDP3).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			#************************
@@ -572,7 +573,7 @@ class Kazaa(object):
 				self.dbReader.execute("SELECT DISTINCT f.Filemd5, u.IPP2P, u.PP2P, f.Filename FROM user as u JOIN file as f WHERE u.sessionId = f.sessionID AND Filename LIKE ?",("%"+ricerca+"%",) )
 				resultFile = self.dbReader.fetchall()
 				for f in resultFile:
-					print("inserisco il file:" + f[0]+"-" +f[1] + "-" + f[2]+"-" + f[3])
+					print("inserisco il file:" + f[0]+ "-" +f[1] + "-" + f[2]+ "-" + f[3])
 					self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, IPP2P, PP2P, Filename) values (?, ?,?,?)", (f[0], f[1], f[2],f[3]))
 				
 				#threading.Thread(target = self.serverTCP, args = (connection,client_address)).start()
@@ -692,7 +693,7 @@ class Kazaa(object):
 						pp2p = connection.recv(5).decode()
 						i = i+1
 						print("inserito: " + str(filename))
-						self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, Filename, Ipp2p, Pp2p) values (?,?,?,?)", (filename.strip(), filemd5, ipp2p, pp2p))
+						self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, Filename, Ipp2p, Pp2p) values (?,?,?,?)", (filemd5, filename.strip(), ipp2p, pp2p))
 						nCopie = nCopie - 1
 						
 					print("tutto bene 3")
