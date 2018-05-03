@@ -53,7 +53,7 @@ class kazaaClient(object):
 		UDP_PORT_CLIENT = 50000
 		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-		self.endUDP3 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+		self.endUDP3 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		
 		# Socket UPD ipv4 client in attesa
 		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -138,23 +138,28 @@ class kazaaClient(object):
 				ricerca = input("Inserisci il nome del file da cercare: ")
 				ricerca = ricerca.ljust(20)
 				print(ricerca)
-				self.sockUDPClient.sendto(ricerca.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				self.sockUDPServer.sendto(ricerca.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				print("Ricerca File: ")
+				'''i = 0
 				while i < 20:
+					print("fazzi")
 					progBar(i)
-					time.sleep(1)
-					i = i+1
-					
-					
-					
+					time.sleep(0.1)
+					i = i+1'''
+				
+				time.sleep(11)
+				
+				
 				#leggere da server
-				msg = "FDWN"+ricerca.ljust(20)
-				#Invio il messaggio
-				self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				msg = "FDWN"
+				self.sockUDPServer.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				msg = ricerca.ljust(20)
+				self.sockUDPServer.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				print("inviato")
 				count = 1;
 				print(color.recv+"RISULTATI TROVATI:"+color.end)
 				while True:
-					buff, addr = self.sockUDPClient.recvfrom(159)
+					buff, addr = self.sockUDPClient.recvfrom(195)
 					cmd = buff.decode()
 					if cmd == self.endUDP3:
 						print(color.recv+"0 - Annulla\n______________________________\n"+color.end)
@@ -165,7 +170,7 @@ class kazaaClient(object):
 							msg = "RETR"+ricerca.ljust(20)+cmd.ljust(3)
 							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 					else:
-						print(color.recv+str(count)+" - "++cmd+color.end)
+						print(color.recv+str(count)+" - "+cmd+color.end)
 						count = count+1
 			
 			

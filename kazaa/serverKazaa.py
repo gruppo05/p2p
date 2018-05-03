@@ -314,8 +314,9 @@ class Kazaa(object):
 			
 			# Novità bertino 2.0
 			elif command == "FDWN":
-				filename, useless = self.sockUDPServer.recvfrom(20)
-				filename = filename.decode()
+				data, noused = self.sockUDPServer.recvfrom(20)
+				filename = data.decode()
+				filename = filename.strip()
 				self.dbReader.execute("SELECT IPP2P, PP2P, Filemd5, Filename FROM TrackedFile WHERE Filename LIKE ?", ("%"+filename+"%",))
 				files = self.dbReader.fetchall()
 				for f in files:
