@@ -149,7 +149,6 @@ class kazaaClient(object):
 				
 				time.sleep(11)
 				
-				
 				#leggere da server
 				msg = "FDWN"
 				self.sockUDPServer.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
@@ -172,11 +171,7 @@ class kazaaClient(object):
 					else:
 						print(color.recv+str(count)+" - "+cmd+color.end)
 						count = count+1
-			
-			
-			
-			
-			
+					
 			
 			
 			#**************************************** Da rimuovere ****************************************
