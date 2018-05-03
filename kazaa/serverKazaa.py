@@ -81,7 +81,6 @@ def setConnection(ip, port, msg):
 		
 		else:
 			ip = ip[16:55]
-			print("IPv6", ip)
 			print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
 			peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 			peer_socket.connect((ip, port))
@@ -119,20 +118,17 @@ def getTime(t):
 def sendAfin(self, sessionID):
 	self.dbReader.execute("SELECT DISTINCT Filemd5, Filename FROM TrackedFile")
 	resultFile = self.dbReader.fetchall()
-	print("lunghezza dei file da tracked(1): " + str(len(resultFile)))
+	#print("Num file trovati: " + str(len(resultFile)))
 	msg = "AFIN" + setIp(len(resultFile))
 	for f in resultFile:
 		self.dbReader.execute("SELECT IPP2P, PP2P FROM TrackedFile WHERE Filemd5 LIKE ?", ("%" + f[0] + "%",))
 		resultIP = self.dbReader.fetchall()
-		print("ho trovato " + setIp(len(resultIP))+" utenti col file")
-		print(str(f[0]))
-		msg = msg + str(f[0]) + str(f[1]) + str(setIp(len(resultIP)))
+		msg = msg + str(f[0]).ljust(32) + str(f[1]).ljust(100) + str(setIp(len(resultIP)))
 		for i in resultIP:
-			msg = msg + str(i[0]) + str(i[1])
-	
+			msg = msg + str(i[0]).ljust(55)+ str(i[1]).ljust(5)
 	self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE SessionID LIKE ?", (sessionID,))
 	ip = self.dbReader.fetchone()
-	print("RICEVUTE RISPOSTE. INVIO RISPOSTA AL CLIENT con ip: "+ str(ip[0]) + " e porta "+ str(ip[1]))
+	#print("RICEVUTE RISPOSTE. INVIO RISPOSTA AL CLIENT con ip: "+ str(ip[0]) + " e porta "+ str(ip[1]))
 	setConnection(ip[0], int(ip[1]), msg)
 	self.dbReader.execute("DELETE FROM TrackedFile")
 
@@ -147,8 +143,8 @@ class Kazaa(object):
 		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.endUDP3 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
 		self.BUFF = 99999
-		
 		self.super = ""
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -436,7 +432,7 @@ class Kazaa(object):
 				print(color.fail+"Server fermato"+color.end)
 				self.sockUDPServer.close()
 				self.sockUDPClient.close()
-				os._exit(0)
+				os._exit(0) 
 
 	def serverTCP(self, connection, client_address):
 		command = connection.recv(4).decode()
