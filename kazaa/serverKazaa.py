@@ -73,7 +73,6 @@ def encryptMD5(filename):
 def setConnection(ip, port, msg):
 	try:
 		rnd = random()
-		#rnd = 0.6
 		if(rnd<0.5):
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+color.end)
@@ -82,6 +81,7 @@ def setConnection(ip, port, msg):
 		
 		else:
 			ip = ip[16:55]
+			print("IPv6", ip)
 			print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
 			peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 			peer_socket.connect((ip, port))
@@ -117,7 +117,6 @@ def getTime(t):
 	return time2 - time1
 
 def sendAfin(self, sessionID):
-	time.sleep(10)
 	self.dbReader.execute("SELECT DISTINCT Filemd5, Filename FROM TrackedFile")
 	resultFile = self.dbReader.fetchall()
 	print("lunghezza dei file da tracked(1): " + str(len(resultFile)))
@@ -147,6 +146,7 @@ class Kazaa(object):
 		self.UDP_PORT_CLIENT = 50000
 		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+		self.endUDP3 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.BUFF = 99999
 		
 		self.super = ""
@@ -309,6 +309,28 @@ class Kazaa(object):
 				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			
+			
+			
+			
+			
+			# Novità bertino 2.0
+			elif command == "FDWN":
+				data, noused = self.sockUDPServer.recvfrom(20)
+				filename = data.decode()
+				filename = filename.strip()
+				self.dbReader.execute("SELECT IPP2P, PP2P, Filemd5, Filename FROM TrackedFile WHERE Filename LIKE ?", ("%"+filename+"%",))
+				files = self.dbReader.fetchall()
+				for f in files:
+					self.sockUDPClient.sendto((f[0].ljust(55)+"-"+str(f[1]).ljust(5)+"-"+f[2].ljust(32)+"-"+f[3].ljust(100)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.sockUDPClient.sendto((self.endUDP3).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+			
+			#************************
+			
+			
+			
+			
+			
+			
 			elif command == "STMF":
 				self.dbReader.execute("SELECT Filename, SessionID, Filemd5 FROM File")
 				files = self.dbReader.fetchall()
@@ -352,7 +374,45 @@ class Kazaa(object):
 				#seleziono tutti gli utenti
 				msg = "LOGO" + SessionID
 				sendToSuper(self, msg)
-
+			
+			
+			
+			
+			
+			
+			#Novità Bertino 2.0
+			
+			elif command == "RETR":
+				filename, useless = self.sockUDPServer.recvfrom(20)
+				filename = filename.decode()
+				filename = filename.strip()
+			
+				cmd, addr = self.sockUDPServer.recvfrom(3)
+				cmd = cmd.decode()
+			
+				#fix per offset
+				cmd = int(cmd)-1
+				#Recupero il file
+				self.dbReader.execute("SELECT * FROM TrackedFile WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
+				resultFile = self.dbReader.fetchone()
+				if resultFile is not None:
+					self.dbReader.execute("DELETE FROM Download")
+					self.dbReader.execute("INSERT INTO Download values (?, ?)", (resultFile[0], resultFile[1]))
+					self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ('%'+resultFile[2]+'%',))
+					resultUser = self.dbReader.fetchone()
+					msg = "RETR" + resultFile[0]
+					setConnection(resultUser[0], int(resultUser[1]), msg)
+				else:
+					print("Errore nella procedura di download")
+			
+			
+			
+			
+			
+			
+			
+			#**************************************** Da rimuovere ****************************************
+			
 			elif command == "RETR":
 				filename, addr = self.sockUDPServer.recvfrom(20)
 				filename = filename.decode()
@@ -368,6 +428,8 @@ class Kazaa(object):
 					setConnection(resultUser[0], int(resultUser[1]), msg)
 				else:
 					print("File non presente nel database")
+			
+			#********************************************************************************** 
 			
 
 			elif command == "STOP":
@@ -510,21 +572,27 @@ class Kazaa(object):
 				ricerca = ricerca.strip()
 				self.dbReader.execute("SELECT DISTINCT f.Filemd5, u.IPP2P, u.PP2P, f.Filename FROM user as u JOIN file as f WHERE u.sessionId = f.sessionID AND Filename LIKE ?",("%"+ricerca+"%",) )
 				resultFile = self.dbReader.fetchall()
-				print("resultFile con (1) "+ str(len(resultFile)) + " File")
 				for f in resultFile:
-					print("inserisco il file:" + f[0]+"-" +f[1] + "-" + f[2]+"-" + f[3])
-					self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, IPP2P, PP2P, Filename) values (?, ?,?,?)", (f[0], f[1], f[2],f[3]))
+					self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, IPP2P, PP2P, Filename) values (?,?,?,?)", (f[0], f[1], f[2],f[3]))
 				
 				#threading.Thread(target = self.serverTCP, args = (connection,client_address)).start()
+				
+				for s in superUser:
+					setConnection(s[0], int(s[1]), msg)
+					
+				n = 0
+				#wait 10 s
+				while n < 10:
+					time.sleep(1)
+					n = n+1
+					print(n)
+				
 				try:
-					threading.Thread(target = sendAfin(self, sessionID)).start()
+					sendAfin(self, sessionID)
 				except:
 					print("Non riesce a lanciare il thread")
-				#dopo aver creato il thread che ascolta tutti i messaggi inviati, ritrasmetto a tutti
-				print("Invio a "+ str(len(superUser)) + " superPeer vicini")
-				for s in superUser:
 					
-					setConnection(s[0], int(s[1]), msg)
+				
 				
 			elif command == "ALGI":
 				print("Ricevuto ALGI")
@@ -574,14 +642,12 @@ class Kazaa(object):
 				
 				self.dbReader.execute("SELECT * FROM Pktid WHERE Pktid LIKE ?", (pktId,))
 				resultPkt = self.dbReader.fetchone()
-				print("packetID = ",resultPkt)
 				#elaboro la richiesta se non ho il pktid
 				if resultPkt is None:
 					self.dbReader.execute("INSERT INTO Pktid (Pktid, timestamp) values (?, ?)", (pktId, datetime.datetime.now()))
-					self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
+					self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ?", ("%"+ricerca.strip()+"%",))
 					resultFile = self.dbReader.fetchall()
 					msg = "AQUE" + pktId
-					print(len(resultFile))
 					#invio le aque a chi mi ha fatto la richiesta
 					for f in resultFile:
 						self.dbReader.execute("SELECT IPP2P, PP2P FROM user where SessionID=? AND Super=?", (f[2],0))
@@ -608,7 +674,6 @@ class Kazaa(object):
 				
 				self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (pktid,))
 				t = self.dbReader.fetchone() #retrieve the first row
-				print("uguale a 1", len(t))
 				if getTime(t[0]) < 20:
 					#se il pacchetto esiste faccio quello che devo fare
 					self.dbReader.execute("INSERT INTO TrackedFile (IPP2P, PP2P, Filemd5, Filename) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, filename))
@@ -619,7 +684,6 @@ class Kazaa(object):
 				nIdMd5 = int(connection.recv(3).decode())
 				i=0
 				while nIdMd5 > 0:
-					print("tutto bene 1")
 					filemd5 = connection.recv(32).decode()
 					filename = connection.recv(100).decode()
 					nCopie = int(connection.recv(3).decode())
@@ -628,12 +692,15 @@ class Kazaa(object):
 						pp2p = connection.recv(5).decode()
 						i = i+1
 						print("inserito: " + str(filename))
-						self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, Filename, Ipp2p, Pp2p) values (?,?,?,?)", (filename.strip(), filemd5, ipp2p, pp2p))
+						self.dbReader.execute("INSERT INTO TrackedFile (Filename, Filemd5, Ipp2p, Pp2p) values (?,?,?,?)", (filename.strip(), filemd5, ipp2p, pp2p))
 						nCopie = nCopie - 1
-						
-					print("tutto bene 3")
 					nIdMd5 = nIdMd5 -1
 				print("Inseriti i file dentro a tracked file "+ str(i)+" file" )
+				print("Stampo i file trovati")
+				self.dbReader.execute("SELECT * FROM TrackedFile")
+				files = self.dbReader.fetchall()
+				for f in files:
+					print(f[0] + " - " + f[1] + " - " + f[2] + " - " + f[3])
 
 			elif command == "RETR":
 				print("Ricevuto "+color.recv+"RETR"+color.end)
