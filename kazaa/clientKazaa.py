@@ -140,16 +140,21 @@ class kazaaClient(object):
 				print(ricerca)
 				self.sockUDPServer.sendto(ricerca.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				print("Ricerca File: ")
+				'''i = 0
 				while i < 20:
+					print("fazzi")
 					progBar(i)
-					time.sleep(1)
-					i = i+1
-					print(i)
-										
+					time.sleep(0.1)
+					i = i+1'''
+				
+				time.sleep(11)
+				
 				#leggere da server
-				msg = "FDWN"+ricerca.ljust(20)
-				#Invio il messaggio
-				self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				msg = "FDWN"
+				self.sockUDPServer.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				msg = ricerca.ljust(20)
+				self.sockUDPServer.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				print("inviato")
 				count = 1;
 				print(color.recv+"RISULTATI TROVATI:"+color.end)
 				while True:
@@ -164,7 +169,7 @@ class kazaaClient(object):
 							msg = "RETR"+ricerca.ljust(20)+cmd.ljust(3)
 							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 					else:
-						print(color.recv+str(count)+" - "++cmd+color.end)
+						print(color.recv+str(count)+" - "+cmd+color.end)
 						count = count+1
 					
 			
