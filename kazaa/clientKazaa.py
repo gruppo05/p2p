@@ -164,10 +164,21 @@ class kazaaClient(object):
 						print(color.recv+"0 - Annulla\n______________________________\n"+color.end)
 						cmd = input("Quale risultato vuoi scaricare? ")
 						if cmd == "0":
-							break;
+							break
 						else:
-							msg = "RETR"+ricerca.ljust(20)+cmd.ljust(3)
+							msg = "RETR"
 							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+							msg = ricerca.ljust(20)
+							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+							msg = cmd.ljust(3)
+							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+							cmd, addr = self.sockUDPClient.recvfrom(4)
+							cmd = cmd.decode()
+							if cmd == "ARE1":
+								print(color.green+"File scaricato!"+color.end)
+							else:
+								print(color.fail+"Errore download file!"+color.end)
+							break
 					else:
 						print(color.recv+str(count)+" - "+cmd+color.end)
 						count = count+1
