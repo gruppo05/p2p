@@ -117,8 +117,8 @@ def getTime(t):
 
 def sendAfin(self, sessionID):
 	self.dbReader.execute("SELECT DISTINCT Filemd5, Filename FROM TrackedFile")
+	resultFile = self.dbReader.fetchall()
 	#print("Num file trovati: " + str(len(resultFile)))
-
 	msg = "AFIN" + setIp(len(resultFile))
 	for f in resultFile:
 		self.dbReader.execute("SELECT IPP2P, PP2P FROM TrackedFile WHERE Filemd5 LIKE ?", ("%" + f[0] + "%",))
@@ -126,7 +126,6 @@ def sendAfin(self, sessionID):
 		msg = msg + str(f[0]).ljust(32) + str(f[1]).ljust(100) + str(setIp(len(resultIP)))
 		for i in resultIP:
 			msg = msg + str(i[0]).ljust(55)+ str(i[1]).ljust(5)
-	
 	self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE SessionID LIKE ?", (sessionID,))
 	ip = self.dbReader.fetchone()
 	#print("RICEVUTE RISPOSTE. INVIO RISPOSTA AL CLIENT con ip: "+ str(ip[0]) + " e porta "+ str(ip[1]))
@@ -361,10 +360,6 @@ class Kazaa(object):
 				msg = "LOGO" + SessionID
 				sendToSuper(self, msg)
 			
-			
-			
-			
-			
 			elif command == "RETR":
 				print("ricevuto RETR")
 				filename, useless = self.sockUDPServer.recvfrom(20)
@@ -386,11 +381,7 @@ class Kazaa(object):
 					setConnection(resultFile[0], int(resultFile[1]), msg)
 				else:
 					print("Errore nella procedura di download")			
-				
-			
-			
-			
-			
+
 			
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
