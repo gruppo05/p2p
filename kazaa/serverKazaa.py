@@ -303,12 +303,6 @@ class Kazaa(object):
 				
 				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
-			
-			
-			
-			
-			
-			# Novità bertino 2.0
 			elif command == "FDWN":
 				data, noused = self.sockUDPServer.recvfrom(20)
 				filename = data.decode()
@@ -316,16 +310,8 @@ class Kazaa(object):
 				self.dbReader.execute("SELECT IPP2P, PP2P, Filemd5, Filename FROM TrackedFile WHERE Filename LIKE ?", ("%"+filename+"%",))
 				files = self.dbReader.fetchall()
 				for f in files:
-					print("ciao")
 					self.sockUDPClient.sendto((str(f[0].ljust(55))+"-"+str(f[1]).ljust(5)+"-"+str(f[2].ljust(32))+"-"+str(f[3].ljust(100))).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				self.sockUDPClient.sendto((self.endUDP3).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-			
-			#************************
-			
-			
-			
-			
-			
 			
 			elif command == "STMF":
 				self.dbReader.execute("SELECT Filename, SessionID, Filemd5 FROM File")
@@ -372,30 +358,28 @@ class Kazaa(object):
 				msg = "LOGO" + SessionID
 				sendToSuper(self, msg)
 			
-			#Novità Bertino 2.0
-			
 			elif command == "RETR":
+				print("ricevuto RETR")
 				filename, useless = self.sockUDPServer.recvfrom(20)
 				filename = filename.decode()
 				filename = filename.strip()
-			
 				cmd, addr = self.sockUDPServer.recvfrom(3)
 				cmd = cmd.decode()
-			
+				
 				#fix per offset
 				cmd = int(cmd)-1
 				#Recupero il file
 				self.dbReader.execute("SELECT * FROM TrackedFile WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
 				resultFile = self.dbReader.fetchone()
+				print("MD5 --> "+str(resultFile[2])+"  FILENAME --> "+str(resultFile[3]))
 				if resultFile is not None:
 					self.dbReader.execute("DELETE FROM Download")
-					self.dbReader.execute("INSERT INTO Download values (?, ?)", (resultFile[0], resultFile[1]))
-					self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ('%'+resultFile[2]+'%',))
-					resultUser = self.dbReader.fetchone()
-					msg = "RETR" + resultFile[0]
-					setConnection(resultUser[0], int(resultUser[1]), msg)
+					self.dbReader.execute("INSERT INTO Download values (?,?)", (resultFile[2], resultFile[3]))					
+					msg = "RETR" + resultFile[2]
+					setConnection(resultFile[0], int(resultFile[1]), msg)
 				else:
-					print("Errore nella procedura di download")
+					print("Errore nella procedura di download")			
+
 			
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
@@ -729,53 +713,56 @@ class Kazaa(object):
 
 
 			elif command == "ARET":
-					print("Ricevuto "+color.recv+"ARET"+color.end)
-					try:
+				print("Ricevuto "+color.recv+"ARET"+color.end)
+				try:
 
-						self.dbReader.execute("SELECT * FROM Download")
-						files = self.dbReader.fetchone()
-						filename = files[1]
+					self.dbReader.execute("SELECT * FROM Download")
+					files = self.dbReader.fetchone()
+					filename = files[1]
 
-						fd = open(var.Settings.userPath + "" + filename, 'wb')					
-						numChunk = connection.recv(6).decode()
-						numChunk = int(numChunk)
-					
-						i = 0
-						print("Inizio download...")
-						bar_length = 60
-						time1 = time.time()
-						while i < numChunk:
-							lun = connection.recv(5).decode()
-							while len(lun) < 5:
-								lun = lun + connection.recv(1).decode()
-							lun = int(lun)
-							data = connection.recv(lun)
-							time.sleep(3)
-							while len(data) < lun:
-								data += connection.recv(1)
-							fd.write(data)
-							percent = float(i) / numChunk
-							hashes = '#' * int(round(percent * bar_length))
-							spaces = ' ' * (bar_length - len(hashes))
-							sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
-							i = i + 1
-					
+					fd = open(var.Settings.userPath + "" + filename, 'wb')					
+					numChunk = connection.recv(6).decode()
+					numChunk = int(numChunk)
+
+					i = 0
+					print("Inizio download...")
+					bar_length = 60
+					time1 = time.time()
+					while i < numChunk:
+						lun = connection.recv(5).decode()
+						while len(lun) < 5:
+							lun = lun + connection.recv(1).decode()
+						lun = int(lun)
+						data = connection.recv(lun)
+						time.sleep(3)
+						while len(data) < lun:
+							data += connection.recv(1)
+						fd.write(data)
 						percent = float(i) / numChunk
 						hashes = '#' * int(round(percent * bar_length))
 						spaces = ' ' * (bar_length - len(hashes))
 						sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
-						time2 = time.time()
-						sys.stdout.flush()
-						fd.close()
-						connection.close()
-						print("\n")
-						totTime = time2 - time1
-						print(color.green + "Scaricato il file" + color.end+" in "+str(int(totTime))+"s")
+						i = i + 1
+
+					percent = float(i) / numChunk
+					hashes = '#' * int(round(percent * bar_length))
+					spaces = ' ' * (bar_length - len(hashes))
+					sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+					time2 = time.time()
+					sys.stdout.flush()
+					fd.close()
+					connection.close()
+					print("\n")
+					totTime = time2 - time1
+					print(color.green + "Scaricato il file" + color.end+" in "+str(int(totTime))+"s")
 					
-					except OSError:
-						print("Impossibile aprire il file: controlla di avere i permessi")
-						return False
-					print(color.fail+"Finito baby"+color.end)
+
+				except OSError:
+					print("Impossibile aprire il file: controlla di avere i permessi")
+					self.sockUDPClient.sendto(("ARE0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					return False
+				print(color.fail+"Finito baby"+color.end)
+				self.sockUDPClient.sendto(("ARE1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 
 				
 		except:
