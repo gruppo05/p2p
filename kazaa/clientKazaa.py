@@ -54,7 +54,7 @@ class kazaaClient(object):
 		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.endUDP3 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-		
+
 		# Socket UPD ipv4 client in attesa
 		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.sockUDPClient.bind((self.UDP_IP, UDP_PORT_CLIENT))
@@ -73,7 +73,7 @@ class kazaaClient(object):
 		i = 0
 		while i < 20:
 			progBar(i)
-			time.sleep(0.1)
+			time.sleep(0.4)
 			i = i+1
 
 		self.sockUDPServer.sendto(("SETS").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
@@ -172,7 +172,6 @@ class kazaaClient(object):
 						print(color.recv+str(count)+" - "+cmd+color.end)
 						count = count+1
 					
-			
 			
 			
 			#**************************************** Da rimuovere ****************************************
