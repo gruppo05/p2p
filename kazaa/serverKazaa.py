@@ -73,6 +73,7 @@ def encryptMD5(filename):
 def setConnection(ip, port, msg):
 	try:
 		rnd = random()
+		rnd = 0.1
 		if(rnd<0.5):
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+color.end)
@@ -679,6 +680,7 @@ class Kazaa(object):
 					print("Inserito " + filename + " con md5 " + filemd5)
 			
 			elif command == "AFIN":
+				self.dbReader.execute("DELETE FROM TrackedFile")
 				print("Ricevuto " + color.recv + command + color.end)
 				nIdMd5 = int(connection.recv(3).decode())
 				i=0
@@ -686,20 +688,16 @@ class Kazaa(object):
 					filemd5 = connection.recv(32).decode()
 					filename = connection.recv(100).decode()
 					nCopie = int(connection.recv(3).decode())
+					print(nCopie)
 					while nCopie > 0:
 						ipp2p = connection.recv(55).decode()
 						pp2p = connection.recv(5).decode()
 						i = i+1
-						print("inserito: " + str(filename))
+						print("inserito: " + str(filename.strip()))
 						self.dbReader.execute("INSERT INTO TrackedFile (Filename, Filemd5, Ipp2p, Pp2p) values (?,?,?,?)", (filename.strip(), filemd5, ipp2p, pp2p))
 						nCopie = nCopie - 1
 					nIdMd5 = nIdMd5 -1
-				print("Inseriti i file dentro a tracked file "+ str(i)+" file" )
-				print("Stampo i file trovati")
-				self.dbReader.execute("SELECT * FROM TrackedFile")
-				files = self.dbReader.fetchall()
-				for f in files:
-					print(f[0] + " - " + f[1] + " - " + f[2] + " - " + f[3])
+				print("Trovati " + str(i)+" file" )
 
 			elif command == "RETR":
 				print("Ricevuto "+color.recv+"RETR"+color.end)
