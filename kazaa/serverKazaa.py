@@ -160,10 +160,7 @@ class Kazaa(object):
 		clearAndSetDB(self)
 		
 		#Setto i supernodi noti
-<<<<<<< HEAD
 		#self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "172.016.001.003|fc00:0000:0000:0000:0000:0000:0001:0003",3000))
-=======
->>>>>>> 313be10d1c61444b27a0d807116894de4fb21b64
 	
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, var.Settings.root_IP,var.Settings.root_PORT))
