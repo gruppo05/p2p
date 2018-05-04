@@ -117,7 +117,7 @@ def setNotCloseConnection(ip, port, msg):
 def sendToSuper(self, messaggio):
 	self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
 	mySuper = self.dbReader.fetchone()
-	setConnection(mySuper[0], int(mySuper[1]), messaggio)
+	setConnection(mySuper[0], "03000", messaggio)
 
 def sessionIdGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
@@ -341,7 +341,7 @@ class Kazaa(object):
 				superUser = self.dbReader.fetchone()
 				print("Invio messaggio -> " + msg + " a " + superUser[0] + " Porta " +superUser[1])
 				
-				peer_socket = setNotCloseConnection(mySuper[0], int(mySuper[1]), msg)
+				peer_socket = setNotCloseConnection(mySuper[0], 3000, msg)
 				command = peer_socket.recv(4).decode()
 				
 				if command == "AFIN":
@@ -375,7 +375,7 @@ class Kazaa(object):
 				msg = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
 				mySuper = self.dbReader.fetchone()
-				peer_socket = setNotCloseConnection(mySuper[0], int(mySuper[1]), msg)
+				peer_socket = setNotCloseConnection(mySuper[0], 3000, msg)
 				command = peer_socket.recv(4).decode()
 				if command == "ALGI":
 					print("Ricevuto ALGI")
@@ -399,7 +399,7 @@ class Kazaa(object):
 				SessionID = data[0]
 				#seleziono tutti gli utenti
 				msg = "LOGO" + SessionID
-				peer_socket = setNotCloseConnection(mySuper[0], int(mySuper[1]), msg)
+				peer_socket = setNotCloseConnection(mySuper[0], 3000, msg)
 				command = peer_socket.recv(4).decode()
 				if command == "ALGO":
 					nDeleted = peer_socket.recv(3).decode()
@@ -640,8 +640,10 @@ class Kazaa(object):
 				n = 0
 				#wait 10 s
 				while n < 10:
-					time.sleep(1)
+					time.sleep(0.1)
 					n = n+1
+					print(n)
+					
 				try:
 					#sendAfin(self, sessionID,ricerca,connection)
 					self.dbReader.execute("SELECT DISTINCT Filemd5, Filename FROM TrackedFile WHERE filename LIKE ?", ("%"+ricerca+"%", ))
@@ -657,10 +659,13 @@ class Kazaa(object):
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE SessionID LIKE ?", (sessionID,))
 					ip = self.dbReader.fetchone()
 					connection.sendall(msg.encode())
+					print("1...")
 					connection.close()
-					self.dbReader.execute("DELETE FROM TrackedFile WHERE filename LIKE ? and SessionID LIKE ?", ("%"+ricerca+"%", "%"+sessionID+"%"))
+					print("2...")
+					self.dbReader.execute("DELETE FROM TrackedFile WHERE filename LIKE ?", ("%"+ricerca+"%",))
+					print("3...")
 				except:
-					print("Non riesce a lanciare il thread")
+					print("ERRORE SEND NUDES")
 				
 			elif command == "LOGO":
 				SessionID = connection.recv(16).decode()
@@ -756,7 +761,6 @@ class Kazaa(object):
 						num = num + 1
 				
 					num = int(num)
-				
 					msg = "ARET" + str(num).zfill(6)
 					print ('Trasferimento iniziato di ', resultFile[0], '     [BYTES ', filesize, ']')
 					#funzione progressBar
