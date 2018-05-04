@@ -116,7 +116,7 @@ def setNotCloseConnection(ip, port, msg):
 def sendToSuper(self, messaggio):
 	self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
 	mySuper = self.dbReader.fetchone()
-	setConnection(mySuper[0], int(mySuper[1]), messaggio)
+	setConnection(mySuper[0], 3000, messaggio)
 
 def sessionIdGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
@@ -159,7 +159,7 @@ class Kazaa(object):
 		clearAndSetDB(self)
 		
 		#Setto i supernodi noti
-		#self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, "172.016.006.001|fc00:0000:0000:0000:0000:0000:0006:0001",50005))
+		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, "172.016.006.004|fc00:0000:0000:0000:0000:0000:0006:0004","50005"))
 
 	
 		if self.myIPP2P != var.Settings.root_IP:
@@ -342,7 +342,7 @@ class Kazaa(object):
 				superUser = self.dbReader.fetchone()
 				print("Invio messaggio -> " + msg + " a " + superUser[0] + " Porta " +superUser[1])
 				
-				peer_socket = setNotCloseConnection(mySuper[0], int(mySuper[1]), msg)
+				peer_socket = setNotCloseConnection(mySuper[0], 3000, msg)
 				command = peer_socket.recv(4).decode()
 				
 				if command == "AFIN":
@@ -375,7 +375,7 @@ class Kazaa(object):
 				msg = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
 				mySuper = self.dbReader.fetchone()
-				peer_socket = setNotCloseConnection(mySuper[0], int(mySuper[1]), msg)
+				peer_socket = setNotCloseConnection(mySuper[0], 3000, msg)
 				command = peer_socket.recv(4).decode()
 				if command == "ALGI":
 					print("Ricevuto ALGI")
@@ -400,7 +400,7 @@ class Kazaa(object):
 				SessionID = data[0]
 				#seleziono tutti gli utenti
 				msg = "LOGO" + SessionID
-				peer_socket = setNotCloseConnection(mySuper[0], int(mySuper[1]), msg)
+				peer_socket = setNotCloseConnection(mySuper[0], 3000, msg)
 				command = peer_socket.recv(4).decode()
 				if command == "ALGO":
 					nDeleted = peer_socket.recv(3).decode()
@@ -429,8 +429,9 @@ class Kazaa(object):
 					self.dbReader.execute("DELETE FROM Download")
 					self.dbReader.execute("INSERT INTO Download values (?,?)", (resultFile[2], resultFile[3]))					
 					msg = "RETR" + resultFile[2]
+					
 					#setConnection(resultFile[0], int(resultFile[1]), msg)
-					peer_socket = setNotCloseConnection(mySuper[0], int(mySuper[1]), msg)
+					peer_socket = setNotCloseConnection(resultFile[0], int(resultFile[1]), msg)
 					command = peer_socket.recv(4).decode()
 					
 					if command == "ARET":
@@ -637,13 +638,15 @@ class Kazaa(object):
 						self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, IPP2P, PP2P, Filename) values (?,?,?,?)", (f[0], f[1], f[2],f[3]))
 				#threading.Thread(target = self.serverTCP, args = (connection,client_address)).start()
 				for s in superUser:
-					setConnection(s[0], int(s[1]), msg)
+					setConnection(s[0],3000, msg)
 				
 				n = 0
 				#wait 10 s
 				while n < 10:
-					time.sleep(1)
+					time.sleep(0.1)
 					n = n+1
+					print(n)
+					
 				try:
 					#sendAfin(self, sessionID,ricerca,connection)
 					self.dbReader.execute("SELECT DISTINCT Filemd5, Filename FROM TrackedFile WHERE filename LIKE ?", ("%"+ricerca+"%", ))
@@ -659,10 +662,13 @@ class Kazaa(object):
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE SessionID LIKE ?", (sessionID,))
 					ip = self.dbReader.fetchone()
 					connection.sendall(msg.encode())
+					print("1...")
 					connection.close()
-					self.dbReader.execute("DELETE FROM TrackedFile WHERE filename LIKE ? and SessionID LIKE ?", ("%"+ricerca+"%", "%"+sessionID+"%"))
+					print("2...")
+					self.dbReader.execute("DELETE FROM TrackedFile WHERE filename LIKE ?", ("%"+ricerca+"%",))
+					print("3...")
 				except:
-					print("Non riesce a lanciare il thread")
+					print("ERRORE SEND NUDES")
 				
 			elif command == "LOGO":
 				SessionID = connection.recv(16).decode()
@@ -758,7 +764,6 @@ class Kazaa(object):
 						num = num + 1
 				
 					num = int(num)
-				
 					msg = "ARET" + str(num).zfill(6)
 					print ('Trasferimento iniziato di ', resultFile[0], '     [BYTES ', filesize, ']')
 					#funzione progressBar
