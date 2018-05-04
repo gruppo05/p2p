@@ -308,6 +308,22 @@ class GnutellaServer(object):
 			elif command == "RETR":
 				print("Ricevuto "+color.recv+"RETR"+color.end)
 				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
+				
 				#inviare un file che ho
 				FileMD5 = connection.recv(32).decode()
 				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))

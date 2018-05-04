@@ -84,6 +84,34 @@ class GnutellaClient(object):
 			elif cmd is "4":
 				print("DOWNLOAD")
 				self.sockUDPServer.sendto(("RETR").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				
+				while True:
+					buff, addr = self.sockUDPClient.recvfrom(195)
+					cmd = buff.decode()
+					if cmd == self.endUDP3:
+						print(color.recv+"0 - Annulla\n______________________________\n"+color.end)
+						cmd = input("Quale risultato vuoi scaricare? ")
+						if cmd == "0":
+							break
+						else:
+							msg = "RETR"
+							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+							msg = ricerca.ljust(20)
+							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+							msg = cmd.ljust(3)
+							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+							cmd, addr = self.sockUDPClient.recvfrom(4)
+							cmd = cmd.decode()
+							if cmd == "ARE1":
+								print(color.green+"File scaricato!"+color.end)
+							else:
+								print(color.fail+"Errore download file!"+color.end)
+							break
+					else:
+						print(color.recv+str(count)+" - "+cmd+color.end)
+						count = count+1
+				
+				
 				filename = input("Inserisci il nome del file da scaricare: ")
 				
 				filename = str(filename).ljust(20)				
