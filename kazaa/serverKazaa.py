@@ -73,7 +73,6 @@ def encryptMD5(filename):
 def setConnection(ip, port, msg):
 	try:
 		rnd = random()
-		rnd = 0.1
 		if(rnd<0.5):
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
@@ -88,9 +87,7 @@ def setConnection(ip, port, msg):
 		
 		print("Invio --> "+color.send+msg+color.end)
 		peer_socket.sendall(msg.encode())
-		print("sendall ok")
 		peer_socket.close()
-		print("connessione chiusa")
 		
 	except:
 		print("Nessun vicino trovato!")
@@ -157,7 +154,7 @@ class Kazaa(object):
 		clearAndSetDB(self)
 		
 		#Setto i supernodi noti
-		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "172.016.001.003|fc00:0000:0000:0000:0000:0000:0001:0003",3000))
+		#self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, "172.016.006.001|fc00:0000:0000:0000:0000:0000:0006:0001",50005))
 	
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, var.Settings.root_IP,var.Settings.root_PORT))
@@ -346,11 +343,7 @@ class Kazaa(object):
 				superUser = self.dbReader.fetchone()
 				print("Invio messaggio -> " + msg + " a " + superUser[0] + " Porta " +superUser[1])
 					
-				sendToSuper(self, msg)
-			
-			elif command == "LOGI":
-				msg = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
-				sendToSuper(self,msg)
+				sendToSuper(self, msg)				
 
 			elif command == "LOGO":
 				#ottengo il mio sessionID dal db
@@ -360,6 +353,8 @@ class Kazaa(object):
 				#seleziono tutti gli utenti
 				msg = "LOGO" + SessionID
 				sendToSuper(self, msg)
+				
+				
 			
 			elif command == "RETR":
 				print("ricevuto RETR")
@@ -475,7 +470,9 @@ class Kazaa(object):
 					Print("Errore nella procedura di login lato server")
 				finally:
 					msg = "ALGI"+SessionID
-					setConnection(IPP2P, int(PP2P), msg)
+					connection.sendall(msg.encode())
+					connection.close()
+					#setConnection(IPP2P, int(PP2P), msg)
 					
 			elif command == "ADFF":
 				SessionID = connection.recv(16).decode()
