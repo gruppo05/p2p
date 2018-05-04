@@ -155,7 +155,6 @@ class Kazaa(object):
 		
 		#Setto i supernodi noti
 		#self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002",3000))
-
 	
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, var.Settings.root_IP,var.Settings.root_PORT))
@@ -362,9 +361,7 @@ class Kazaa(object):
 			elif command == "RETR":
 				print("ricevuto RETR")
 				filename, useless = self.sockUDPServer.recvfrom(20)
-				print("retr 2")
 				filename = filename.decode()
-				print("retr 3")
 				filename = filename.strip()
 				cmd, addr = self.sockUDPServer.recvfrom(3)
 				cmd = cmd.decode()
@@ -376,14 +373,12 @@ class Kazaa(object):
 				resultFile = self.dbReader.fetchone()
 				print("MD5 --> "+str(resultFile[2])+"  FILENAME --> "+str(resultFile[3]))
 				if resultFile is not None:
-					print("retr resultfile: "+resultFile)
 					self.dbReader.execute("DELETE FROM Download")
 					self.dbReader.execute("INSERT INTO Download values (?,?)", (resultFile[2], resultFile[3]))					
 					msg = "RETR" + resultFile[2]
 					setConnection(resultFile[0], int(resultFile[1]), msg)
 				else:
-					print("Errore nella procedura di download")
-
+					print("Errore nella procedura di download")			
 
 			
 			elif command == "STOP":
