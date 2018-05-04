@@ -93,6 +93,27 @@ def setConnection(ip, port, msg):
 	except:
 		print("Nessun vicino trovato!")
 
+def setNotCloseConnection(ip, port, msg):
+	try:
+		rnd = random()
+		if(rnd<0.5):
+			ip = splitIp(ip[0:15])						
+			print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
+			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+			peer_socket.connect((ip,port))
+
+		else:
+			ip = ip[16:55]
+			print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
+			peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+			peer_socket.connect((ip, port))
+
+		print("Invio --> "+color.send+msg+color.end)
+		peer_socket.sendall(msg.encode())
+	except:
+		print(color.fail+"Errore connessione 'not close'"+color.end)
+	return peer_socket
+	
 def sendToSuper(self, messaggio):
 	self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
 	mySuper = self.dbReader.fetchone()
@@ -345,25 +366,7 @@ class Kazaa(object):
 				msg = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
 				mySuper = self.dbReader.fetchone()
-				#setConnection(mySuper[0], int(mySuper[1]), messaggio)
-				ip = mySuper[0]
-				port = int(mySuper[1])
-				rnd = random()
-				#rnd = 0.1
-				if(rnd<0.5):
-					ip = splitIp(ip[0:15])						
-					print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
-					peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-					peer_socket.connect((ip,port))
-		
-				else:
-					ip = ip[16:55]
-					print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
-					peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-					peer_socket.connect((ip, port))
-		
-				print("Invio --> "+color.send+msg+color.end)
-				peer_socket.sendall(msg.encode())
+				peer_socket = setNotCloseConnection(mySuper[0], int(mySuper[1]), msg)
 				command = peer_socket.recv(4).decode()
 				if command == "ALGI":
 					print("Ricevuto ALGI")
@@ -379,7 +382,6 @@ class Kazaa(object):
 					print(color.fail+"Login fallito!")
 					self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
-				
 
 			elif command == "LOGO":
 				#ottengo il mio sessionID dal db
@@ -388,7 +390,15 @@ class Kazaa(object):
 				SessionID = data[0]
 				#seleziono tutti gli utenti
 				msg = "LOGO" + SessionID
-				sendToSuper(self, msg)
+				peer_socket = setNotCloseConnection(mySuper[0], int(mySuper[1]), msg)
+				command = peer_socket.recv(4).decode()
+				if command == "ALGO":
+					nDeleted = connection.recv(3).decode()
+					print("Ricevuto " + color.recv + command + color.end + "\n#Copie " + color.recv + nDeleted + color.end)
+					self.sockUDPClient.sendto((nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				
+				peer_socket.close()
+				
 			
 			elif command == "RETR":
 				print("ricevuto RETR")
@@ -597,12 +607,8 @@ class Kazaa(object):
 				print(SessionID)
 				self.dbReader.execute("DELETE FROM File WHERE SessionID=?", (SessionID,))
 				self.dbReader.execute("DELETE FROM User WHERE SessionID=?", (SessionID,))
-				setConnection(IPP2P, int(PP2P), msg)				
+				setConnection(IPP2P, int(PP2P), msg)
 
-			elif command == "ALGO":
-				nDeleted = connection.recv(3).decode()
-				print("Ricevuto " + color.recv + command + color.end + "\n#Copie " + color.recv + nDeleted + color.end)
-				self.sockUDPClient.sendto((nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 		
 			elif command == "QUER":
 				pktId = connection.recv(16).decode()
