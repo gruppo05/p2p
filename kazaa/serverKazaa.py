@@ -74,12 +74,11 @@ def setConnection(ip, port, msg):
 	try:
 		rnd = random()
 		#rnd = 0.1
-		if(rnd<0.5):
+		if(rnd<0.95):
 			ip = splitIp(ip[0:15])						
-			print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
+			print(color.green+"Connessione IPv4:"+ip+" PORT:"+str(port)+color.end)
 			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-			peer_socket.connect((ip,port))
-		
+			peer_socket.connect((ip,port))		
 		else:
 			ip = ip[16:55]
 			print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
@@ -87,16 +86,15 @@ def setConnection(ip, port, msg):
 			peer_socket.connect((ip, port))
 		
 		print("Invio --> "+color.send+msg+color.end)
-		peer_socket.sendall(msg.encode())
+		peer_socket.send(msg.encode())
 		peer_socket.close()
-		
 	except:
 		print("Nessun vicino trovato!")
 
 def setNotCloseConnection(ip, port, msg):
 	try:
 		rnd = random()
-		if(rnd<0.5):
+		if(rnd<0.95):
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
 			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -117,7 +115,7 @@ def setNotCloseConnection(ip, port, msg):
 def sendToSuper(self, messaggio):
 	self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
 	mySuper = self.dbReader.fetchone()
-	setConnection(mySuper[0], "03000", messaggio)
+	setConnection(mySuper[0], 3000, messaggio)
 
 def sessionIdGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
