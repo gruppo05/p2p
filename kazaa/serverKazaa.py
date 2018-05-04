@@ -73,7 +73,6 @@ def encryptMD5(filename):
 def setConnection(ip, port, msg):
 	try:
 		rnd = random()
-		rnd = 0.1
 		if(rnd<0.5):
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
@@ -157,7 +156,7 @@ class Kazaa(object):
 		clearAndSetDB(self)
 		
 		#Setto i supernodi noti
-		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "172.016.001.003|fc00:0000:0000:0000:0000:0000:0001:0003",3000))
+		#self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "172.016.001.003|fc00:0000:0000:0000:0000:0000:0001:0003",3000))
 	
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, var.Settings.root_IP,var.Settings.root_PORT))
@@ -530,6 +529,7 @@ class Kazaa(object):
 					if data is None:
 						self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, IPP2P, PP2P, Filename) values (?,?,?,?)", (f[0], f[1], f[2],f[3]))
 				#threading.Thread(target = self.serverTCP, args = (connection,client_address)).start()
+				#invio la quer a tutti gli altri, leggo la porta dal db
 				for s in superUser:
 					setConnection(s[0], int(s[1]), msg)
 					
