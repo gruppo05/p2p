@@ -73,9 +73,10 @@ def encryptMD5(filename):
 def setConnection(ip, port, msg):
 	try:
 		rnd = random()
+		#rnd = 0.1
 		if(rnd<0.5):
 			ip = splitIp(ip[0:15])						
-			print(color.green+"Connessione IPv4:"+ip+color.end)
+			print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
 			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 			peer_socket.connect((ip,port))
 		
@@ -87,7 +88,9 @@ def setConnection(ip, port, msg):
 		
 		print("Invio --> "+color.send+msg+color.end)
 		peer_socket.sendall(msg.encode())
+		print("sendall ok")
 		peer_socket.close()
+		print("connessione chiusa")
 		
 	except:
 		print("Nessun vicino trovato!")
@@ -154,7 +157,7 @@ class Kazaa(object):
 		clearAndSetDB(self)
 		
 		#Setto i supernodi noti
-		#self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002",3000))
+		#self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "172.016.001.003|fc00:0000:0000:0000:0000:0000:0001:0003",3000))
 	
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, var.Settings.root_IP,var.Settings.root_PORT))
@@ -165,7 +168,7 @@ class Kazaa(object):
 			self.super = 1
 		
 		# Socket ipv4/ipv6 port 3000
-		self.server_address = (IP, self.PORT)
+		self.server_address = (IP, int(self.PORT))
 		self.sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.sock.bind(self.server_address)
@@ -368,6 +371,7 @@ class Kazaa(object):
 				
 				#fix per offset
 				cmd = int(cmd)-1
+				
 				#Recupero il file
 				self.dbReader.execute("SELECT * FROM TrackedFile WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
 				resultFile = self.dbReader.fetchone()
@@ -418,7 +422,7 @@ class Kazaa(object):
 			
 					if int(TTL) > 0:
 						msg = "SUPE" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
-						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=?", (IPP2P,self.myIPP2P,))
+						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=? AND Super = ?", (IPP2P,self.myIPP2P,1))
 						resultUser = self.dbReader.fetchall()
 			
 						for user in resultUser:
@@ -429,17 +433,15 @@ class Kazaa(object):
 				Pktid = connection.recv(16).decode()
 				IPP2P = connection.recv(55).decode()
 				PP2P = connection.recv(5).decode()
-				
 				#verifico se c'è il pktid			
 				self.dbReader.execute("SELECT Timestamp FROM pktid WHERE Pktid=?", (Pktid,))
-				t = self.dbReader.fetchone() #retrieve the first row
-				if getTime(t[0]) < 20:
+				t = self.dbReader.fetchone() #retrieve the first ro
+				if getTime(t[0]) < 300:
 					#verifico se l'utente super è già salvato nel db oppure lo aggiungo
 					self.dbReader.execute("SELECT IPP2P FROM user WHERE IPP2P=?", (IPP2P,))
-
 					data = self.dbReader.fetchone() 
 					if data is None:
-						self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values (?, ?)",(1, IPP2P, PP2P))
+						self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values (?, ?, ?)",(1, IPP2P, PP2P))
 						print(color.green + "Aggiunto nuovo supernodo" + color.end)
 					else:
 						#verifico se ho salvato l'utente come user normale. In questo caso lo aggiorno come root
@@ -575,8 +577,7 @@ class Kazaa(object):
 				print(SessionID)
 				self.dbReader.execute("DELETE FROM File WHERE SessionID=?", (SessionID,))
 				self.dbReader.execute("DELETE FROM User WHERE SessionID=?", (SessionID,))
-				setConnection(IPP2P, int(PP2P), msg)
-				
+				setConnection(IPP2P, int(PP2P), msg)				
 
 			elif command == "ALGO":
 				nDeleted = connection.recv(3).decode()
@@ -584,13 +585,12 @@ class Kazaa(object):
 				self.sockUDPClient.sendto((nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			elif command == "QUER":
-				print("Ricevuto " + color.recv + command + color.end)
 				pktId = connection.recv(16).decode()
 				ipp2p = connection.recv(55).decode()
 				pp2p = connection.recv(5).decode()
 				ttl = connection.recv(2).decode()
 				ricerca = connection.recv(20).decode()
-				
+				print("Ricevuto " + color.recv + command + color.end + " da " + ipp2p)
 				self.dbReader.execute("SELECT * FROM Pktid WHERE Pktid LIKE ?", (pktId,))
 				resultPkt = self.dbReader.fetchone()
 				#elaboro la richiesta se non ho il pktid
@@ -631,6 +631,7 @@ class Kazaa(object):
 					print("Inserito " + filename + " con md5 " + filemd5)
 			
 			elif command == "AFIN":
+				self.dbReader.execute("DELETE FROM TrackedFile")
 				print("Ricevuto " + color.recv + command + color.end)
 				nIdMd5 = int(connection.recv(3).decode())
 				i=0
@@ -638,13 +639,16 @@ class Kazaa(object):
 					filemd5 = connection.recv(32).decode()
 					filename = connection.recv(100).decode()
 					nCopie = int(connection.recv(3).decode())
+					print(nCopie)
 					while nCopie > 0:
 						ipp2p = connection.recv(55).decode()
 						pp2p = connection.recv(5).decode()
 						i = i+1
+						print("inserito: " + str(filename.strip()))
 						self.dbReader.execute("INSERT INTO TrackedFile (Filename, Filemd5, Ipp2p, Pp2p) values (?,?,?,?)", (filename.strip(), filemd5, ipp2p, pp2p))
 						nCopie = nCopie - 1
 					nIdMd5 = nIdMd5 -1
+				print("Trovati " + str(i)+" file" )
 				print("Stampo i file trovati")
 				self.dbReader.execute("SELECT * FROM TrackedFile")
 				files = self.dbReader.fetchall()
@@ -656,6 +660,7 @@ class Kazaa(object):
 				
 				#inviare un file che ho
 				FileMD5 = connection.recv(32).decode()
+				print("FileMD5", FileMD5)
 				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
 				resultFile = self.dbReader.fetchone()
 				filename=resultFile[0].replace(" ","")
