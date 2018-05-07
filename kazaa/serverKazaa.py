@@ -51,6 +51,23 @@ def setIp(n):
 	elif n < 100:
 		n = "0"+str(n)
 	return n
+	
+def setIPv6(n):
+	if n < 10:
+		n = "000"+str(n)
+	elif n < 100:
+		n = "00"+str(n)
+	elif n < 1000:
+		n = "0"+str(n)
+	return n
+
+
+def progBar(i):
+	i = i+1
+	bar_length = 60
+	hashes = '#' * i * 3
+	spaces = ' ' * (bar_length - len(hashes))
+	sys.stdout.write("\r[{0}] {1}s".format(hashes + spaces, int(i)))			
 
 def splitIp(ip):
 	splitted = ip.split(".")
@@ -75,10 +92,9 @@ def setConnection(ip, port, msg):
 		rnd = random()
 		if(rnd<0.5):
 			ip = splitIp(ip[0:15])						
-			print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
+			print(color.green+"Connessione IPv4:"+ip+" PORT:"+str(port)+color.end)
 			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-			peer_socket.connect((ip,port))
-		
+			peer_socket.connect((ip,port))		
 		else:
 			ip = ip[16:55]
 			print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
@@ -86,16 +102,36 @@ def setConnection(ip, port, msg):
 			peer_socket.connect((ip, port))
 		
 		print("Invio --> "+color.send+msg+color.end)
-		peer_socket.sendall(msg.encode())
+		peer_socket.send(msg.encode())
 		peer_socket.close()
-		
 	except:
 		print("Nessun vicino trovato!")
 
+def setNotCloseConnection(ip, port, msg):
+	try:
+		rnd = random()
+		if(rnd<0.5):
+			ip = splitIp(ip[0:15])						
+			print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
+			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+			peer_socket.connect((ip,port))
+
+		else:
+			ip = ip[16:55]
+			print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
+			peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+			peer_socket.connect((ip, port))
+
+		print("Invio --> "+color.send+msg+color.end)
+		peer_socket.sendall(msg.encode())
+	except:
+		print(color.fail+"Errore connessione 'not close'"+color.end)
+	return peer_socket
+	
 def sendToSuper(self, messaggio):
 	self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
 	mySuper = self.dbReader.fetchone()
-	setConnection(mySuper[0], int(mySuper[1]), messaggio)
+	setConnection(mySuper[0], 3000, messaggio)
 
 def sessionIdGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
@@ -115,22 +151,6 @@ def getTime(t):
 	time2 = ha + ma + sa
 	return time2 - time1
 
-def sendAfin(self, sessionID, ricerca):
-	self.dbReader.execute("SELECT DISTINCT Filemd5, Filename FROM TrackedFile WHERE filename LIKE ?", ("%"+ricerca+"%", ))
-	resultFile = self.dbReader.fetchall()
-	#print("Num file trovati: " + str(len(resultFile)))
-	msg = "AFIN" + setIp(len(resultFile))
-	for f in resultFile:
-		self.dbReader.execute("SELECT IPP2P, PP2P FROM TrackedFile WHERE Filemd5 LIKE ?", ("%" + f[0] + "%",))
-		resultIP = self.dbReader.fetchall()
-		msg = msg + str(f[0]).ljust(32) + str(f[1]).ljust(100) + str(setIp(len(resultIP)))
-		for i in resultIP:
-			msg = msg + str(i[0]).ljust(55)+ str(i[1]).ljust(5)
-	self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE SessionID LIKE ?", (sessionID,))
-	ip = self.dbReader.fetchone()
-	#print("RICEVUTE RISPOSTE. INVIO RISPOSTA AL CLIENT con ip: "+ str(ip[0]) + " e porta "+ str(ip[1]))
-	setConnection(ip[0], int(ip[1]), msg)
-	self.dbReader.execute("DELETE FROM TrackedFile WHERE filename LIKE ?", ("%"+ricerca+"%", ))
 
 class Kazaa(object):
 	def __init__(self):
@@ -143,8 +163,8 @@ class Kazaa(object):
 		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.endUDP3 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-
-		self.BUFF = 99999
+		self.timeDebug = var.Settings.timeDebug
+		self.BUFF = 1024
 		self.super = ""
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -153,16 +173,8 @@ class Kazaa(object):
 		# Creo tabella user
 		clearAndSetDB(self)
 		
-		#Setto i supernodi noti
-		#self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, "172.016.001.003|fc00:0000:0000:0000:0000:0000:0001:0003",3000))
-	
-		if self.myIPP2P != var.Settings.root_IP:
-			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, var.Settings.root_IP,var.Settings.root_PORT))
-			self.super = 0
-		else:
-			print("Loggato come root")
-			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, var.Settings.root_IP,var.Settings.root_PORT))
-			self.super = 1
+		# Mi inserisco nel DB
+		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, self.myIPP2P, self.PORT))
 		
 		# Socket ipv4/ipv6 port 3000
 		self.server_address = (IP, int(self.PORT))
@@ -199,7 +211,25 @@ class Kazaa(object):
 			command = data.decode()
 			print("\n\nRicevuto comando dal client: "+color.recv+command+color.end)
 			
-			if command == "SUPE":
+			if command == "IFSU":
+				sup = str(self.sockUDPServer.recvfrom(1)[0].decode())
+				if sup == "1":
+					print("Loggato come root")
+					self.dbReader.execute("UPDATE user set Super=? where IPP2P=?",(1, self.myIPP2P))
+					self.super = 1
+				
+			elif command == "SETV":
+				gruppo = str(self.sockUDPServer.recvfrom(3)[0].decode())
+				numPc = str(self.sockUDPServer.recvfrom(3)[0].decode())
+				port = str(self.sockUDPServer.recvfrom(5)[0].decode())
+				ip = "172.016."+gruppo+"."+numPc
+				ipv6 = "fc00:0000:0000:0000:0000:0000:"+setIPv6(int(gruppo))+":"+setIPv6(int(numPc))
+				ip = ip+"|"+ipv6
+				
+				if ip != self.myIPP2P:
+					self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, ip, port))
+				
+			elif command == "SUPE":
 				myPktid = PktidGenerator()
 				self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)",(myPktid,datetime.datetime.now()))
 				TTL = setNumber(4)
@@ -213,9 +243,6 @@ class Kazaa(object):
 			
 			elif command == "SETS":
 				try:
-					# scelgo random tra i supernodi
-					#parte da buttare
-					print("entrato sets")
 					if self.super == 1:
 						self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,self.myIPP2P))
 						print(color.green + "SUPERNODO con IP:"+self.myIPP2P+" selezionato con successo"+ color.end)
@@ -338,32 +365,39 @@ class Kazaa(object):
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE Super = 2")
 				superUser = self.dbReader.fetchone()
 				print("Invio messaggio -> " + msg + " a " + superUser[0] + " Porta " +superUser[1])
-					
-				sendToSuper(self, msg)
+				
+				peer_socket = setNotCloseConnection(mySuper[0], 3000, msg)
+				command = peer_socket.recv(4).decode()
+				
+				if command == "AFIN":
+					self.dbReader.execute("DELETE FROM TrackedFile")
+					print("Ricevuto " + color.recv + command + color.end)
+					nIdMd5 = int(peer_socket.recv(3).decode())
+					i=0
+					while nIdMd5 > 0:
+						filemd5 = peer_socket.recv(32).decode()
+						filename = peer_socket.recv(100).decode()
+						nCopie = int(peer_socket.recv(3).decode())
+						while nCopie > 0:
+							ipp2p = peer_socket.recv(55).decode()
+							pp2p = peer_socket.recv(5).decode()
+							i = i+1
+							print("inserito: " + str(filename.strip()))
+							self.dbReader.execute("INSERT INTO TrackedFile (Filename, Filemd5, Ipp2p, Pp2p) values (?,?,?,?)", (filename.strip(), filemd5, ipp2p, pp2p))
+							nCopie = nCopie - 1
+						nIdMd5 = nIdMd5 -1
+					print("Trovati " + str(i)+" file" )
+					self.dbReader.execute("SELECT * FROM TrackedFile")
+					files = self.dbReader.fetchall()
+					for f in files:
+						print(f[0] + " - " + f[1] + " - " + f[2] + " - " + f[3])
+				peer_socket.close()
 			
 			elif command == "LOGI":
 				msg = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
 				self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
 				mySuper = self.dbReader.fetchone()
-				#setConnection(mySuper[0], int(mySuper[1]), messaggio)
-				ip = mySuper[0]
-				port = int(mySuper[1])
-				rnd = random()
-				#rnd = 0.1
-				if(rnd<0.5):
-					ip = splitIp(ip[0:15])						
-					print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
-					peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-					peer_socket.connect((ip,port))
-		
-				else:
-					ip = ip[16:55]
-					print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
-					peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-					peer_socket.connect((ip, port))
-		
-				print("Invio --> "+color.send+msg+color.end)
-				peer_socket.sendall(msg.encode())
+				peer_socket = setNotCloseConnection(mySuper[0], 3000, msg)
 				command = peer_socket.recv(4).decode()
 				if command == "ALGI":
 					print("Ricevuto ALGI")
@@ -379,7 +413,7 @@ class Kazaa(object):
 					print(color.fail+"Login fallito!")
 					self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
-				
+
 
 			elif command == "LOGO":
 				#ottengo il mio sessionID dal db
@@ -388,7 +422,15 @@ class Kazaa(object):
 				SessionID = data[0]
 				#seleziono tutti gli utenti
 				msg = "LOGO" + SessionID
-				sendToSuper(self, msg)
+				peer_socket = setNotCloseConnection(mySuper[0], 3000, msg)
+				command = peer_socket.recv(4).decode()
+				if command == "ALGO":
+					nDeleted = peer_socket.recv(3).decode()
+					print("Ricevuto " + color.recv + command + color.end + "\n#Copie " + color.recv + nDeleted + color.end)
+					self.sockUDPClient.sendto((nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				
+				peer_socket.close()
+			
 			
 			elif command == "RETR":
 				print("ricevuto RETR")
@@ -409,9 +451,62 @@ class Kazaa(object):
 					self.dbReader.execute("DELETE FROM Download")
 					self.dbReader.execute("INSERT INTO Download values (?,?)", (resultFile[2], resultFile[3]))					
 					msg = "RETR" + resultFile[2]
-					setConnection(resultFile[0], int(resultFile[1]), msg)
-
 					
+					#setConnection(resultFile[0], int(resultFile[1]), msg)
+					peer_socket = setNotCloseConnection(resultFile[0], int(resultFile[1]), msg)
+					command = peer_socket.recv(4).decode()
+					
+					if command == "ARET":
+						print("Ricevuto "+color.recv+"ARET"+color.end)
+						try:
+							self.dbReader.execute("SELECT * FROM Download")
+							files = self.dbReader.fetchone()
+							filename = files[1]
+
+							fd = open(var.Settings.userPath + "" + filename, 'wb')					
+							numChunk = peer_socket.recv(6).decode()
+							numChunk = int(numChunk)
+
+							i = 0
+							print("Inizio download...")
+							bar_length = 60
+							time1 = time.time()
+							while i < numChunk:
+								lun = peer_socket.recv(5).decode()
+								while len(lun) < 5:
+									lun = lun + peer_socket.recv(1).decode()
+								lun = int(lun)
+								data = peer_socket.recv(lun)
+								time.sleep(3)
+								while len(data) < lun:
+									data += peer_socket.recv(1)
+								fd.write(data)
+								percent = float(i) / numChunk
+								hashes = '#' * int(round(percent * bar_length))
+								spaces = ' ' * (bar_length - len(hashes))
+								sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+								i = i + 1
+							
+							percent = float(i) / numChunk
+							hashes = '#' * int(round(percent * bar_length))
+							spaces = ' ' * (bar_length - len(hashes))
+							sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+							time2 = time.time()
+							sys.stdout.flush()
+							fd.close()
+							print("\n")
+							totTime = time2 - time1
+							print(color.green + "Scaricato il file" + color.end+" in "+str(int(totTime))+"s")
+				
+
+						except OSError:
+							print("Impossibile aprire il file: controlla di avere i permessi")
+							self.sockUDPClient.sendto(("ARE0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+							return False
+						print(color.fail+"Finito baby"+color.end)
+						self.sockUDPClient.sendto(("ARE1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					
+					peer_socket.close()
 				else:
 					print("Errore nella procedura di download")			
 
@@ -506,6 +601,7 @@ class Kazaa(object):
 					Print("Errore nella procedura di login lato server")
 				finally:
 					msg = "ALGI"+SessionID
+
 					#setConnection(IPP2P, int(PP2P), msg)
 					connection.sendall(msg.encode())
 					#connection.close()
@@ -540,7 +636,7 @@ class Kazaa(object):
 					print(color.fail+ "Nessun file trovato" + color.end);
 				else:
 					self.dbReader.execute("DELETE FROM file WHERE Filemd5=? AND SessionID=?", (Filemd5,SessionID,))					
-		
+				
 			elif command == "FIND":
 				sessionID = connection.recv(16).decode()
 				ricerca = connection.recv(20).decode()
@@ -565,19 +661,37 @@ class Kazaa(object):
 				#threading.Thread(target = self.serverTCP, args = (connection,client_address)).start()
 				#invio la quer a tutti gli altri, leggo la porta dal db
 				for s in superUser:
-					setConnection(s[0], int(s[1]), msg)
+					setConnection(s[0],3000, msg)
 				
 				n = 0
 				#wait 10 s
-				while n < 10:
-					time.sleep(1)
+				print(color.green)
+				while n < 20:
+					progBar(n)
+					time.sleep(self.timeDebug)
 					n = n+1
-					print(n)
-			
+				print(color.end)
+					
 				try:
-					sendAfin(self, sessionID,ricerca)
+					#sendAfin(self, sessionID,ricerca,connection)
+					self.dbReader.execute("SELECT DISTINCT Filemd5, Filename FROM TrackedFile WHERE filename LIKE ?", ("%"+ricerca+"%", ))
+					resultFile = self.dbReader.fetchall()
+					#print("Num file trovati: " + str(len(resultFile)))
+					msg = "AFIN" + setIp(len(resultFile))
+					for f in resultFile:
+						self.dbReader.execute("SELECT IPP2P, PP2P FROM TrackedFile WHERE Filemd5 LIKE ?", ("%" + f[0] + "%",))
+						resultIP = self.dbReader.fetchall()
+						msg = msg + str(f[0]).ljust(32) + str(f[1]).ljust(100) + str(setIp(len(resultIP)))
+						for i in resultIP:
+							msg = msg + str(i[0]).ljust(55)+ str(i[1]).ljust(5)
+					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE SessionID LIKE ?", (sessionID,))
+					ip = self.dbReader.fetchone()
+					connection.sendall(msg.encode())
+					connection.close()
+					
+					#self.dbReader.execute("DELETE FROM TrackedFile WHERE filename LIKE ?", ("%"+ricerca+"%",))
 				except:
-					print("Non riesce a lanciare il thread")
+					print("ERRORE SEND NUDES")
 				
 			elif command == "LOGO":
 				SessionID = connection.recv(16).decode()
@@ -594,17 +708,11 @@ class Kazaa(object):
 			
 				#preparo il msg
 				msg  = "ALGO"+str(nDeleted)
-				print(msg)
-				print(SessionID)
 				self.dbReader.execute("DELETE FROM File WHERE SessionID=?", (SessionID,))
 				self.dbReader.execute("DELETE FROM User WHERE SessionID=?", (SessionID,))
-				setConnection(IPP2P, int(PP2P), msg)				
+				#setConnection(IPP2P, int(PP2P), msg)
+				connection.sendall(msg.encode())
 
-			elif command == "ALGO":
-				nDeleted = connection.recv(3).decode()
-				print("Ricevuto " + color.recv + command + color.end + "\n#Copie " + color.recv + nDeleted + color.end)
-				self.sockUDPClient.sendto((nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-		
 			elif command == "QUER":
 				pktId = connection.recv(16).decode()
 				ipp2p = connection.recv(55).decode()
@@ -651,31 +759,6 @@ class Kazaa(object):
 					self.dbReader.execute("INSERT INTO TrackedFile (IPP2P, PP2P, Filemd5, Filename) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, filename))
 					print("Inserito " + filename + " con md5 " + filemd5)
 		
-			elif command == "AFIN":
-				self.dbReader.execute("DELETE FROM TrackedFile")
-				print("Ricevuto " + color.recv + command + color.end)
-				nIdMd5 = int(connection.recv(3).decode())
-				i=0
-				while nIdMd5 > 0:
-					filemd5 = connection.recv(32).decode()
-					filename = connection.recv(100).decode()
-					nCopie = int(connection.recv(3).decode())
-					print(nCopie)
-					while nCopie > 0:
-						ipp2p = connection.recv(55).decode()
-						pp2p = connection.recv(5).decode()
-						i = i+1
-						print("inserito: " + str(filename.strip()))
-						self.dbReader.execute("INSERT INTO TrackedFile (Filename, Filemd5, Ipp2p, Pp2p) values (?,?,?,?)", (filename.strip(), filemd5, ipp2p, pp2p))
-						nCopie = nCopie - 1
-					nIdMd5 = nIdMd5 -1
-				print("Trovati " + str(i)+" file" )
-				print("Stampo i file trovati")
-				self.dbReader.execute("SELECT * FROM TrackedFile")
-				files = self.dbReader.fetchall()
-				for f in files:
-					print(f[0] + " - " + f[1] + " - " + f[2] + " - " + f[3])
-		
 			elif command == "RETR":
 				print("Ricevuto "+color.recv+"RETR"+color.end)
 			
@@ -690,106 +773,36 @@ class Kazaa(object):
 					fd = os.open(var.Settings.userPath+""+filename, os.O_RDONLY)
 				except OSError as e:
 					print(e)
-				if fd is not -1:					
-					addrIPv4 = str(client_address).split(":")[-1].split("'")[0]
-					#addrIPv6 = str(client_address).split("'")[1].split(":"+addrIPv4)[0]
-					addrIPv4 = str(setIp(int(addrIPv4.split(".")[0])))+"."+str(setIp(int(addrIPv4.split(".")[1])))+"."+str(setIp(int(addrIPv4.split(".")[2])))+"."+str(setIp(int(addrIPv4.split(".")[3])))
-					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P LIKE ?",('%'+addrIPv4+'%',))
-					data = self.dbReader.fetchone()
-					ip = data[0]
-					port = data[1]
-				
-					try:
-						ip = splitIp(ip[0:15])				
-						print(color.green+"Connessione IPv4:"+ip+color.end)
-						peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-						peer_socket.connect((ip,int(port)))
-					except:
-						print("Errore invio messaggio")
-				
+				if fd is not -1:
 					filesize = int(os.path.getsize(var.Settings.userPath+""+filename))
 					num = int(filesize) / self.BUFF
-				
 					if (filesize % self.BUFF)!= 0:
 						num = num + 1
 				
 					num = int(num)
-				
 					msg = "ARET" + str(num).zfill(6)
-					print ('Trasferimento iniziato di ', resultFile[0], '     [BYTES ', filesize, ']')
+					
+					print ('Trasferimento iniziato di ', resultFile[0], ' [BYTES ', filesize, ']')
+					print(5)
 					#funzione progressBar
-					peer_socket.send(msg.encode())
+					connection.send(msg.encode())
 					i = 0
 					while i < num:
 						buf = os.read(fd,self.BUFF)
-
+						
 						if not buf: break
 						lbuf = len(buf)
 						lbuf = str(lbuf).zfill(5)
-						peer_socket.send(lbuf.encode())
-						peer_socket.send(buf)
+						connection.send(lbuf.encode())
+						connection.send(buf)
 						i = i + 1
 					
 					os.close(fd)
 					print(color.green+"\nFine UPLOAD"+color.end)					
-					peer_socket.close()
+					connection.close()
 				else: 
 					print("Il file non esiste!")
-
-
-
-			elif command == "ARET":
-				print("Ricevuto "+color.recv+"ARET"+color.end)
-				try:
-
-					self.dbReader.execute("SELECT * FROM Download")
-					files = self.dbReader.fetchone()
-					filename = files[1]
-
-					fd = open(var.Settings.userPath + "" + filename, 'wb')					
-					numChunk = connection.recv(6).decode()
-					numChunk = int(numChunk)
-
-					i = 0
-					print("Inizio download...")
-					bar_length = 60
-					time1 = time.time()
-					while i < numChunk:
-						lun = connection.recv(5).decode()
-						while len(lun) < 5:
-							lun = lun + connection.recv(1).decode()
-						lun = int(lun)
-						data = connection.recv(lun)
-						time.sleep(3)
-						while len(data) < lun:
-							data += connection.recv(1)
-						fd.write(data)
-						percent = float(i) / numChunk
-						hashes = '#' * int(round(percent * bar_length))
-						spaces = ' ' * (bar_length - len(hashes))
-						sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
-						i = i + 1
-
-					percent = float(i) / numChunk
-					hashes = '#' * int(round(percent * bar_length))
-					spaces = ' ' * (bar_length - len(hashes))
-					sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
-					time2 = time.time()
-					sys.stdout.flush()
-					fd.close()
-					connection.close()
-					print("\n")
-					totTime = time2 - time1
-					print(color.green + "Scaricato il file" + color.end+" in "+str(int(totTime))+"s")
-				
-
-				except OSError:
-					print("Impossibile aprire il file: controlla di avere i permessi")
-					self.sockUDPClient.sendto(("ARE0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-					return False
-				print(color.fail+"Finito baby"+color.end)
-				self.sockUDPClient.sendto(("ARE1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-
+			
 				
 		except:
 			connection.close()
