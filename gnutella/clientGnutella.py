@@ -112,18 +112,13 @@ class GnutellaClient(object):
 								print(color.green+"File scaricato!"+color.end)
 							else:
 								print(color.fail+"Errore download file!"+color.end)
+							break
 						elif int(cmd) > count:
 							print("Errore nella scelta")
 							break
 					else:
 						print(color.recv+str(count)+" - "+cmd+color.end)
 						count = count+1
-				
-				
-				filename = input("Inserisci il nome del file da scaricare: ")
-				
-				filename = str(filename).ljust(20)				
-				self.sockUDPServer.sendto((filename).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 			
 			elif cmd is "5":
 				print("STAMPA VICINI TROVATI")
