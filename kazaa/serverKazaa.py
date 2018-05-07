@@ -479,7 +479,6 @@ class Kazaa(object):
 									lun = lun + peer_socket.recv(1).decode()
 								lun = int(lun)
 								data = peer_socket.recv(lun)
-								time.sleep(3)
 								while len(data) < lun:
 									data += peer_socket.recv(1)
 								fd.write(data)
