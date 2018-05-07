@@ -51,6 +51,23 @@ def setIp(n):
 	elif n < 100:
 		n = "0"+str(n)
 	return n
+	
+def setIPv6(n):
+	if n < 10:
+		n = "000"+str(n)
+	elif n < 100:
+		n = "00"+str(n)
+	elif n < 1000:
+		n = "0"+str(n)
+	return n
+
+
+def progBar(i):
+	i = i+1
+	bar_length = 60
+	hashes = '#' * i * 3
+	spaces = ' ' * (bar_length - len(hashes))
+	sys.stdout.write("\r[{0}] {1}s".format(hashes + spaces, int(i)))			
 
 def splitIp(ip):
 	splitted = ip.split(".")
@@ -157,15 +174,9 @@ class Kazaa(object):
 		# Creo tabella user
 		clearAndSetDB(self)
 		
-
-	
-		if self.myIPP2P != var.Settings.root_IP:
-			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, var.Settings.root_IP,var.Settings.root_PORT))
-			self.super = 0
-		else:
-			print("Loggato come root")
-			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(1, var.Settings.root_IP,var.Settings.root_PORT))
-			self.super = 1
+		# Mi inserisco nel DB
+		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, self.myIPP2P, self.PORT))
+		
 		
 		# Socket ipv4/ipv6 port 3000
 		self.server_address = (IP, int(self.PORT))
@@ -202,7 +213,24 @@ class Kazaa(object):
 			command = data.decode()
 			print("\n\nRicevuto comando dal client: "+color.recv+command+color.end)
 			
-			if command == "SUPE":
+			if command == "IFSU":
+				sup = str(self.sockUDPServer.recvfrom(1)[0].decode())
+				if sup == "1":
+					print("Loggato come root")
+					self.dbReader.execute("UPDATE user set Super=? where IPP2P=?",(1, self.myIPP2P))
+					self.super = 1
+				
+			elif command == "SETV":
+				gruppo = str(self.sockUDPServer.recvfrom(3)[0].decode())
+				numPc = str(self.sockUDPServer.recvfrom(3)[0].decode())
+				port = str(self.sockUDPServer.recvfrom(5)[0].decode())
+				ip = "172.16."+gruppo+"."+numPc
+				ipv6 = "fc00:0000:0000:0000:0000:0000:"+setIPv6(int(gruppo))+":"+setIPv6(int(numPc))
+				ip = ip+"|"+ipv6;
+				
+				self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, ip, port))
+				
+			elif command == "SUPE":
 				myPktid = PktidGenerator()
 				self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)",(myPktid,datetime.datetime.now()))
 				TTL = setNumber(4)
@@ -351,7 +379,6 @@ class Kazaa(object):
 						filemd5 = peer_socket.recv(32).decode()
 						filename = peer_socket.recv(100).decode()
 						nCopie = int(peer_socket.recv(3).decode())
-						print(nCopie)
 						while nCopie > 0:
 							ipp2p = peer_socket.recv(55).decode()
 							pp2p = peer_socket.recv(5).decode()
@@ -361,7 +388,6 @@ class Kazaa(object):
 							nCopie = nCopie - 1
 						nIdMd5 = nIdMd5 -1
 					print("Trovati " + str(i)+" file" )
-					print("Stampo i file trovati")
 					self.dbReader.execute("SELECT * FROM TrackedFile")
 					files = self.dbReader.fetchall()
 					for f in files:
@@ -639,10 +665,13 @@ class Kazaa(object):
 				
 				n = 0
 				#wait 10 s
-				while n < 10:
-					time.sleep(0.1)
+				print("ciao belli",n)
+				print(color.green)
+				while n < 20:
+					progBar(n)
+					time.sleep(1)
 					n = n+1
-					print(n)
+				print(color.end)
 					
 				try:
 					#sendAfin(self, sessionID,ricerca,connection)
@@ -659,11 +688,9 @@ class Kazaa(object):
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE SessionID LIKE ?", (sessionID,))
 					ip = self.dbReader.fetchone()
 					connection.sendall(msg.encode())
-					print("1...")
 					connection.close()
-					print("2...")
-					self.dbReader.execute("DELETE FROM TrackedFile WHERE filename LIKE ?", ("%"+ricerca+"%",))
-					print("3...")
+					
+					#self.dbReader.execute("DELETE FROM TrackedFile WHERE filename LIKE ?", ("%"+ricerca+"%",))
 				except:
 					print("ERRORE SEND NUDES")
 				

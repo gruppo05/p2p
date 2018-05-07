@@ -46,6 +46,19 @@ def progBar(i):
 	spaces = ' ' * (bar_length - len(hashes))
 	sys.stdout.write("\r[{0}] {1}s".format(hashes + spaces, int(i)))
 	
+def setIp(n):
+	if n < 10:
+		n = "00"+str(n)
+	elif n < 100:
+		n = "0"+str(n)
+	return n
+
+def setPort(n):
+	if n < 10000:
+		n = "0"+str(n)
+	return n
+	
+	
 class kazaaClient(object):
 	def __init__(self):
 		self.UDP_IP = "127.0.0.1"
@@ -66,8 +79,30 @@ class kazaaClient(object):
 		startServer()
 		os.system('cls' if os.name == 'nt' else 'clear')
 		
+		
 		#ricerca super nodi
 		time.sleep(0.1)
+		
+		while True:
+			cmd = input(color.green+"Sei super?"+color.end+"\n1 - SI\n0 - NO\nScelta:	");
+			if cmd == "0" or cmd == "1":
+				self.sockUDPServer.sendto(("IFSU").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				self.sockUDPServer.sendto(cmd.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				break;
+			else:
+				print(color.fail+"Scelta non valida"+color.end)
+		
+		print(color.green+"Inserisci nodo conosciuto"+color.end)
+		self.sockUDPServer.sendto(("SETV").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+		gruppo = setIp(int(input("Inserisci gruppo:	")))
+		numPc = setIp(int(input("Inserisci numero pc:	")))
+		port = setPort(int(input("Inserisci porta:	")))
+		self.sockUDPServer.sendto((gruppo).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+		self.sockUDPServer.sendto((numPc).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+		self.sockUDPServer.sendto((port).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+
+		
+		
 		print("RICERCA SUPERNODI"+color.green)
 		self.sockUDPServer.sendto(("SUPE").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 		i = 0
@@ -102,8 +137,7 @@ class kazaaClient(object):
 			try:
 				cmd = input("\nDigita cosa vuoi fare: ")
 			except:
-				continue
-						
+				continue						
 			if cmd is "1":
 				print(color.recv+"AGGIUNTA FILE"+color.end)
 				self.sockUDPServer.sendto(("ADDF").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
@@ -140,14 +174,13 @@ class kazaaClient(object):
 				print(ricerca)
 				self.sockUDPServer.sendto(ricerca.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				print("Ricerca File: ")
-				'''i = 0
-				while i < 20:
-					print("fazzi")
+				i = 0
+				print(color.green)
+				while i < 25:
 					progBar(i)
-					time.sleep(0.1)
-					i = i+1'''
-				
-				time.sleep(11)
+					time.sleep(1)
+					i = i+1
+				print(color.end)
 				
 				#leggere da server
 				msg = "FDWN"
@@ -227,7 +260,16 @@ class kazaaClient(object):
 						break;
 					else:
 						print(color.recv+cmd+color.end)
-				
+						
+			elif cmd is "8":
+				print("RICERCA SUPERNODI"+color.green)
+				self.sockUDPServer.sendto(("SUPE").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				i = 0
+				while i < 20:
+					progBar(i)
+					time.sleep(0.1)
+					i = i+1
+			
 			elif cmd is "0":
 				print(color.recv+"LOGOUT"+color.end)
 				self.sockUDPServer.sendto(("LOGO").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
