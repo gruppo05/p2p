@@ -149,7 +149,7 @@ class Kazaa(object):
 		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.endUDP3 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
-		self.BUFF = 99999
+		self.BUFF = 1024
 		self.super = ""
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -159,7 +159,7 @@ class Kazaa(object):
 		clearAndSetDB(self)
 		
 		#Setto i supernodi noti
-		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, "172.016.006.004|fc00:0000:0000:0000:0000:0000:0006:0004","50005"))
+		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, "172.016.008.002|fc00:0000:0000:0000:0000:0000:0008:0002","3000"))
 
 	
 		if self.myIPP2P != var.Settings.root_IP:
@@ -750,12 +750,7 @@ class Kazaa(object):
 					fd = os.open(var.Settings.userPath+""+filename, os.O_RDONLY)
 				except OSError as e:
 					print(e)
-				if fd is not -1:					
-					addrIPv4 = str(client_address).split(":")[-1].split("'")[0]
-					#addrIPv6 = str(client_address).split("'")[1].split(":"+addrIPv4)[0]
-					addrIPv4 = str(setIp(int(addrIPv4.split(".")[0])))+"."+str(setIp(int(addrIPv4.split(".")[1])))+"."+str(setIp(int(addrIPv4.split(".")[2])))+"."+str(setIp(int(addrIPv4.split(".")[3])))
-					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P LIKE ?",('%'+addrIPv4+'%',))
-					data = self.dbReader.fetchone()
+				if fd is not -1:
 					
 					filesize = int(os.path.getsize(var.Settings.userPath+""+filename))
 					num = int(filesize) / self.BUFF

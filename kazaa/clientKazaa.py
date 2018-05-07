@@ -102,8 +102,7 @@ class kazaaClient(object):
 			try:
 				cmd = input("\nDigita cosa vuoi fare: ")
 			except:
-				continue
-						
+				continue						
 			if cmd is "1":
 				print(color.recv+"AGGIUNTA FILE"+color.end)
 				self.sockUDPServer.sendto(("ADDF").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
@@ -227,7 +226,16 @@ class kazaaClient(object):
 						break;
 					else:
 						print(color.recv+cmd+color.end)
-				
+						
+			elif cmd is "8":
+				print("RICERCA SUPERNODI"+color.green)
+				self.sockUDPServer.sendto(("SUPE").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				i = 0
+				while i < 20:
+					progBar(i)
+					time.sleep(0.1)
+					i = i+1
+			
 			elif cmd is "0":
 				print(color.recv+"LOGOUT"+color.end)
 				self.sockUDPServer.sendto(("LOGO").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
