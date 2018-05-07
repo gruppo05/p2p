@@ -164,7 +164,7 @@ class Kazaa(object):
 		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.endUDP3 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-
+		self.timeDebug = var.Settings.timeDebug
 		self.BUFF = 1024
 		self.super = ""
 		# Creo DB
@@ -224,11 +224,12 @@ class Kazaa(object):
 				gruppo = str(self.sockUDPServer.recvfrom(3)[0].decode())
 				numPc = str(self.sockUDPServer.recvfrom(3)[0].decode())
 				port = str(self.sockUDPServer.recvfrom(5)[0].decode())
-				ip = "172.16."+gruppo+"."+numPc
+				ip = "172.016."+gruppo+"."+numPc
 				ipv6 = "fc00:0000:0000:0000:0000:0000:"+setIPv6(int(gruppo))+":"+setIPv6(int(numPc))
-				ip = ip+"|"+ipv6;
+				ip = ip+"|"+ipv6
 				
-				self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, ip, port))
+				if ip != self.myIPP2P:
+					self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, ip, port))
 				
 			elif command == "SUPE":
 				myPktid = PktidGenerator()
@@ -665,11 +666,10 @@ class Kazaa(object):
 				
 				n = 0
 				#wait 10 s
-				print("ciao belli",n)
 				print(color.green)
 				while n < 20:
 					progBar(n)
-					time.sleep(1)
+					time.sleep(self.timeDebug)
 					n = n+1
 				print(color.end)
 					

@@ -1,5 +1,6 @@
 import socket, sqlite3, string, subprocess, os, time, sys
 from random import *
+import setting as var
 
 class color:
 	HEADER = '\033[95m'
@@ -74,7 +75,8 @@ class kazaaClient(object):
 		
 		# Socket UDP ipv4 server in uscita
 		self.sockUDPServer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-	
+		self.timeDebug = var.Settings.timeDebug
+		
 	def start(self):
 		startServer()
 		os.system('cls' if os.name == 'nt' else 'clear')
@@ -108,7 +110,7 @@ class kazaaClient(object):
 		i = 0
 		while i < 20:
 			progBar(i)
-			time.sleep(0.1)
+			time.sleep(self.timeDebug)
 			i = i+1
 
 		self.sockUDPServer.sendto(("SETS").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
@@ -178,7 +180,7 @@ class kazaaClient(object):
 				print(color.green)
 				while i < 25:
 					progBar(i)
-					time.sleep(1)
+					time.sleep(self.timeDebug)
 					i = i+1
 				print(color.end)
 				
@@ -198,7 +200,7 @@ class kazaaClient(object):
 						cmd = input("Quale risultato vuoi scaricare? ")
 						if cmd == "0":
 							break
-						else:
+						elif int(cmd) < count:
 							msg = "RETR"
 							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 							msg = ricerca.ljust(20)
@@ -211,6 +213,9 @@ class kazaaClient(object):
 								print(color.green+"File scaricato!"+color.end)
 							else:
 								print(color.fail+"Errore download file!"+color.end)
+							break
+						else:
+							print("Scelta non valida")
 							break
 					else:
 						print(color.recv+str(count)+" - "+cmd+color.end)
