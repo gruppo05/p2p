@@ -74,7 +74,7 @@ def setConnection(ip, port, msg):
 	try:
 		rnd = random()
 		#rnd = 0.1
-		if(rnd<0.95):
+		if(rnd<0.5):
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+" PORT:"+str(port)+color.end)
 			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -94,7 +94,7 @@ def setConnection(ip, port, msg):
 def setNotCloseConnection(ip, port, msg):
 	try:
 		rnd = random()
-		if(rnd<0.95):
+		if(rnd<0.5):
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
 			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -148,7 +148,7 @@ class Kazaa(object):
 		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 		self.endUDP3 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
-		self.BUFF = 99999
+		self.BUFF = 1024
 		self.super = ""
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -157,7 +157,7 @@ class Kazaa(object):
 		# Creo tabella user
 		clearAndSetDB(self)
 		
-		#Setto i supernodi noti
+
 	
 		if self.myIPP2P != var.Settings.root_IP:
 			self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, var.Settings.root_IP,var.Settings.root_PORT))
@@ -366,7 +366,6 @@ class Kazaa(object):
 					files = self.dbReader.fetchall()
 					for f in files:
 						print(f[0] + " - " + f[1] + " - " + f[2] + " - " + f[3])
-				
 				peer_socket.close()
 			
 			elif command == "LOGI":
@@ -390,6 +389,7 @@ class Kazaa(object):
 					self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
 
+
 			elif command == "LOGO":
 				#ottengo il mio sessionID dal db
 				self.dbReader.execute("SELECT SessionID FROM User Where IPP2P = ? AND Super = ?",(self.myIPP2P,0))
@@ -405,7 +405,7 @@ class Kazaa(object):
 					self.sockUDPClient.sendto((nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				
 				peer_socket.close()
-				
+			
 			
 			elif command == "RETR":
 				print("ricevuto RETR")
@@ -426,8 +426,9 @@ class Kazaa(object):
 					self.dbReader.execute("DELETE FROM Download")
 					self.dbReader.execute("INSERT INTO Download values (?,?)", (resultFile[2], resultFile[3]))					
 					msg = "RETR" + resultFile[2]
+					
 					#setConnection(resultFile[0], int(resultFile[1]), msg)
-					peer_socket = setNotCloseConnection(mySuper[0], int(mySuper[1]), msg)
+					peer_socket = setNotCloseConnection(resultFile[0], int(resultFile[1]), msg)
 					command = peer_socket.recv(4).decode()
 					
 					if command == "ARET":
@@ -575,6 +576,7 @@ class Kazaa(object):
 					Print("Errore nella procedura di login lato server")
 				finally:
 					msg = "ALGI"+SessionID
+
 					#setConnection(IPP2P, int(PP2P), msg)
 					connection.sendall(msg.encode())
 					#connection.close()
@@ -633,7 +635,7 @@ class Kazaa(object):
 						self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, IPP2P, PP2P, Filename) values (?,?,?,?)", (f[0], f[1], f[2],f[3]))
 				#threading.Thread(target = self.serverTCP, args = (connection,client_address)).start()
 				for s in superUser:
-					setConnection(s[0], int(s[1]), msg)
+					setConnection(s[0],3000, msg)
 				
 				n = 0
 				#wait 10 s
@@ -684,7 +686,7 @@ class Kazaa(object):
 				self.dbReader.execute("DELETE FROM User WHERE SessionID=?", (SessionID,))
 				#setConnection(IPP2P, int(PP2P), msg)
 				connection.sendall(msg.encode())
-				
+
 			elif command == "QUER":
 				pktId = connection.recv(16).decode()
 				ipp2p = connection.recv(55).decode()
@@ -745,22 +747,17 @@ class Kazaa(object):
 					fd = os.open(var.Settings.userPath+""+filename, os.O_RDONLY)
 				except OSError as e:
 					print(e)
-				if fd is not -1:					
-					addrIPv4 = str(client_address).split(":")[-1].split("'")[0]
-					#addrIPv6 = str(client_address).split("'")[1].split(":"+addrIPv4)[0]
-					addrIPv4 = str(setIp(int(addrIPv4.split(".")[0])))+"."+str(setIp(int(addrIPv4.split(".")[1])))+"."+str(setIp(int(addrIPv4.split(".")[2])))+"."+str(setIp(int(addrIPv4.split(".")[3])))
-					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P LIKE ?",('%'+addrIPv4+'%',))
-					data = self.dbReader.fetchone()
-					
+				if fd is not -1:
 					filesize = int(os.path.getsize(var.Settings.userPath+""+filename))
 					num = int(filesize) / self.BUFF
-				
 					if (filesize % self.BUFF)!= 0:
 						num = num + 1
 				
 					num = int(num)
 					msg = "ARET" + str(num).zfill(6)
-					print ('Trasferimento iniziato di ', resultFile[0], '     [BYTES ', filesize, ']')
+					
+					print ('Trasferimento iniziato di ', resultFile[0], ' [BYTES ', filesize, ']')
+					print(5)
 					#funzione progressBar
 					connection.send(msg.encode())
 					i = 0
