@@ -112,6 +112,7 @@ class GnutellaClient(object):
 								print(color.green+"File scaricato!"+color.end)
 							else:
 								print(color.fail+"Errore download file!"+color.end)
+								break
 						elif int(cmd) > count:
 							print("Errore nella scelta")
 							break
