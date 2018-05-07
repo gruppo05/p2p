@@ -73,7 +73,6 @@ def encryptMD5(filename):
 def setConnection(ip, port, msg):
 	try:
 		rnd = random()
-		#rnd = 0.1
 		if(rnd<0.5):
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
@@ -117,7 +116,7 @@ def setNotCloseConnection(ip, port, msg):
 def sendToSuper(self, messaggio):
 	self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
 	mySuper = self.dbReader.fetchone()
-	setConnection(mySuper[0], "03000", messaggio)
+	setConnection(mySuper[0], 3000, messaggio)
 
 def sessionIdGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
@@ -369,7 +368,6 @@ class Kazaa(object):
 					files = self.dbReader.fetchall()
 					for f in files:
 						print(f[0] + " - " + f[1] + " - " + f[2] + " - " + f[3])
-				
 				peer_socket.close()
 			
 			elif command == "LOGI":
@@ -393,6 +391,7 @@ class Kazaa(object):
 					self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
 
+
 			elif command == "LOGO":
 				#ottengo il mio sessionID dal db
 				self.dbReader.execute("SELECT SessionID FROM User Where IPP2P = ? AND Super = ?",(self.myIPP2P,0))
@@ -408,7 +407,7 @@ class Kazaa(object):
 					self.sockUDPClient.sendto((nDeleted.ljust(3)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				
 				peer_socket.close()
-				
+			
 			
 			elif command == "RETR":
 				print("ricevuto RETR")
@@ -429,8 +428,9 @@ class Kazaa(object):
 					self.dbReader.execute("DELETE FROM Download")
 					self.dbReader.execute("INSERT INTO Download values (?,?)", (resultFile[2], resultFile[3]))					
 					msg = "RETR" + resultFile[2]
+					
 					#setConnection(resultFile[0], int(resultFile[1]), msg)
-					peer_socket = setNotCloseConnection(mySuper[0], int(mySuper[1]), msg)
+					peer_socket = setNotCloseConnection(resultFile[0], int(resultFile[1]), msg)
 					command = peer_socket.recv(4).decode()
 					
 					if command == "ARET":
@@ -578,6 +578,7 @@ class Kazaa(object):
 					Print("Errore nella procedura di login lato server")
 				finally:
 					msg = "ALGI"+SessionID
+
 					#setConnection(IPP2P, int(PP2P), msg)
 					connection.sendall(msg.encode())
 					#connection.close()
@@ -636,7 +637,7 @@ class Kazaa(object):
 						self.dbReader.execute("INSERT INTO TrackedFile (Filemd5, IPP2P, PP2P, Filename) values (?,?,?,?)", (f[0], f[1], f[2],f[3]))
 				#threading.Thread(target = self.serverTCP, args = (connection,client_address)).start()
 				for s in superUser:
-					setConnection(s[0], int(s[1]), msg)
+					setConnection(s[0],3000, msg)
 				
 				n = 0
 				#wait 10 s
@@ -687,7 +688,7 @@ class Kazaa(object):
 				self.dbReader.execute("DELETE FROM User WHERE SessionID=?", (SessionID,))
 				#setConnection(IPP2P, int(PP2P), msg)
 				connection.sendall(msg.encode())
-				
+
 			elif command == "QUER":
 				pktId = connection.recv(16).decode()
 				ipp2p = connection.recv(55).decode()
