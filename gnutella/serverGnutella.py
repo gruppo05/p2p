@@ -70,7 +70,7 @@ def setConnection(ip, port, msg):
 			peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 			peer_socket.connect((ip, port))
 		
-		#print("Invio --> "+color.send+msg+color.end)
+		print("Invio --> "+color.send+msg+color.end)
 		peer_socket.sendall(msg.encode())
 		peer_socket.close()
 		
@@ -221,7 +221,7 @@ class GnutellaServer(object):
 							peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 							peer_socket.connect((ip, port))
 		
-						#print("Invio --> "+color.send+msg+color.end)
+						print("Invio --> "+color.send+msg+color.end)
 						peer_socket.sendall(msg.encode())
 						cmd = peer_socket.recv(4).decode()
 						if cmd == "ARET":
