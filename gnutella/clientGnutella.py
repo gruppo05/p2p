@@ -121,7 +121,7 @@ class GnutellaClient(object):
 					else:
 						print(color.recv+str(count)+" - "+cmd+color.end)
 						count = count+1
-					
+			
 			elif cmd is "5":
 				print("STAMPA VICINI TROVATI")
 				self.sockUDPServer.sendto(("STMV").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
