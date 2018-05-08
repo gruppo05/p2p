@@ -204,13 +204,8 @@ class GnutellaServer(object):
 					self.dbReader.execute("DELETE FROM Download")
 					self.dbReader.execute("INSERT INTO Download values (?,?)", (resultFile[2], resultFile[3]))					
 					msg = "RETR" + resultFile[2]
-<<<<<<< HEAD
-					ip=resultFile[0]
-					port=int(resultFile[1])					
-=======
 					ip = resultFile[0]
 					port = int(resultFile[1])
->>>>>>> b42709af7ba1d33fa32e8dde87e9e6773332eccc
 					try:
 						rnd = random()
 						#rnd = 0.1
@@ -236,10 +231,6 @@ class GnutellaServer(object):
 								files = self.dbReader.fetchone()
 								filename = files[1]
 								filename = filename.strip()
-<<<<<<< HEAD
-
-=======
->>>>>>> b42709af7ba1d33fa32e8dde87e9e6773332eccc
 								fd = open(var.Settings.userPath + "" + filename, 'wb')					
 								numChunk = peer_socket.recv(6).decode()
 								numChunk = int(numChunk)
