@@ -176,7 +176,7 @@ class Kazaa(object):
 		
 		# Mi inserisco nel DB
 		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, self.myIPP2P, self.PORT))
-		
+		self.super = 0
 		
 		# Socket ipv4/ipv6 port 3000
 		self.server_address = (IP, int(self.PORT))
@@ -253,7 +253,7 @@ class Kazaa(object):
 						data = self.dbReader.fetchone()
 						print("Supernodi trovati:", data[0])
 						rnd = randint(1, int(data[0])) - 1
-						self.dbReader.execute("SELECT IPP2P FROM user LIMIT 1 OFFSET ?", (rnd,))
+						self.dbReader.execute("SELECT IPP2P FROM user WHERE Super=? LIMIT 1 OFFSET ?", (1,rnd))
 						data = self.dbReader.fetchone()
 						self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,data[0]))
 						print(color.green + "SUPERNODO con IP:"+data[0]+" selezionato con successo"+ color.end)
@@ -405,7 +405,11 @@ class Kazaa(object):
 					print("Ricevuto ALGI")
 					try:
 						SessionID = peer_socket.recv(16).decode()
-						self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P, SessionID) values (?, ?, ?, ?)",(0, self.myIPP2P, self.PORT, SessionID))
+						#Aggiorno SessionID
+						if self.super == 0:
+							self.dbReader.execute("UPDATE user SET SessionID=? WHERE IPP2P=?",(SessionID,self.myIPP2P))
+						else:						
+							self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P, SessionID) values (?, ?, ?, ?)",(0, self.myIPP2P, self.PORT, SessionID))
 						print(color.green + "SessionID salvato con successo"+ color.end)
 						self.sockUDPClient.sendto(("LOG1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 					except:
@@ -539,7 +543,7 @@ class Kazaa(object):
 						print(color.green + "Aggiunto nuovo user" + color.end)
 					else:
 						print(color.fail + "User già presente" + color.end)
-			
+					
 					if self.super == 1:
 						print("Sono un supernodo e rispondo alla richiesta") 
 						msg = "ASUP" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
@@ -569,6 +573,7 @@ class Kazaa(object):
 					data = self.dbReader.fetchone() 
 					if data is None:
 						self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values (?, ?, ?)",(1, IPP2P, PP2P))
+						da
 						print(color.green + "Aggiunto nuovo supernodo" + color.end)
 					else:
 						#verifico se ho salvato l'utente come user normale. In questo caso lo aggiorno come root

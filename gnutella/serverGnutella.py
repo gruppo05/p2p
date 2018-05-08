@@ -58,7 +58,6 @@ def encryptMD5(filename):
 def setConnection(ip, port, msg):
 	try:
 		rnd = random()
-		#rnd = 0.1
 		if(rnd<0.5):
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+color.end)
@@ -104,7 +103,7 @@ class GnutellaServer(object):
 		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 		self.endUDP3 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 
-		self.BUFF = 99999
+		self.BUFF = 1024
 		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -205,8 +204,13 @@ class GnutellaServer(object):
 					self.dbReader.execute("DELETE FROM Download")
 					self.dbReader.execute("INSERT INTO Download values (?,?)", (resultFile[2], resultFile[3]))					
 					msg = "RETR" + resultFile[2]
+<<<<<<< HEAD
 					ip=resultFile[0]
 					port=int(resultFile[1])					
+=======
+					ip = resultFile[0]
+					port = int(resultFile[1])
+>>>>>>> b42709af7ba1d33fa32e8dde87e9e6773332eccc
 					try:
 						rnd = random()
 						#rnd = 0.1
@@ -232,7 +236,10 @@ class GnutellaServer(object):
 								files = self.dbReader.fetchone()
 								filename = files[1]
 								filename = filename.strip()
+<<<<<<< HEAD
 
+=======
+>>>>>>> b42709af7ba1d33fa32e8dde87e9e6773332eccc
 								fd = open(var.Settings.userPath + "" + filename, 'wb')					
 								numChunk = peer_socket.recv(6).decode()
 								numChunk = int(numChunk)
@@ -419,7 +426,6 @@ class GnutellaServer(object):
 					msg = "ARET" + str(num).zfill(6)
 					
 					print ('Trasferimento iniziato di ', resultFile[0], ' [BYTES ', filesize, ']')
-					print(5)
 					#funzione progressBar
 					connection.send(msg.encode())
 					i = 0
@@ -488,6 +494,53 @@ class GnutellaServer(object):
 				else:
 					print(color.fail+"Ricevuto pacchetto dopo 300s"+color.end)
 				
+			elif command == "ARET":
+				print("Ricevuto "+color.recv+"ARET"+color.end)
+				try:
+
+					self.dbReader.execute("SELECT * FROM Download")
+					files = self.dbReader.fetchone()
+					filename = files[1]
+
+					fd = open(var.Settings.userPath + "" + filename, 'wb')					
+					numChunk = connection.recv(6).decode()
+					numChunk = int(numChunk)
+					
+					i = 0
+					print("Inizio download...")
+					bar_length = 60
+					time1 = time.time()
+					while i < numChunk:
+						lun = connection.recv(5).decode()
+						while len(lun) < 5:
+							lun = lun + connection.recv(1).decode()
+						lun = int(lun)
+						data = connection.recv(lun)
+						while len(data) < lun:
+							data += connection.recv(1)
+						fd.write(data)
+						percent = float(i) / numChunk
+						hashes = '#' * int(round(percent * bar_length))
+						spaces = ' ' * (bar_length - len(hashes))
+						sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+						i = i + 1
+					
+					percent = float(i) / numChunk
+					hashes = '#' * int(round(percent * bar_length))
+					spaces = ' ' * (bar_length - len(hashes))
+					sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+					time2 = time.time()
+					sys.stdout.flush()
+					fd.close()
+					connection.close()
+					print("\n")
+					totTime = time2 - time1
+					print(color.green + "Scaricato il file" + color.end+" in "+str(int(totTime))+"s")
+					
+				except OSError:
+					print("Impossibile aprire il file: controlla di avere i permessi")
+					return False
+				print(color.fail+"Finito baby"+color.end)
 					
 		except:
 			connection.close()
