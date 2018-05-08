@@ -176,6 +176,9 @@ class Kazaa(object):
 		# Mi inserisco nel DB
 		self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, self.myIPP2P, self.PORT))
 		
+		self.super = 0
+
+		
 		# Socket ipv4/ipv6 port 3000
 		self.server_address = (IP, int(self.PORT))
 		self.sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
@@ -225,9 +228,9 @@ class Kazaa(object):
 				ip = "172.016."+gruppo+"."+numPc
 				ipv6 = "fc00:0000:0000:0000:0000:0000:"+setIPv6(int(gruppo))+":"+setIPv6(int(numPc))
 				ip = ip+"|"+ipv6
-				
 				if ip != self.myIPP2P:
 					self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, ip, port))
+				print(color.green + "NODO " + ip +" aggiunto con successo"+ color.end)	
 				
 			elif command == "SUPE":
 				myPktid = PktidGenerator()
@@ -238,7 +241,6 @@ class Kazaa(object):
 				msg = "SUPE" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
 				
 				for user in resultUser:
-					print("Invio-> " +msg)
 					setConnection(user[0], int(user[1]), msg)
 			
 			elif command == "SETS":
@@ -251,7 +253,7 @@ class Kazaa(object):
 						data = self.dbReader.fetchone()
 						print("Supernodi trovati:", data[0])
 						rnd = randint(1, int(data[0])) - 1
-						self.dbReader.execute("SELECT IPP2P FROM user LIMIT 1 OFFSET ?", (rnd,))
+						self.dbReader.execute("SELECT IPP2P FROM user WHERE Super=? LIMIT 1 OFFSET ?", (1,rnd))
 						data = self.dbReader.fetchone()
 						self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,data[0]))
 						print(color.green + "SUPERNODO con IP:"+data[0]+" selezionato con successo"+ color.end)
@@ -285,7 +287,6 @@ class Kazaa(object):
 					
 					msg = "ADFF" + sessionID[0] + filemd5 + filename
 					sendToSuper(self, msg)
-					print("Invio -> "+color.recv+msg+color.end)
 					msg = "1"
 				else:
 					msg = "0"
@@ -318,7 +319,6 @@ class Kazaa(object):
 					
 						msg = "DEFF" + sessionID[0] + filemd5
 						sendToSuper(self, msg)
-						print("Invio -> "+color.recv+msg+color.end)
 						msg = "1"
 				except:
 					msg = "0"
@@ -403,7 +403,12 @@ class Kazaa(object):
 					print("Ricevuto ALGI")
 					try:
 						SessionID = peer_socket.recv(16).decode()
-						self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P, SessionID) values (?, ?, ?, ?)",(0, self.myIPP2P, self.PORT, SessionID))
+						
+						#Aggiorno SessionID non sono un super, altrimenti mi aggiungo come user normale
+						if self.super == 0:
+							self.dbReader.execute("UPDATE user SET SessionID=? WHERE IPP2P=?",(SessionID,self.myIPP2P))
+						else:
+							self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P, SessionID) values (?, ?, ?, ?)",(0, self.myIPP2P, self.PORT, SessionID))
 						print(color.green + "SessionID salvato con successo"+ color.end)
 						self.sockUDPClient.sendto(("LOG1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 					except:
@@ -477,7 +482,6 @@ class Kazaa(object):
 									lun = lun + peer_socket.recv(1).decode()
 								lun = int(lun)
 								data = peer_socket.recv(lun)
-								time.sleep(3)
 								while len(data) < lun:
 									data += peer_socket.recv(1)
 								fd.write(data)
@@ -538,9 +542,8 @@ class Kazaa(object):
 						print(color.green + "Aggiunto nuovo user" + color.end)
 					else:
 						print(color.fail + "User già presente" + color.end)
-			
+					
 					if self.super == 1:
-						print("Sono un supernodo e rispondo alla richiesta") 
 						msg = "ASUP" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
 						setConnection(IPP2P, int(PP2P), msg)
 	
@@ -548,7 +551,7 @@ class Kazaa(object):
 		
 					if int(TTL) > 0:
 						msg = "SUPE" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
-						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=? AND Super = ?", (IPP2P,self.myIPP2P,1))
+						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=?", (IPP2P,self.myIPP2P))
 						resultUser = self.dbReader.fetchall()
 		
 						for user in resultUser:
@@ -568,6 +571,7 @@ class Kazaa(object):
 					data = self.dbReader.fetchone() 
 					if data is None:
 						self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values (?, ?, ?)",(1, IPP2P, PP2P))
+						da
 						print(color.green + "Aggiunto nuovo supernodo" + color.end)
 					else:
 						#verifico se ho salvato l'utente come user normale. In questo caso lo aggiorno come root
@@ -620,7 +624,6 @@ class Kazaa(object):
 					print(color.green+"File aggiunto con successo"+color.end)
 				else:
 					self.dbReader.execute("UPDATE File SET Filename=? where Filemd5=?",(Filename,Filemd5,))
-					print(color.fail+"File già presente"+color.end)
 					print(color.green+"Aggiornato filename"+color.end)
 		
 			elif command == "DEFF":
