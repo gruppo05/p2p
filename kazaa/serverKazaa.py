@@ -218,7 +218,7 @@ class Kazaa(object):
 				if sup == "1":
 					print("Loggato come root")
 					self.dbReader.execute("UPDATE user set Super=? where IPP2P=?",(1, self.myIPP2P))
-					self.super = "1"
+					self.super = 1
 				
 			elif command == "SETV":
 				gruppo = str(self.sockUDPServer.recvfrom(3)[0].decode())
@@ -244,7 +244,7 @@ class Kazaa(object):
 			
 			elif command == "SETS":
 				try:
-					if self.super == "1":
+					if self.super == 1:
 						print("SETTO SUPERNODO -------------------------------------------------------> IP"+self.myIPP2P)
 						self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,self.myIPP2P))
 						print(color.green + "SUPERNODO con IP:"+self.myIPP2P+" selezionato con successo"+ color.end)
@@ -545,13 +545,14 @@ class Kazaa(object):
 					
 					if self.super == 1:
 						msg = "ASUP" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
+						print("dio stronzo")
 						setConnection(IPP2P, int(PP2P), msg)
 	
 					TTL = setNumber(int(TTL) - 1)
 		
 					if int(TTL) > 0:
 						msg = "SUPE" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
-						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=? AND Super = ?", (IPP2P,self.myIPP2P,1))
+						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=?", (IPP2P,self.myIPP2P))
 						resultUser = self.dbReader.fetchall()
 		
 						for user in resultUser:
