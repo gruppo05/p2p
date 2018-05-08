@@ -61,6 +61,8 @@ def setConnection(ip, port, msg):
 	except:
 		print(color.fail+"Errore connessione 'not close'"+color.end)
 	return peer_socket
+
+def timer(self):
 	
 class bitTorrent(object):
 	def __init__(self):
@@ -98,6 +100,8 @@ class bitTorrent(object):
 		
 		# socket upd ipv4 client in uscita
 		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)	
+		#gestione cronometro
+		threading.Thread(target = self.timer, args = '').start()
 		
 	def server(self):
 		#crea thread interno per far comunicare client e server
