@@ -105,7 +105,7 @@ class kazaaClient(object):
 		port = setPort(int(input("Inserisci porta:	")))
 		self.sockUDPServer.sendto((gruppo).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 		self.sockUDPServer.sendto((numPc).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
-		self.sockUDPServer.sendto((port).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+		self.sockUDPServer.sendto((str(port)).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 
 		
 		
@@ -225,8 +225,6 @@ class kazaaClient(object):
 						count = count+1
 					
 			
-			
-			#**************************************** Da rimuovere ****************************************
 			elif cmd is "4":
 				print(color.recv+"DOWNLOAD"+color.end)
 				
@@ -268,8 +266,7 @@ class kazaaClient(object):
 						print(color.recv+str(count)+" - "+cmd+color.end)
 						count = count+1
 						
-				
-			# **********************************************************************************	
+
 			elif cmd is "5":
 				print(color.recv+"LOGOUT"+color.end)
 				self.sockUDPServer.sendto(("LOGO").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))

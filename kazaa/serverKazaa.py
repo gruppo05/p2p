@@ -550,7 +550,7 @@ class Kazaa(object):
 		
 					if int(TTL) > 0:
 						msg = "SUPE" + Pktid + IPP2P.ljust(55) + str(PP2P).ljust(5) + str(TTL)
-						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=? AND Super = ?", (IPP2P,self.myIPP2P,1))
+						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE IPP2P!=? and IPP2P!=?", (IPP2P,self.myIPP2P))
 						resultUser = self.dbReader.fetchall()
 		
 						for user in resultUser:
