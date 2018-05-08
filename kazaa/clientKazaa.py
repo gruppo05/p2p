@@ -105,7 +105,7 @@ class kazaaClient(object):
 		port = setPort(int(input("Inserisci porta:	")))
 		self.sockUDPServer.sendto((gruppo).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 		self.sockUDPServer.sendto((numPc).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
-		self.sockUDPServer.sendto((port).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+		self.sockUDPServer.sendto((str(port)).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 
 		
 		
