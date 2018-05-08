@@ -225,8 +225,6 @@ class kazaaClient(object):
 						count = count+1
 					
 			
-			
-			#**************************************** Da rimuovere ****************************************
 			elif cmd is "4":
 				print(color.recv+"DOWNLOAD"+color.end)
 				
@@ -268,8 +266,7 @@ class kazaaClient(object):
 						print(color.recv+str(count)+" - "+cmd+color.end)
 						count = count+1
 						
-				
-			# **********************************************************************************	
+
 			elif cmd is "5":
 				print(color.recv+"LOGOUT"+color.end)
 				self.sockUDPServer.sendto(("LOGO").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))

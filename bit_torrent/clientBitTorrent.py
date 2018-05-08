@@ -8,6 +8,9 @@ class color:
 	fail = '\033[31m'
 	end = '\033[0m'
 
+def startUDPhandler():
+	os.system("gnome-terminal -e 'sh -c \"python3 serverUDPhandler.py\"'")
+
 def stopServer(self):
 	time.sleep(0.1)
 	#self.sockUDPServer.sendto(("STOP").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
@@ -28,6 +31,19 @@ def printMenu():
 	print("\n")
 	print(color.fail+"« 0 » CHIUDI IL CLIENT"+color.end)
 	
+def setIp(n):
+	if n < 10:
+		n = "00"+str(n)
+	elif n < 100:
+		n = "0"+str(n)
+	return n
+
+def setPort(n):
+	if n < 10000:
+		n = "0"+str(n)
+	return n
+	
+		
 
 class clientBitTorrent(object):
 	def __init__(self):
@@ -44,8 +60,24 @@ class clientBitTorrent(object):
 		self.sockUDPServer = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		
 	def startClient(self):
+		startUDPhandler()
+		os.system('cls' if os.name == 'nt' else 'clear')
+		printMenu()
+		
+		#ricerca super nodi
+		time.sleep(0.1)
+		
+		print(color.green+"Inserisci nodo conosciuto"+color.end)
+		self.sockUDPServer.sendto(("SETV").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+		gruppo = setIp(int(input("Inserisci gruppo:	")))
+		numPc = setIp(int(input("Inserisci numero pc:	")))
+		port = setPort(int(input("Inserisci porta:	")))
+		self.sockUDPServer.sendto((gruppo).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+		self.sockUDPServer.sendto((numPc).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+		self.sockUDPServer.sendto((str(port)).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+
+		
 		while True:
-			printMenu()
 			try:
 				cmd = input("\nDigita cosa vuoi fare: ")
 			except:
