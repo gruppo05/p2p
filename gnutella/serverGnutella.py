@@ -58,7 +58,11 @@ def encryptMD5(filename):
 def setConnection(ip, port, msg):
 	try:
 		rnd = random()
+<<<<<<< HEAD
 		if(rnd<0.95):
+=======
+		if(rnd<0.995):
+>>>>>>> 4285719adf415e6b11da6f2f69bd31321bca38b4
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+color.end)
 			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
