@@ -119,7 +119,7 @@ class bitTorrent(object):
 			print("\n\nRicevuto comando dal client: "+color.recv+command+color.end)
 			
 				
-			elif command == "SETV":
+			if command == "SETV":
 				gruppo = str(self.sockUDPServer.recvfrom(3)[0].decode())
 				numPc = str(self.sockUDPServer.recvfrom(3)[0].decode())
 				port = str(self.sockUDPServer.recvfrom(5)[0].decode())
@@ -155,55 +155,6 @@ class bitTorrent(object):
 
 	def download(self, connection, client_address):
 		command = connection.recv(4).decode()
-		try:
-			'''
-			elif command == "RETR":
-				print("Ricevuto "+color.recv+"RETR"+color.end)
-			
-				#inviare un file che ho
-				FileMD5 = connection.recv(32).decode()
-				print("FileMD5", FileMD5)
-				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
-				resultFile = self.dbReader.fetchone()
-				filename=resultFile[0].replace(" ","")
-			
-				try:
-					fd = os.open(var.Settings.userPath+""+filename, os.O_RDONLY)
-				except OSError as e:
-					print(e)
-				if fd is not -1:
-					filesize = int(os.path.getsize(var.Settings.userPath+""+filename))
-					num = int(filesize) / self.BUFF
-					if (filesize % self.BUFF)!= 0:
-						num = num + 1
-				
-					num = int(num)
-					msg = "ARET" + str(num).zfill(6)
-					
-					print ('Trasferimento iniziato di ', resultFile[0], ' [BYTES ', filesize, ']')
-					print(5)
-					#funzione progressBar
-					connection.send(msg.encode())
-					i = 0
-					while i < num:
-						buf = os.read(fd,self.BUFF)
-						
-						if not buf: break
-						lbuf = len(buf)
-						lbuf = str(lbuf).zfill(5)
-						connection.send(lbuf.encode())
-						connection.send(buf)
-						i = i + 1
-					
-					os.close(fd)
-					print(color.green+"\nFine UPLOAD"+color.end)					
-					connection.close()
-				else: 	
-		except:
-			connection.close()
-			return False
-			
-			'''
 
 if __name__ == "__main__":
     bitTorrent = bitTorrent()
