@@ -227,9 +227,9 @@ class Kazaa(object):
 				ip = "172.016."+gruppo+"."+numPc
 				ipv6 = "fc00:0000:0000:0000:0000:0000:"+setIPv6(int(gruppo))+":"+setIPv6(int(numPc))
 				ip = ip+"|"+ipv6
-				
 				if ip != self.myIPP2P:
 					self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values(?, ?, ?) ",(0, ip, port))
+				print(color.green + "NODO " + ip +" aggiunto con successo"+ color.end)	
 				
 			elif command == "SUPE":
 				myPktid = PktidGenerator()
@@ -240,7 +240,6 @@ class Kazaa(object):
 				msg = "SUPE" + myPktid + self.myIPP2P + str(self.PORT).ljust(5) + TTL
 				
 				for user in resultUser:
-					print("Invio-> " +msg)
 					setConnection(user[0], int(user[1]), msg)
 			
 			elif command == "SETS":
@@ -290,7 +289,6 @@ class Kazaa(object):
 					
 					msg = "ADFF" + sessionID[0] + filemd5 + filename
 					sendToSuper(self, msg)
-					print("Invio -> "+color.recv+msg+color.end)
 					msg = "1"
 				else:
 					msg = "0"
@@ -323,7 +321,6 @@ class Kazaa(object):
 					
 						msg = "DEFF" + sessionID[0] + filemd5
 						sendToSuper(self, msg)
-						print("Invio -> "+color.recv+msg+color.end)
 						msg = "1"
 				except:
 					msg = "0"
@@ -407,8 +404,8 @@ class Kazaa(object):
 				if command == "ALGI":
 					print("Ricevuto ALGI")
 					try:
-						SessionID = peer_socket.recv(16).decode()
-						#Aggiorno SessionID
+						SessionID = peer_socket.recv(16).decode()						
+						#Aggiorno SessionID non sono un super, altrimenti mi aggiungo come user normale
 						if self.super == 0:
 							self.dbReader.execute("UPDATE user SET SessionID=? WHERE IPP2P=?",(SessionID,self.myIPP2P))
 						else:
@@ -547,7 +544,6 @@ class Kazaa(object):
 						print(color.fail + "User già presente" + color.end)
 					
 					if self.super == 1:
-						print("Sono un supernodo e rispondo alla richiesta") 
 						msg = "ASUP" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
 						setConnection(IPP2P, int(PP2P), msg)
 	
@@ -628,7 +624,6 @@ class Kazaa(object):
 					print(color.green+"File aggiunto con successo"+color.end)
 				else:
 					self.dbReader.execute("UPDATE File SET Filename=? where Filemd5=?",(Filename,Filemd5,))
-					print(color.fail+"File già presente"+color.end)
 					print(color.green+"Aggiornato filename"+color.end)
 		
 			elif command == "DEFF":
