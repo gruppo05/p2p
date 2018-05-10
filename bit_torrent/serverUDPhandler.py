@@ -161,12 +161,7 @@ class serverUDPhandler(object):
 				except:
 						print(color.fail+"Errore salvataggio SessionID"+color.end)
 						self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-			
-			
-			
-			
-			
-			
+
 			
 			
 			

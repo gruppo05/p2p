@@ -24,6 +24,6 @@ while true; do
 done
 case $scelta in
 	1) sh -c "python3 clientBitTorrent.py";;
-	0) sh -c "python3 serverBitTorrent.py";;
+	0) sh -c "python3 clientServer.py";;
 esac
 
