@@ -164,9 +164,9 @@ class serverBitTorrent(object):
 	def __init__(self):
 		IP = ""
 		self.PORT = 3000
-		self.myIPP2P = var.Settings.myIPP2P
+		self.myIPP2P = var.setting.myIPP2P
 
-		self.timeDebug = var.Settings.timeDebug
+		self.timeDebug = var.setting.timeDebug
 		self.BUFF = 1024
 		self.super = ""
 		# Creo DB
