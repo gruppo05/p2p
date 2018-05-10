@@ -97,9 +97,7 @@ class serverUDPhandler(object):
 		self.sockUDPServer.bind((self.UDP_IP, UDP_PORT_SERVER))
 		
 		# socket upd ipv4 client in uscita
-		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)	
-		#gestione cronometro
-		#threading.Thread(target = self.timer, args = '').start()
+		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		
 	def server(self):
 		#crea thread interno per far comunicare client e server
