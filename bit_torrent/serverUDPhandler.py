@@ -16,11 +16,11 @@ class color:
 def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS User")
 	self.dbReader.execute("DROP TABLE IF EXISTS File")
-	self.dbReader.execute("DROP TABLE IF EXISTS Chunck")
+	self.dbReader.execute("DROP TABLE IF EXISTS Parts")
 	
 	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text, SessionID text)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
-	self.dbReader.execute("CREATE TABLE Chunk (SessionID text, Filemd5 text, IdChunck text)")
+	self.dbReader.execute("CREATE TABLE Parts (SessionID text, Filemd5 text, IdParts text)")
     
 def setIp(n):
 	if n < 10:
@@ -151,9 +151,12 @@ class serverUDPhandler(object):
 						#setto il mio sessionID
 						self.mySessionID = peer_socket.recv(16).decode()
 						print("Ricevuto <-- "+color.send+command+str(self.mySessionID)+color.end)
-						
-						print(color.recv+"Login effettuato!")
-						self.sockUDPClient.sendto(("LOG1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+						if self.mySessionID == "0000000000000000":
+							print(color.fail+"Errore lato Server! Login fallito!")
+							self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+						else:
+							print(color.recv+"Login effettuato!")
+							self.sockUDPClient.sendto(("LOG1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 					else:
 						print(color.fail+"Login fallito!")
 						self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
@@ -182,7 +185,13 @@ class serverUDPhandler(object):
 				self.dbReader.execute("SELECT Filemd5 FROM File WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
 				resultFile = self.dbReader.fetchone()
 				
-				#recupero tutti i chunk necessari ...
+				#recupero tutti le parti necessari ...  <--------------- da ordinare per minori risultati
+				self.dbReader.execute("SELECT IPP2P,PP2P Filemd5, IdParts FROM Parts WHERE Filemd5=?", (resultFile[0],))
+				resultParts = self.dbReader.fetchall()
+				
+				''' scarico la parte meno presente '''
+				
+				
 				
 				
 				print("MD5 --> "+str(resultFile[2])+"  FILENAME --> "+str(resultFile[3]))
