@@ -13,7 +13,7 @@ def startUDPhandler():
 
 def stopServer(self):
 	time.sleep(0.1)
-	#self.sockUDPServer.sendto(("STOP").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+	self.sockUDPServer.sendto(("STOP").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 	self.sockUDPServer.close()
 	self.sockUDPClient.close()
 	os._exit(0)
@@ -81,13 +81,14 @@ class clientBitTorrent(object):
 		result, addr = self.sockUDPClient.recvfrom(4)
 		result = result.decode()
 		if result == "LOG1":
-			print("\n"+color.recv+"LOGIN effettuato con successo"+color.end)
+			print(color.recv+"LOGIN effettuato con successo"+color.end)
 			time.sleep(2)
 		else:
 			print("\n"+color.fail+"LOGIN fallito!"+color.end)
 			stopServer(self)
 			
 		while True:
+			printMenu()
 			try:
 				cmd = input("\nDigita cosa vuoi fare: ")
 			except:
@@ -98,7 +99,7 @@ class clientBitTorrent(object):
 				#self.sockUDPServer.sendto(("LOGO").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				stopServer(self)
 			
-			if cmd is "1":
+			elif cmd is "1":
 				print(color.recv+"RICERCA FILE"+color.end)
 				self.sockUDPServer.sendto(("FIND").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				ricerca = input("Inserisci il nome del file da cercare: ")

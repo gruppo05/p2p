@@ -218,21 +218,16 @@ class serverBitTorrent(object):
 					if data is None:
 						SessionID = sessionIdGenerator()
 						self.dbReader.execute("INSERT INTO user (IPP2P, PP2P, SessionID) values (?, ?, ?)",(IPP2P, PP2P, SessionID))
-						print(color.green + "Nuovo utente aggiunto con sessionID -> "+color.recv+SessionID+color.end);
-					else:
-						print(color.fail+"Utente "+IPP2P+":"+PP2P+" già presente"+color.end)
-						if data[0] is None:
-							SessionID = sessionIdGenerator()
-							self.dbReader.execute("UPDATE user SET SessionID=? where IPP2P=?",(SessionID,IPP2P))
-						else:
-							SessionID = data[0]
+						print(color.green + "Nuovo utente aggiunto con sessionID -> "+color.recv+SessionID+color.end)
+					else:						
+						SessionID = data[0]
+						print(color.fail+"Utente già presente con sessionID -> "+color.recv+SessionID+color.end)
+					
 				except:
 					SessionID = "0000000000000000"
-					Print("Errore nella procedura di login lato server")
+					Print("Errore nella procedura di login server")
 				finally:
 					msg = "ALGI"+SessionID
-					
-					#setConnection(IPP2P, int(PP2P), msg)
 					connection.sendall(msg.encode())
 					connection.close()
 					
