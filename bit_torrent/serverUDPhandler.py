@@ -1,5 +1,5 @@
 import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, hashlib, sys, stat
-import Settings as var
+import setting as var
 from threading import Timer
 from random import *
 
@@ -67,11 +67,9 @@ def setConnection(ip, port, msg):
 def timerChunk():
 	sec = 0
 	while True:
-		time.sleep(var.Settings.timeDebug)
-		sec = sec + var.Settings.timeDebug
-		print(sec)
+		time.sleep(var.setting.timeDebug)
+		sec = sec + var.setting.timeDebug
 		if int(sec) == 10:
-			print("Ben svegliato! Hai dormito per 10 secondi.")
 			sec = 0
 
 class serverUDPhandler(object):
@@ -79,15 +77,15 @@ class serverUDPhandler(object):
 		self.ServerIP = ""
 		self.ServerPORT = 3000
 		
-		self.PORT = var.Settings.PORT
-		self.myIPP2P = var.Settings.myIPP2P
+		self.PORT = var.setting.PORT
+		self.myIPP2P = var.setting.myIPP2P
 		self.mySessionID = ""
 		
 		self.UDP_IP = "127.0.0.1"
 		UDP_PORT_SERVER = 49999
 		self.UDP_PORT_CLIENT = 50000
 	
-		self.timeDebug = var.Settings.timeDebug
+		self.timeDebug = var.setting.timeDebug
 		self.BUFF = 1024
 		
 		# Creo DB
@@ -125,7 +123,6 @@ class serverUDPhandler(object):
 	
 	def serverUDP(self):
 		print(color.green+"In attesa di comandi interni..."+color.end)
-		threading.Thread(target = timerChunk, args = '').start()
 		while True:
 			data, addr = self.sockUDPServer.recvfrom(4)
 			command = data.decode()
@@ -143,7 +140,7 @@ class serverUDPhandler(object):
 				self.ServerPORT = port
 				print(color.green+"Server settato con successo"+color.end)
 				#gestione cronometro
-				threading.Thread(target = self.timerChunk, args = '').start()
+				threading.Thread(target = timerChunk, args = '').start()
 		
 			elif command == "LOGI":
 				msg = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
@@ -213,7 +210,7 @@ class serverUDPhandler(object):
 							files = self.dbReader.fetchone()
 							filename = files[1]
 
-							fd = open(var.Settings.userPath + "" + filename, 'wb')					
+							fd = open(var.setting.userPath + "" + filename, 'wb')					
 							numChunk = peer_socket.recv(6).decode()
 							numChunk = int(numChunk)
 
@@ -304,11 +301,11 @@ class serverUDPhandler(object):
 				filename=resultFile[0].replace(" ","")
 			
 				try:
-					fd = os.open(var.Settings.userPath+""+filename, os.O_RDONLY)
+					fd = os.open(var.setting.userPath+""+filename, os.O_RDONLY)
 				except OSError as e:
 					print(e)
 				if fd is not -1:
-					filesize = int(os.path.getsize(var.Settings.userPath+""+filename))
+					filesize = int(os.path.getsize(var.setting.userPath+""+filename))
 					num = int(filesize) / self.BUFF
 					if (filesize % self.BUFF)!= 0:
 						num = num + 1
