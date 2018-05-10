@@ -76,7 +76,17 @@ class clientBitTorrent(object):
 		self.sockUDPServer.sendto((numPc).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 		self.sockUDPServer.sendto((str(port)).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 
-		
+		print(color.recv+"LOGIN in corso..."+color.end)
+		self.sockUDPServer.sendto(("LOGI").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+		result, addr = self.sockUDPClient.recvfrom(4)
+		result = result.decode()
+		if result == "LOG1":
+			print("\n"+color.recv+"LOGIN effettuato con successo"+color.end)
+			time.sleep(2)
+		else:
+			print("\n"+color.fail+"LOGIN fallito!"+color.end)
+			stopServer(self)
+			
 		while True:
 			try:
 				cmd = input("\nDigita cosa vuoi fare: ")
