@@ -1,5 +1,5 @@
 import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, hashlib, sys, stat
-import setting as var
+import Settings as var
 from threading import Timer
 from random import *
 
@@ -14,11 +14,13 @@ class color:
 	UNDERLINE = '\033[4m'
 
 def clearAndSetDB(self):
+	self.dbReader.execute("DROP TABLE IF EXISTS User")
 	self.dbReader.execute("DROP TABLE IF EXISTS File")
-	self.dbReader.execute("DROP TABLE IF EXISTS TrackedFile")
-
-	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text)")
-	self.dbReader.execute("CREATE TABLE TrackedFile (IPP2P text, PP2P text, Filemd5 text, Filename text)")
+	self.dbReader.execute("DROP TABLE IF EXISTS Chunck")
+	
+	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text, SessionID text)")
+	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
+	self.dbReader.execute("CREATE TABLE Chunk (SessionID text, Filemd5 text, IdChunck text)")
     
 def setIp(n):
 	if n < 10:
@@ -61,7 +63,16 @@ def setConnection(ip, port, msg):
 	except:
 		print(color.fail+"Errore connessione 'not close'"+color.end)
 	return peer_socket
-	
+def timerChunk():
+	sec = 0
+	while True:
+		time.sleep(var.Settings.timeDebug)
+		sec = sec + var.Settings.timeDebug
+		print(sec)
+		if int(sec) == 10:
+			print("Ben svegliato! Hai dormito per 10 secondi.")
+			sec = 0
+
 class serverUDPhandler(object):
 	def __init__(self):
 		self.ServerIP = ""
@@ -98,8 +109,6 @@ class serverUDPhandler(object):
 		
 		# socket upd ipv4 client in uscita
 		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)	
-		#gestione cronometro
-		#threading.Thread(target = self.timer, args = '').start()
 		
 	def server(self):
 		#crea thread interno per far comunicare client e server
@@ -115,11 +124,11 @@ class serverUDPhandler(object):
 	
 	def serverUDP(self):
 		print(color.green+"In attesa di comandi interni..."+color.end)
+		threading.Thread(target = timerChunk, args = '').start()
 		while True:
 			data, addr = self.sockUDPServer.recvfrom(4)
 			command = data.decode()
 			print("\n\nRicevuto comando dal client: "+color.recv+command+color.end)
-			
 				
 			if command == "SETV":
 				gruppo = str(self.sockUDPServer.recvfrom(3)[0].decode())
@@ -132,6 +141,8 @@ class serverUDPhandler(object):
 				self.ServerIP = ip+"|"+ipv6
 				self.ServerPORT = port
 				print(color.green+"Server settato con successo"+color.end)
+				#gestione cronometro
+				threading.Thread(target = self.timerChunk, args = '').start()
 		
 			elif command == "LOGI":
 				msg = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
@@ -149,7 +160,30 @@ class serverUDPhandler(object):
 					print(color.fail+"Login fallito!")
 					self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
-			
+				
+			elif command == "FIND":
+				ricerca = str(self.sockUDPServer.recvfrom(20).decode())
+				self.dbReader.execute("SELECT SessionID FROM User WHERE IPP2P LIKE ?", (self.myIPP2P,))
+				sessionID = self.dbReader.fetchone()
+				msg = "LOOK" + sessionID + ricerca
+				print("Invio messaggio -> " + msg + " a " + self.ServerIP + " alla porta " + self.ServerPORT)
+				
+				peer_socket = setNotCloseConnection(self.ServerIP, self.ServerPORT, msg)
+				command = peer_socket.recv(4).decode()
+				print("Ricevuto " + command)
+				if command is "ALOO":
+					nIdMd5 = int(peer_socket.recv(3).decode())
+					i=0
+					while i < nIdMd5:
+						filemd5 = peer_socket.recv(32).decode()
+						filename = peer_socket.recv(100).decode()
+						lenfile = peer_socket(10).decode()
+						lenpart = peer_socket(6).decoce()
+						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, Lenfile, Lenpart) values (?, ?, ?, ?)", (filemd5, filename, lenfile, lenpart))
+					print("Trovati " + nIdMd5 + " file.")
+				self.sockUDPClient.sendto((str(nIdMd5)).ljust(3), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				peer_socket.close()
+				
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
 				self.sockUDPServer.close()
