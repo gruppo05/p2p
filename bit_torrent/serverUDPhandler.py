@@ -187,8 +187,12 @@ class serverUDPhandler(object):
 				cmd = int(cmd)-1
 				
 				#Recupero il file
-				self.dbReader.execute("SELECT * FROM TrackedFile WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
+				self.dbReader.execute("SELECT Filemd5 FROM File WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
 				resultFile = self.dbReader.fetchone()
+				
+				#recupero tutti i chunk necessari ...
+				
+				
 				print("MD5 --> "+str(resultFile[2])+"  FILENAME --> "+str(resultFile[3]))
 				if resultFile is not None:
 					self.dbReader.execute("DELETE FROM Download")
