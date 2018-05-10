@@ -246,6 +246,7 @@ class Kazaa(object):
 			elif command == "SETS":
 				try:
 					if self.super == 1:
+						print("SETTO SUPERNODO -------------------------------------------------------> IP"+self.myIPP2P)
 						self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,self.myIPP2P))
 						print(color.green + "SUPERNODO con IP:"+self.myIPP2P+" selezionato con successo"+ color.end)
 					else:
@@ -253,8 +254,10 @@ class Kazaa(object):
 						data = self.dbReader.fetchone()
 						print("Supernodi trovati:", data[0])
 						rnd = randint(1, int(data[0])) - 1
-						self.dbReader.execute("SELECT IPP2P FROM user WHERE Super=? LIMIT 1 OFFSET ?", (1,rnd))
+						self.dbReader.execute("SELECT IPP2P FROM user where Super=? LIMIT 1 OFFSET ?", (1,rnd))
+
 						data = self.dbReader.fetchone()
+						print(data[0])
 						self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(2,data[0]))
 						print(color.green + "SUPERNODO con IP:"+data[0]+" selezionato con successo"+ color.end)
 
@@ -402,8 +405,7 @@ class Kazaa(object):
 				if command == "ALGI":
 					print("Ricevuto ALGI")
 					try:
-						SessionID = peer_socket.recv(16).decode()
-						
+						SessionID = peer_socket.recv(16).decode()						
 						#Aggiorno SessionID non sono un super, altrimenti mi aggiungo come user normale
 						if self.super == 0:
 							self.dbReader.execute("UPDATE user SET SessionID=? WHERE IPP2P=?",(SessionID,self.myIPP2P))
@@ -501,8 +503,7 @@ class Kazaa(object):
 							print("\n")
 							totTime = time2 - time1
 							print(color.green + "Scaricato il file" + color.end+" in "+str(int(totTime))+"s")
-				
-
+							
 						except OSError:
 							print("Impossibile aprire il file: controlla di avere i permessi")
 							self.sockUDPClient.sendto(("ARE0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
@@ -545,6 +546,7 @@ class Kazaa(object):
 					
 					if self.super == 1:
 						msg = "ASUP" + Pktid + self.myIPP2P.ljust(55) + str(self.PORT).ljust(5)
+						print("dio stronzo")
 						setConnection(IPP2P, int(PP2P), msg)
 	
 					TTL = setNumber(int(TTL) - 1)
@@ -576,7 +578,7 @@ class Kazaa(object):
 					else:
 						#verifico se ho salvato l'utente come user normale. In questo caso lo aggiorno come root
 						self.dbReader.execute("UPDATE user SET Super=? where IPP2P=?",(1,data[0],))
-						print(color.fail + "Aggiornato user in supernodo" + color.end)	
+						print(color.fail + "Aggiornato user "+str(data[0])+" in supernodo" + color.end)	
 				else:
 					print(color.fail+"ricevuto pacchetto dopo 20s"+color.end)
 		

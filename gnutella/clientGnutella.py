@@ -108,6 +108,7 @@ class GnutellaClient(object):
 							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 							cmd, addr = self.sockUDPClient.recvfrom(4)
 							cmd = cmd.decode()
+							
 							if cmd == "ARE1":
 								print(color.green+"File scaricato!"+color.end)
 								break
@@ -120,7 +121,7 @@ class GnutellaClient(object):
 					else:
 						print(color.recv+str(count)+" - "+cmd+color.end)
 						count = count+1
-						
+			
 			elif cmd is "5":
 				print("STAMPA VICINI TROVATI")
 				self.sockUDPServer.sendto(("STMV").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))

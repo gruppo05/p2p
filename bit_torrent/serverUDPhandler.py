@@ -65,7 +65,7 @@ def setConnection(ip, port, msg):
 def timer(self):
 	print("Timer partito")
 	
-class bitTorrent(object):
+class serverUDPhandler(object):
 	def __init__(self):
 		self.ServerIP = ""
 		self.ServerPORT = 3000
@@ -102,7 +102,7 @@ class bitTorrent(object):
 		# socket upd ipv4 client in uscita
 		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)	
 		#gestione cronometro
-		threading.Thread(target = self.timer, args = '').start()
+		#threading.Thread(target = self.timer, args = '').start()
 		
 	def server(self):
 		#crea thread interno per far comunicare client e server
@@ -134,6 +134,7 @@ class bitTorrent(object):
 				#setto il server IP
 				self.ServerIP = ip+"|"+ipv6
 				self.ServerPORT = port
+				print(color.green+"Server settato con successo"+color.end)
 		
 			elif command == "LOGI":
 				msg = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
@@ -162,5 +163,5 @@ class bitTorrent(object):
 		command = connection.recv(4).decode()
 
 if __name__ == "__main__":
-    bitTorrent = bitTorrent()
-bitTorrent.server()
+    serverUDP = serverUDPhandler()
+serverUDP.server()
