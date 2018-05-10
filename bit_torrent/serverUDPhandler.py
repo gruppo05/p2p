@@ -1,5 +1,5 @@
 import socket, sqlite3, string, subprocess, threading, os, random, ipaddress, time, datetime, hashlib, sys, stat
-import Settings as var
+import setting as var
 from threading import Timer
 from random import *
 
@@ -20,7 +20,7 @@ def clearAndSetDB(self):
 	
 	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text, SessionID text)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
-	self.dbReader.execute("CREATE TABLE Chunk (SessionID text, Filemd5 text, IdChunck text)")
+	self.dbReader.execute("CREATE TABLE Chunk (IPP2P text, PP2P text, Filemd5 text, IdChunck text)")
     
 def setIp(n):
 	if n < 10:
@@ -63,30 +63,50 @@ def setConnection(ip, port, msg):
 	except:
 		print(color.fail+"Errore connessione 'not close'"+color.end)
 	return peer_socket
+	
 def timerChunk():
 	sec = 0
 	while True:
-		time.sleep(var.Settings.timeDebug)
-		sec = sec + var.Settings.timeDebug
+		time.sleep(var.setting.timeDebug)
+		sec = sec + var.setting.timeDebug
 		print(sec)
 		if int(sec) == 10:
 			print("Ben svegliato! Hai dormito per 10 secondi.")
 			sec = 0
+
+def encryptMD5(filename):
+	#calcolo hash file
+	BLOCKSIZE = 128
+	hasher = hashlib.md5()
+	with open(filename, 'rb') as f:
+		buf = f.read(BLOCKSIZE)
+		while len(buf) > 0:
+			hasher.update(buf)
+			buf = f.read(BLOCKSIZE)
+		f.close()
+	filemd5 = hasher.hexdigest()
+	hasher.update(var.setting.myIPP2P)
+	filemd5IP = hasher.hexdigest()
+	if filemd5 == filemd5IP:
+		print("Filemd5 uguali")
+	else:
+		print("diversi")
+	return(filemd5)	
 
 class serverUDPhandler(object):
 	def __init__(self):
 		self.ServerIP = ""
 		self.ServerPORT = 3000
 		
-		self.PORT = var.Settings.PORT
-		self.myIPP2P = var.Settings.myIPP2P
+		self.PORT = var.setting.PORT
+		self.myIPP2P = var.setting.myIPP2P
 		self.mySessionID = ""
 		
 		self.UDP_IP = "127.0.0.1"
 		UDP_PORT_SERVER = 49999
 		self.UDP_PORT_CLIENT = 50000
 	
-		self.timeDebug = var.Settings.timeDebug
+		self.timeDebug = var.setting.timeDebug
 		self.BUFF = 1024
 		
 		# Creo DB
@@ -160,6 +180,31 @@ class serverUDPhandler(object):
 					print(color.fail+"Login fallito!")
 					self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
+			
+			elif command == "ADDF":
+				filename, useless = self.sockUDPServer.recvfrom(100)
+				filename = filename.decode()
+				print("-"+filename+"-")
+				PATH = var.Settings.userPath+filename.strip()
+				self.dbReader.execute("SELECT SessionID FROM user where IPP2P=? AND Super = ?", (self.myIPP2P,0))
+				sessionID = self.dbReader.fetchone()
+				if os.path.isfile(PATH) and os.access(PATH, os.R_OK):
+					filemd5 = encryptMD5(PATH)
+					self.dbReader.execute("SELECT filename FROM File WHERE filemd5=?",(filemd5,))
+					data = self.dbReader.fetchone()
+					if data is None:
+						self.dbReader.execute("INSERT INTO File (filemd5, filename, SessionID) values (?, ?, ?)", (filemd5, filename, sessionID[0]))
+						print(color.green+"Trovato. Aggiunto file in condivisione"+color.end)
+					else:
+						self.dbReader.execute("UPDATE File SET filename=? WHERE filemd5=?",(filename,filemd5))
+					msg = "ADDR" + sessionID[0] + filemd5 + filename
+					sendToSuper(self, msg)
+					msg = "1"
+				else:
+					msg = "0"
+					print(color.fail+"File non presente. Impossibile aggiungerlo in condivisione"+color.end)
+					
+				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				
 			elif command == "FIND":
 				ricerca = str(self.sockUDPServer.recvfrom(20).decode())

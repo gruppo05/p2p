@@ -87,8 +87,22 @@ class clientBitTorrent(object):
 				print(color.recv+"CHIUSURA CLIENT"+color.end)
 				#self.sockUDPServer.sendto(("LOGO").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				stopServer(self)
-			
+				
 			if cmd is "1":
+				print(color.recv+"AGGIUNTA FILE"+color.end)
+				self.sockUDPServer.sendto(("ADDF").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				filename = input("Inserisci il nome del file da aggiungere: ")
+				self.sockUDPServer.sendto((filename.ljust(100)).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				
+				command, useless = self.sockUDPClient.recvfrom(1)
+				com = command.decode()
+				if com is "1":
+					print(color.green+"File aggiunto con successo"+color.end)
+				else:
+					print(color.fail+"Impossibile aggiungere il file"+color.end)
+				time.sleep(1)
+				
+			if cmd is "2":
 				print(color.recv+"RICERCA FILE"+color.end)
 				self.sockUDPServer.sendto(("FIND").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				ricerca = input("Inserisci il nome del file da cercare: ")
