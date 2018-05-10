@@ -63,6 +63,7 @@ def setConnection(ip, port, msg):
 	return peer_socket
 
 def timer(self):
+	print("Timer partito")
 	
 class bitTorrent(object):
 	def __init__(self):
