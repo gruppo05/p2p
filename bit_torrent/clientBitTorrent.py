@@ -13,7 +13,7 @@ def startUDPhandler():
 
 def stopServer(self):
 	time.sleep(0.1)
-	#self.sockUDPServer.sendto(("STOP").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+	self.sockUDPServer.sendto(("STOP").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 	self.sockUDPServer.close()
 	self.sockUDPClient.close()
 	os._exit(0)
@@ -29,6 +29,8 @@ def printMenu():
 	print(color.recv+"| |___| || |   | |   "+"    "+ color.green+"   | |   | |__| || | \ \ | | \ \ | |____ | |  \  |   | |   "+ color.end)
 	print(color.recv+"|______/ |_|   |_|   "+"    "+ color.green+"   |_|   |______||_|  \_\|_|  \_\|______||_|   \_|   |_|   "+ color.end)
 	print("\n")
+	print(color.recv+"« 1 » AGGIUNTA FILE"+color.end)
+	print(color.recv+"« 2 » RICERCA FILE"+color.end)
 	print(color.fail+"« 0 » CHIUDI IL CLIENT"+color.end)
 	
 def setIp(n):
@@ -42,8 +44,6 @@ def setPort(n):
 	if n < 10000:
 		n = "0"+str(n)
 	return n
-	
-		
 
 class clientBitTorrent(object):
 	def __init__(self):
@@ -51,7 +51,6 @@ class clientBitTorrent(object):
 		self.UDP_PORT_SERVER = 49999
 		UDP_PORT_CLIENT = 50000
 		
-
 		# Socket UPD ipv4 client in attesa
 		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.sockUDPClient.bind((self.UDP_IP, UDP_PORT_CLIENT))
@@ -76,8 +75,19 @@ class clientBitTorrent(object):
 		self.sockUDPServer.sendto((numPc).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 		self.sockUDPServer.sendto((str(port)).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 
-		
+		print(color.recv+"LOGIN in corso..."+color.end)
+		self.sockUDPServer.sendto(("LOGI").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+		result, addr = self.sockUDPClient.recvfrom(4)
+		result = result.decode()
+		if result == "LOG1":
+			print(color.recv+"LOGIN effettuato con successo"+color.end)
+			time.sleep(2)
+		else:
+			print("\n"+color.fail+"LOGIN fallito!"+color.end)
+			stopServer(self)
+			
 		while True:
+			printMenu()
 			try:
 				cmd = input("\nDigita cosa vuoi fare: ")
 			except:
@@ -118,9 +128,3 @@ class clientBitTorrent(object):
 if __name__ == "__main__":
     client = clientBitTorrent()
 client.startClient()
-
-
-
-
-
-

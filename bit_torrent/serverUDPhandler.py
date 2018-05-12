@@ -69,9 +69,7 @@ def timerChunk():
 	while True:
 		time.sleep(var.setting.timeDebug)
 		sec = sec + var.setting.timeDebug
-		print(sec)
 		if int(sec) == 10:
-			print("Ben svegliato! Hai dormito per 10 secondi.")
 			sec = 0
 
 def encryptMD5(filename):
@@ -85,7 +83,7 @@ def encryptMD5(filename):
 			buf = f.read(BLOCKSIZE)
 		f.close()
 	filemd5 = hasher.hexdigest()
-	hasher.update(var.setting.myIPP2P)
+	hasher.update((var.setting.myIPP2P).encode())
 	filemd5IP = hasher.hexdigest()
 	if filemd5 == filemd5IP:
 		print("Filemd5 uguali")
@@ -144,7 +142,6 @@ class serverUDPhandler(object):
 	
 	def serverUDP(self):
 		print(color.green+"In attesa di comandi interni..."+color.end)
-		threading.Thread(target = timerChunk, args = '').start()
 		while True:
 			data, addr = self.sockUDPServer.recvfrom(4)
 			command = data.decode()
@@ -162,21 +159,116 @@ class serverUDPhandler(object):
 				self.ServerPORT = port
 				print(color.green+"Server settato con successo"+color.end)
 				#gestione cronometro
-				threading.Thread(target = self.timerChunk, args = '').start()
+				threading.Thread(target = timerChunk, args = '').start()
 		
 			elif command == "LOGI":
 				msg = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
-				peer_socket = setConnection(self.ServerIP, self.ServerPORT, msg)
-				command = peer_socket.recv(4).decode()
-				if command == "ALGI":
-					try:
+				try:
+					peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)					
+					command = peer_socket.recv(4).decode()
+					if command == "ALGI":
 						#setto il mio sessionID
 						self.mySessionID = peer_socket.recv(16).decode()
+						print("Ricevuto <-- "+color.send+command+str(self.mySessionID)+color.end)
+						
+						print(color.recv+"Login effettuato!")
 						self.sockUDPClient.sendto(("LOG1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-					except:
+					else:
+						print(color.fail+"Login fallito!")
+						self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					peer_socket.close()
+				except:
 						print(color.fail+"Errore salvataggio SessionID"+color.end)
 						self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+
+			
+			
+			
+			# parte bertasi #
+			
+			elif command == "RETR":
+				print("ricevuto RETR")
+				filename, useless = self.sockUDPServer.recvfrom(20)
+				filename = filename.decode()
+				filename = filename.strip()
+				cmd, addr = self.sockUDPServer.recvfrom(3)
+				cmd = cmd.decode()
+				
+				#fix per offset
+				cmd = int(cmd)-1
+				
+				#Recupero il file
+				self.dbReader.execute("SELECT Filemd5 FROM File WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
+				resultFile = self.dbReader.fetchone()
+				
+				#recupero tutti i chunk necessari ...
+				
+				
+				print("MD5 --> "+str(resultFile[2])+"  FILENAME --> "+str(resultFile[3]))
+				if resultFile is not None:
+					self.dbReader.execute("DELETE FROM Download")
+					self.dbReader.execute("INSERT INTO Download values (?,?)", (resultFile[2], resultFile[3]))					
+					msg = "RETR" + resultFile[2]
+					
+					#setConnection(resultFile[0], int(resultFile[1]), msg)
+					peer_socket = setNotCloseConnection(resultFile[0], int(resultFile[1]), msg)
+					command = peer_socket.recv(4).decode()
+					
+					
+					''' da modificare per p2p '''
+					
+					if command == "ARET":
+						print("Ricevuto "+color.recv+"ARET"+color.end)
+						try:
+							self.dbReader.execute("SELECT * FROM Download")
+							files = self.dbReader.fetchone()
+							filename = files[1]
+
+							fd = open(var.setting.userPath + "" + filename, 'wb')					
+							numChunk = peer_socket.recv(6).decode()
+							numChunk = int(numChunk)
+
+							i = 0
+							print("Inizio download...")
+							bar_length = 60
+							time1 = time.time()
+							while i < numChunk:
+								lun = peer_socket.recv(5).decode()
+								while len(lun) < 5:
+									lun = lun + peer_socket.recv(1).decode()
+								lun = int(lun)
+								data = peer_socket.recv(lun)
+								while len(data) < lun:
+									data += peer_socket.recv(1)
+								fd.write(data)
+								percent = float(i) / numChunk
+								hashes = '#' * int(round(percent * bar_length))
+								spaces = ' ' * (bar_length - len(hashes))
+								sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+								i = i + 1
+							
+							percent = float(i) / numChunk
+							hashes = '#' * int(round(percent * bar_length))
+							spaces = ' ' * (bar_length - len(hashes))
+							sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+							time2 = time.time()
+							sys.stdout.flush()
+							fd.close()
+							print("\n")
+							totTime = time2 - time1
+							print(color.green + "Scaricato il file" + color.end+" in "+str(int(totTime))+"s")
+							
+						except OSError:
+							print("Impossibile aprire il file: controlla di avere i permessi")
+							self.sockUDPClient.sendto(("ARE0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+							return False
+						print(color.fail+"Finito baby"+color.end)
+						self.sockUDPClient.sendto(("ARE1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					
+					peer_socket.close()
 				else:
+					print("Errore nella procedura di download")		
+
 					print(color.fail+"Login fallito!")
 					self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
@@ -185,8 +277,8 @@ class serverUDPhandler(object):
 				filename, useless = self.sockUDPServer.recvfrom(100)
 				filename = filename.decode()
 				print("-"+filename+"-")
-				PATH = var.Settings.userPath+filename.strip()
-				self.dbReader.execute("SELECT SessionID FROM user where IPP2P=? AND Super = ?", (self.myIPP2P,0))
+				PATH = var.setting.userPath+filename.strip()
+				self.dbReader.execute("SELECT SessionID FROM user where IPP2P=?", (self.myIPP2P,))
 				sessionID = self.dbReader.fetchone()
 				if os.path.isfile(PATH) and os.access(PATH, os.R_OK):
 					filemd5 = encryptMD5(PATH)
@@ -237,7 +329,50 @@ class serverUDPhandler(object):
 
 	def download(self, connection, client_address):
 		command = connection.recv(4).decode()
-
+		if command == "RETR":
+				print("Ricevuto "+color.recv+"RETR"+color.end)
+			
+				#inviare un file che ho
+				FileMD5 = connection.recv(32).decode()
+				print("FileMD5", FileMD5)
+				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
+				resultFile = self.dbReader.fetchone()
+				filename=resultFile[0].replace(" ","")
+			
+				try:
+					fd = os.open(var.setting.userPath+""+filename, os.O_RDONLY)
+				except OSError as e:
+					print(e)
+				if fd is not -1:
+					filesize = int(os.path.getsize(var.setting.userPath+""+filename))
+					num = int(filesize) / self.BUFF
+					if (filesize % self.BUFF)!= 0:
+						num = num + 1
+				
+					num = int(num)
+					msg = "ARET" + str(num).zfill(6)
+					
+					print ('Trasferimento iniziato di ', resultFile[0], ' [BYTES ', filesize, ']')
+					print(5)
+					#funzione progressBar
+					connection.send(msg.encode())
+					i = 0
+					while i < num:
+						buf = os.read(fd,self.BUFF)
+						
+						if not buf: break
+						lbuf = len(buf)
+						lbuf = str(lbuf).zfill(5)
+						connection.send(lbuf.encode())
+						connection.send(buf)
+						i = i + 1
+					
+					os.close(fd)
+					print(color.green+"\nFine UPLOAD"+color.end)					
+					connection.close()
+				else: 
+					print("Il file non esiste!")
+					
 if __name__ == "__main__":
     serverUDP = serverUDPhandler()
 serverUDP.server()
