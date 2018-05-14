@@ -97,10 +97,6 @@ def encryptMD5(filename):
 	filemd5 = hasher.hexdigest()
 	hasher.update((var.setting.myIPP2P).encode())
 	filemd5IP = hasher.hexdigest()
-	if filemd5 == filemd5IP:
-		print("Filemd5 uguali")
-	else:
-		print("diversi")
 	return(filemd5)	
 
 class serverUDPhandler(object):
@@ -166,13 +162,14 @@ class serverUDPhandler(object):
 	def gettinParts(self, sessionID, filemd5):
 		msg = "FCHU" + sessionID + filemd5
 		peer_socket = setNotCloseConnection(self.ServerIP, self.ServerPORT, msg)
-		command = peer_socket.recv(4).decode()
 		self.dbReader.execute("SELECT Lenfile, Lenpart FROM File WHERE Filemd5 LIKE ?", ("%"+filemd5+"%",))
 		resultFile = self.dbReader.fetchone()
 		nParts = int(resultFile[0])/int(resultFile[1])
 		lenBit = int(nParts/8)
 		if (nParts % 8) > 0:
 			lenBit = lenBit + 1
+		data, addr = self.sockUDPServer.recvfrom(4)
+		command = data.decode()
 		if command == "AFCH":
 			hitpeer = int(peer_socket.recv(3).decode())
 			if hitpeer > 0 :
@@ -186,8 +183,9 @@ class serverUDPhandler(object):
 						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, nParts))
 						partList = partList - 1
 						'''
-					while partList > 1:
-						idParts, partList = calcId(partList, nParts)
+					while lenBit > 1:
+						#idParts, partList = calcId(partList, nParts)
+						self.dbReader.execute("SELECT IdParts FROM Parts WHERE Filemd5 LIKE ? AND IPP2P <> ?", ("%"+filemd5+"%", ))
 						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, idParts))
 					i = i + 1
 		peer_socket.close()
