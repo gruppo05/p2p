@@ -54,6 +54,21 @@ def splitIp(ip):
 	splitted = ip.split(".")
 	ip = str(int(splitted[0]))+"."+str(int(splitted[1]))+"."+str(int(splitted[2]))+"."+str(int(splitted[3]))
 	return ip
+
+	
+def encryptMD5(self, filename):
+	#calcolo hash file
+	BLOCKSIZE = 128
+	hasher = hashlib.md5()
+	with open(filename, 'rb') as f:
+		buf = f.read(BLOCKSIZE)
+		while len(buf) > 0:
+			hasher.update(buf)
+			buf = f.read(BLOCKSIZE)
+		f.close()
+	hasher.update(self.myIPP2P.encode())
+	filemd5 = hasher.hexdigest()
+	return(filemd5)
 	
 def setConnection(ip, port, msg):
 	try:
@@ -149,15 +164,18 @@ class serverUDPhandler(object):
 				return False
 				
 	def calcID(self, partList, nParts):
-		idParts = nParts
-		lenParts = 1
-		while lenParts < partList:
-			idParts = idParts - 1
-			lenParts = lenParts * 2
-		idParts = idParts + 1
-		lenParts = lenParts/2	
-		partList = partList - lenParts
-		return idParts, partList
+		if partList == 1:
+			return nParts, (partList-1)
+		else:
+			idParts = nParts
+			lenParts = 1
+			while lenParts < partList:
+				idParts = idParts - 1
+				lenParts = lenParts * 2
+			idParts = idParts + 1
+			lenParts = lenParts/2	
+			partList = partList - lenParts
+			return idParts, partList
 		
 	def gettinParts(self, sessionID, filemd5):
 		msg = "FCHU" + sessionID + filemd5
@@ -177,16 +195,16 @@ class serverUDPhandler(object):
 				while i < hitpeer:
 					ipp2p = peer_socket.recv(55).decode()
 					pp2p = peer_socket.recv(5).decode()
-					partList = peer_socket.recv(lenBit).decode()
+					partList = int.from_bytes(peer_socket.recv(lenBit), 'big')
+					while partList > 0:
+						idPart, partList = calcID(self, partList, nParts)
+						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, idParts))
 					'''
-					if int(partList % 2) == 1:
-						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, nParts))
-						partList = partList - 1
-						'''
 					while lenBit > 1:
 						#idParts, partList = calcId(partList, nParts)
 						self.dbReader.execute("SELECT IdParts FROM Parts WHERE Filemd5 LIKE ? AND IPP2P <> ?", ("%"+filemd5+"%", ))
 						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, idParts))
+					'''
 					i = i + 1
 		peer_socket.close()
 		
@@ -210,7 +228,18 @@ class serverUDPhandler(object):
 				print(color.green+"Server settato con successo"+color.end)
 				#gestione cronometro
 				threading.Thread(target = timerChunk, args = '').start()
-		
+			
+			elif command == "ADDR":
+				filename = self.sockUDPServer.recvfrom(100)[0].decode()
+				filename = var.setting.userPath+filename.strip()
+				filemd5 = encryptMD5(self, filename)
+				print("FILE MD5 --> "+str(filemd5))
+				
+				'''
+				“ADDR”[4B].SessionID[16B].LenFile[10B].LenPart[6B].
+					Filename[100B].​ Filemd5_i[32B]
+				'''
+			
 			elif command == "LOGI":
 				msg = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
 				try:
@@ -395,29 +424,6 @@ class serverUDPhandler(object):
 					print(color.fail+"File non presente. Impossibile aggiungerlo in condivisione"+color.end)
 					
 				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-				
-			elif command == "FIND":
-				ricerca = str(self.sockUDPServer.recvfrom(20).decode())
-				self.dbReader.execute("SELECT SessionID FROM User WHERE IPP2P LIKE ?", (self.myIPP2P,))
-				sessionID = self.dbReader.fetchone()
-				msg = "LOOK" + sessionID + ricerca
-				print("Invio messaggio -> " + msg + " a " + self.ServerIP + " alla porta " + self.ServerPORT)
-				
-				peer_socket = setNotCloseConnection(self.ServerIP, self.ServerPORT, msg)
-				command = peer_socket.recv(4).decode()
-				print("Ricevuto " + command)
-				if command is "ALOO":
-					nIdMd5 = int(peer_socket.recv(3).decode())
-					i=0
-					while i < nIdMd5:
-						filemd5 = peer_socket.recv(32).decode()
-						filename = peer_socket.recv(100).decode()
-						lenfile = peer_socket(10).decode()
-						lenpart = peer_socket(6).decoce()
-						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, Lenfile, Lenpart) values (?, ?, ?, ?)", (filemd5, filename, lenfile, lenpart))
-					print("Trovati " + nIdMd5 + " file.")
-				self.sockUDPClient.sendto((str(nIdMd5)).ljust(3), (self.UDP_IP, self.UDP_PORT_CLIENT))
-				peer_socket.close()
 				
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)

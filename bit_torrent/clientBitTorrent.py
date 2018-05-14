@@ -5,7 +5,7 @@ class color:
 	recv = '\033[36m'
 	green = '\033[32m'
 	send = '\033[33m'
-	fail = '\033[31m'
+	fail = '\033[1m'+'\033[31m'
 	end = '\033[0m'
 
 def startUDPhandler():
@@ -20,17 +20,16 @@ def stopServer(self):
 
 def printMenu():
 	os.system('cls' if os.name == 'nt' else 'clear')
-	print(color.recv+" ______              "+"    "+ color.green+" _______                                                   "+ color.end)
-	print(color.recv+"|  ___ \  _  _______ "+"    "+ color.green+"|__   __| ______  _____   _____   ______  __    _  _______ "+ color.end)
-	print(color.recv+"| |   | || ||__   __|"+"    "+ color.green+"   | |   |  __  ||  __ \ |  __ \ |  ____||  \  | ||__   __|"+ color.end)
-	print(color.recv+"| |__/ / | |   | |   "+"    "+ color.green+"   | |   | |  | || |__| || |__| || |__   |   \ | |   | |   "+ color.end)
-	print(color.recv+"|  __ (  | |   | |   "+"    "+ color.green+"   | |   | |  | ||    _/ |    _/ |  __|  | |\ \| |   | |   "+ color.end)
-	print(color.recv+"| |  \ \ | |   | |   "+"    "+ color.green+"   | |   | |  | || |\ \  | |\ \  | |     | | \ | |   | |   "+ color.end)
-	print(color.recv+"| |___| || |   | |   "+"    "+ color.green+"   | |   | |__| || | \ \ | | \ \ | |____ | |  \  |   | |   "+ color.end)
-	print(color.recv+"|______/ |_|   |_|   "+"    "+ color.green+"   |_|   |______||_|  \_\|_|  \_\|______||_|   \_|   |_|   "+ color.end)
-	print("\n")
-	print("\n")
-	print("« 1 » AGGIUNGI FILE")
+	print(color.recv+" ______              "+"    "+color.green+" _______                                                  "+color.end)
+	print(color.recv+"|  ___ \             "+"    "+color.green+"|__   __|                                                 "+color.end)
+	print(color.recv+"| |   | | _  _______ "+"    "+color.green+"   | |    ______  _____   _____   ______  __   _  _______ "+color.end)
+	print(color.recv+"| |__/ / | ||__   __|"+"    "+color.green+"   | |   |  __  || __  \ | __  \ |  ____||  \ | ||__   __|"+color.end)
+	print(color.recv+"|  __ (  | |   | |   "+"    "+color.green+"   | |   | |  | ||    _/ |    _/ | |__   | \ \| |   | |   "+color.end)
+	print(color.recv+"| |  \ \ | |   | |   "+"    "+color.green+"   | |   | |  | || |\ \  | |\ \  |  __|  | |\ | |   | |   "+color.end)
+	print(color.recv+"| |___| || |   | |   "+"    "+color.green+"   | |   | |__| || | \ \ | | \ \ | |____ | | \  |   | |   "+color.end)
+	print(color.recv+"|______/ |_|   |_|   "+"    "+color.green+"   |_|   |______||_|  \_\|_|  \_\|______||_|  \_|   |_|   "+color.end)
+	print("\n\n")
+	print("« 1 » AGGIUNGI FILE IN CONDIVISIONE")
 	print("« 2 » RIMUOVI FILE")
 	print("« 3 » RICERCA FILE")
 	print("« 4 » SCARICA FILE")
@@ -100,12 +99,13 @@ class clientBitTorrent(object):
 				print(color.recv+"CHIUSURA CLIENT"+color.end)
 				#self.sockUDPServer.sendto(("LOGO").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				stopServer(self)
-				
-			if cmd is "1":
-				print(color.recv+"AGGIUNTA FILE"+color.end)
-				self.sockUDPServer.sendto(("ADDF").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
-				filename = input("Inserisci il nome del file da aggiungere: ")
-				self.sockUDPServer.sendto((filename.ljust(100)).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+
+			elif cmd is "1":
+				print(color.recv+"AGGIUNGI FILE"+color.end)
+				self.sockUDPServer.sendto(("ADDR").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				filename = input("Inserisci nome da condividere: ")
+				filename = filename.ljust(100)
+				self.sockUDPServer.sendto((filename).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				
 				command, useless = self.sockUDPClient.recvfrom(1)
 				com = command.decode()
