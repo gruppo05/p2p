@@ -221,6 +221,27 @@ class serverBitTorrent(object):
 					msg = "ALGI"+SessionID
 					connection.sendall(msg.encode())
 					connection.close()
+			elif command == "LOOK":
+				sessionID = connection.recv(16).decode()
+				ricerca = connection.recv(20).decode()
+				self.dbReader.execute("SELECT SessionID FROM User WHERE SessionID = ?", (sessionID,))
+				resultUser = self.dbReader.fetchone()
+				if resultUser is None:
+					msg = "ALOO000"
+					print("Utente non registrato.")
+				else:
+					ricerca = ricerca.strip()
+					self.dbReader.execute("SELECT COUNT(Filemd5) FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%"))
+					resultCount = self.dbReader.fetchone()
+					i = 0
+					msg="ALOO" + str(resultCount[0])
+					if resultCount[0] > 0:
+						self.dbReader.execute("SELECT u.IPP2P, u.PP2P, f.Lenfile, f.Lenpart FROM File AS f JOIN User AS U WHERE u.SessionID = f.SessionID AND Filename LIKE ?", ("%"+ricerca+"%"))
+						resultFile = self.dbReader.fetchall()
+						for files in resultFile:
+							msg = msg + files[0] + files[1] + files[2] + files[3]
+				connection.sendall(msg.encode())
+				connection.close()
 			elif command == "FCHU":
 				try:
 					sessionID = connection.recv(16).decode()
@@ -237,17 +258,21 @@ class serverBitTorrent(object):
 							msg = "AFCH000"
 							print("Parti non presenti. File non in condivisione.")
 						else:
-							msg = "AFCH" + str(len(resultParts)).ljust()
+							msg = "AFCH" + str(len(resultParts)).ljust(3)
 							for user in resultParts:
 								self.dbReader.execute("SELECT IdParts FROM PARTS WHERE IPP2P LIKE ?", (user[0]))
 								resultParts = self.dbReader.fetchall()
 								partList = 0
-								self.dbReader.execute("SELECT Lenfile FROM File WHERE Filemd5 LIKE ?", (filemd5,))
-								lenFile = self.dbReader.fetchone()
+								self.dbReader.execute("SELECT Lenfile, Lenpart FROM File WHERE Filemd5 LIKE ?", (filemd5,))
+								data = self.dbReader.fetchone()
+								nParts = data[0]/data[1]
+								nByte = int(nParts/8)
+								if (nParts%8)!=0:
+									nByte = nByte + 1
 								for ids in resultParts:
-									partList = partList + (2**(lenFile[0] - ids[0])
+									partList = partList + (2**(nByte*8 - ids[0]))
 								#creo il messaggio
-								msg = msg + user[0] + user[1] + partList
+								msg = msg + user[0] + user[1] + str(partList)
 				except:
 					print("Errore nella FCHU")
 					msg = "AFCH000"
