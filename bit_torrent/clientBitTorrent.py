@@ -28,9 +28,8 @@ def printMenu():
 	print(color.recv+"| |  \ \ | |   | |   "+"    "+color.green+"   | |   | |  | || |\ \  | |\ \  |  __|  | |\ | |   | |   "+color.end)
 	print(color.recv+"| |___| || |   | |   "+"    "+color.green+"   | |   | |__| || | \ \ | | \ \ | |____ | | \  |   | |   "+color.end)
 	print(color.recv+"|______/ |_|   |_|   "+"    "+color.green+"   |_|   |______||_|  \_\|_|  \_\|______||_|  \_|   |_|   "+color.end)
-	print("\n")
-	print("\n")
-	print("« 1 » AGGIUNGI FILE")
+	print("\n\n")
+	print("« 1 » AGGIUNGI FILE IN CONDIVISIONE")
 	print("« 2 » RIMUOVI FILE")
 	print("« 3 » RICERCA FILE")
 	print("« 4 » SCARICA FILE")
@@ -106,6 +105,10 @@ class clientBitTorrent(object):
 				
 			elif cmd is "1":
 				print(color.recv+"AGGIUNGI FILE"+color.end)
+				self.sockUDPServer.sendto(("ADDR").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				filename = input("Inserisci nome da condividere: ")
+				filename = filename.ljust(100)
+				self.sockUDPServer.sendto((filename).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				
 			elif cmd is "2":
 				print(color.recv+"RIMUOVI FILE"+color.end)

@@ -54,6 +54,21 @@ def splitIp(ip):
 	splitted = ip.split(".")
 	ip = str(int(splitted[0]))+"."+str(int(splitted[1]))+"."+str(int(splitted[2]))+"."+str(int(splitted[3]))
 	return ip
+
+	
+def encryptMD5(self, filename):
+	#calcolo hash file
+	BLOCKSIZE = 128
+	hasher = hashlib.md5()
+	with open(filename, 'rb') as f:
+		buf = f.read(BLOCKSIZE)
+		while len(buf) > 0:
+			hasher.update(buf)
+			buf = f.read(BLOCKSIZE)
+		f.close()
+	hasher.update(self.myIPP2P.encode())
+	filemd5 = hasher.hexdigest()
+	return(filemd5)
 	
 def setConnection(ip, port, msg):
 	try:
@@ -153,7 +168,18 @@ class serverUDPhandler(object):
 				print(color.green+"Server settato con successo"+color.end)
 				#gestione cronometro
 				threading.Thread(target = timerChunk, args = '').start()
-		
+			
+			elif command == "ADDR":
+				filename = self.sockUDPServer.recvfrom(100)[0].decode()
+				filename = var.setting.userPath+filename.strip()
+				filemd5 = encryptMD5(self, filename)
+				print("FILE MD5 --> "+str(filemd5))
+				
+				'''
+				“ADDR”[4B].SessionID[16B].LenFile[10B].LenPart[6B].
+					Filename[100B].​ Filemd5_i[32B]
+				'''
+			
 			elif command == "LOGI":
 				msg = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
 				try:
