@@ -8,10 +8,8 @@ class color:
 	recv = '\033[36m'
 	green = '\033[32m'
 	send = '\033[33m'
-	fail = '\033[31m'
+	fail = '\033[1m'+'\033[31m'
 	end = '\033[0m'
-	BOLD = '\033[1m'
-	UNDERLINE = '\033[4m'
 
 
 def clearAndSetDB(self):
@@ -225,7 +223,7 @@ class serverBitTorrent(object):
 					
 				except:
 					SessionID = "0000000000000000"
-					Print("Errore nella procedura di login server")
+					print("Errore nella procedura di login server")
 				finally:
 					msg = "ALGI"+SessionID
 					connection.sendall(msg.encode())
@@ -246,6 +244,8 @@ class serverBitTorrent(object):
 			if command == "STOP":
 				print("Ricevuto STOP!")
 				closeServer(self)
+			elif command == "STMV":
+				print("QUI DEVO MANDARE INDIETRO I VICINI")
 				
 	
 
