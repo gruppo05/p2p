@@ -16,19 +16,12 @@ class color:
 
 def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS User")
-	self.dbReader.execute("DROP TABLE IF EXISTS Pktid")
 	self.dbReader.execute("DROP TABLE IF EXISTS File")
-	self.dbReader.execute("DROP TABLE IF EXISTS download")
-	self.dbReader.execute("DROP TABLE IF EXISTS TrackedFile")
-	# 0 -> user
-	# 1 -> supernodo
-	# 2 -> supernodo scelto	
-	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text, SessionID text)")
-	self.dbReader.execute("CREATE TABLE Pktid (Pktid text, Timestamp DATETIME)")
-	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text)")
-	self.dbReader.execute("CREATE TABLE download (Filemd5 text, Filename text)")
-	self.dbReader.execute("CREATE TABLE TrackedFile (IPP2P text, PP2P text, Filemd5 text, Filename text)")
+	self.dbReader.execute("DROP TABLE IF EXISTS Parts")
 	
+	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text, SessionID text)")
+	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
+	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text)")
 
 def closeServer(self):
 	time.sleep(0.1)
@@ -230,7 +223,39 @@ class serverBitTorrent(object):
 					msg = "ALGI"+SessionID
 					connection.sendall(msg.encode())
 					connection.close()
-					
+			elif command == "FCHU":
+				try:
+					sessionID = connection.recv(16).decode()
+					filemd5 = connection.recv(32).decode()
+					self.dbReader.execute("SELECT * FROM User WHERE SessionID LIKE ?", (sessionID,))
+					resultUser = self.dbReader.fetchone()
+					if resultUser is None:
+						msg = "AFCH000"
+						print("Utente non registrato")
+					else:
+						self.dbReader.execute("SELECT DISTINCT IPP2P, PP2P FROM Parts WHERE Filemd5 LIKE ?", (filemd5,))
+						resultParts = self.dbReader.fetchall()
+						if resultParts is None:
+							msg = "AFCH000"
+							print("Parti non presenti. File non in condivisione.")
+						else:
+							msg = "AFCH" + str(len(resultParts)).ljust()
+							for user in resultParts:
+								self.dbReader.execute("SELECT IdParts FROM PARTS WHERE IPP2P LIKE ?", (user[0]))
+								resultParts = self.dbReader.fetchall()
+								partList = 0
+								self.dbReader.execute("SELECT Lenfile FROM File WHERE Filemd5 LIKE ?", (filemd5,))
+								lenFile = self.dbReader.fetchone()
+								for ids in resultParts:
+									partList = partList + (2**(lenFile[0] - ids[0])
+								#creo il messaggio
+								msg = msg + user[0] + user[1] + partList
+				except:
+					print("Errore nella FCHU")
+					msg = "AFCH000"
+				finally:
+					connection.sendall(msg.encode())
+					connection.close()
 		except:
 			connection.close()
 			return False

@@ -29,8 +29,11 @@ def printMenu():
 	print(color.recv+"| |___| || |   | |   "+"    "+ color.green+"   | |   | |__| || | \ \ | | \ \ | |____ | |  \  |   | |   "+ color.end)
 	print(color.recv+"|______/ |_|   |_|   "+"    "+ color.green+"   |_|   |______||_|  \_\|_|  \_\|______||_|   \_|   |_|   "+ color.end)
 	print("\n")
-	print(color.recv+"« 1 » AGGIUNTA FILE"+color.end)
-	print(color.recv+"« 2 » RICERCA FILE"+color.end)
+	print("\n")
+	print("« 1 » AGGIUNGI FILE")
+	print("« 2 » RIMUOVI FILE")
+	print("« 3 » RICERCA FILE")
+	print("« 4 » SCARICA FILE")
 	print(color.fail+"« 0 » CHIUDI IL CLIENT"+color.end)
 	
 def setIp(n):
@@ -50,7 +53,7 @@ class clientBitTorrent(object):
 		self.UDP_IP = "127.0.0.1"
 		self.UDP_PORT_SERVER = 49999
 		UDP_PORT_CLIENT = 50000
-		
+		self.UDP_END = ""
 		# Socket UPD ipv4 client in attesa
 		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		self.sockUDPClient.bind((self.UDP_IP, UDP_PORT_CLIENT))
@@ -61,7 +64,7 @@ class clientBitTorrent(object):
 	def startClient(self):
 		startUDPhandler()
 		os.system('cls' if os.name == 'nt' else 'clear')
-		printMenu()
+		#printMenu()
 		
 		#ricerca super nodi
 		time.sleep(0.1)
@@ -111,8 +114,11 @@ class clientBitTorrent(object):
 				else:
 					print(color.fail+"Impossibile aggiungere il file"+color.end)
 				time.sleep(1)
+
+			elif cmd is "2":
+				print(color.recv+"RIMUOVI FILE"+color.end)
 				
-			if cmd is "2":
+			elif cmd is "3":
 				print(color.recv+"RICERCA FILE"+color.end)
 				self.sockUDPServer.sendto(("FIND").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				ricerca = input("Inserisci il nome del file da cercare: ")
@@ -123,7 +129,48 @@ class clientBitTorrent(object):
 					print("Ricerca completata. Trovati " + str(cmd) + " file.")
 				else:
 					print("Ricerca completata. Non ci sono file corrispondenti.")
-		
+				
+				#da aggiungere tutta la fase di download 
+			
+			elif cmd is "4":
+				print("DOWNLOAD")
+				ricerca = input("Quale file vuoi scaricare?")
+				msg = "FDWN"
+				self.sockUDPServer.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				msg = ricerca.ljust(20)
+				self.sockUDPServer.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				count = 1;
+				print(color.recv+"RISULTATI TROVATI:"+color.end)	
+				while True:
+					buff, addr = self.sockUDPClient.recvfrom(195)
+					cmd = buff.decode()
+					if cmd == self.UDP_END.ljust(148):
+						print(color.recv+"0 - Annulla\n______________________________\n"+color.end)
+						cmd = input("Quale risultato vuoi scaricare? ")
+						if cmd == "0":
+							break
+						elif int(cmd) < count:
+							msg = "RETR"
+							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+							msg = ricerca.ljust(3)
+							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+							msg = cmd.ljust(3)
+							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+							cmd, addr = self.sockUDPClient.recvfrom(4)
+							cmd = cmd.decode()
+							
+							if cmd == "ARE1":
+								print(color.green+"File scaricato!"+color.end)
+								break
+							else:
+								print(color.fail+"Errore download file!"+color.end)
+								break
+						elif int(cmd) > count:
+							print("Errore nella scelta")
+							break
+					else:
+						print(color.recv+str(count)+" - "+cmd+color.end)
+						count = count+1
 			
 if __name__ == "__main__":
     client = clientBitTorrent()
