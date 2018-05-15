@@ -33,6 +33,7 @@ def printMenu():
 	print("« 2 » RIMUOVI FILE")
 	print("« 3 » RICERCA FILE")
 	print("« 4 » SCARICA FILE")
+	print("« 5 » PROVA FCHU PER IL DEBUG")
 	print(color.fail+"« 0 » CHIUDI IL CLIENT"+color.end)
 	
 def setIp(n):
@@ -171,6 +172,9 @@ class clientBitTorrent(object):
 					else:
 						print(color.recv+str(count)+" - "+cmd+color.end)
 						count = count+1
+			elif cmd is "5":
+				print(color.recv+"FCHU"+color.end)
+				self.sockUDPServer.sendto(("FCHU").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 			
 if __name__ == "__main__":
     client = clientBitTorrent()

@@ -32,7 +32,7 @@ def clearAndSetDB(self):
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?,?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "A"))
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?,?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "B"))
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?,?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "A"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?,?, ?, ?)", ("172.016.005.002fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "A"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?,?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "A"))
 	
 def setIp(n):
 	if n < 10:
@@ -430,6 +430,11 @@ class serverUDPhandler(object):
 				self.sockUDPServer.close()
 				self.sockUDPClient.close()
 				os._exit(0) 
+			
+			elif command == "FCHU":
+				print("Debugging FCHU...")
+
+				gettinParts(self.mySessionID,"aaaabbbbccccddddeeeeffffgggghhhh")
 
 	def download(self, connection, client_address):
 		command = connection.recv(4).decode()
