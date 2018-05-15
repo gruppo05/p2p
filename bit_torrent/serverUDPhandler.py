@@ -269,7 +269,8 @@ class serverUDPhandler(object):
 						self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			elif command == "FIND":
-				ricerca = str(self.sockUDPServer.recvfrom(20).decode())
+				ricerca, useless = self.sockUDPServer.recvfrom(20).decode()
+				ricerca = ricerca.strip()
 				sessionID = self.mySessionID 
 				
 				msg = "LOOK" + sessionID + ricerca

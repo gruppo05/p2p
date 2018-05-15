@@ -146,11 +146,6 @@ def setNotCloseConnection(ip, port, msg):
 	except:
 		print(color.fail+"Errore connessione 'not close'"+color.end)
 	return peer_socket
-	
-def sendToSuper(self, messaggio):
-	self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
-	mySuper = self.dbReader.fetchone()
-	setConnection(mySuper[0], 3000, messaggio)
 
 def sessionIdGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
