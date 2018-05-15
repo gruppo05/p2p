@@ -167,7 +167,6 @@ class GnutellaServer(object):
 				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 	
 			elif command == "QUER":
-				
 				myPktid = PktidGenerator()
 				self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)", (myPktid, datetime.datetime.now()))
 				TTL = setNumber(5)
