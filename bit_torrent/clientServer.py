@@ -5,7 +5,7 @@ class color:
 	recv = '\033[36m'
 	green = '\033[32m'
 	send = '\033[33m'
-	fail = '\033[31m'
+	fail = '\033[1m'+'\033[31m'
 	end = '\033[0m'
 	BOLD = '\033[1m'
 
@@ -21,15 +21,16 @@ def stopServer(self):
 
 def printMenu():
 	os.system('cls' if os.name == 'nt' else 'clear')
-	print(color.recv+" ______              "+"    "+color.BOLD+color.fail+" _______                                                   "+ color.end)
-	print(color.recv+"|  ___ \  _  _______ "+"    "+color.BOLD+color.fail+"|__   __| ______  _____   _____   ______  __    _  _______ "+ color.end)
-	print(color.recv+"| |   | || ||__   __|"+"    "+color.BOLD+color.fail+"   | |   |  __  ||  __ \ |  __ \ |  ____||  \  | ||__   __|"+ color.end)
-	print(color.recv+"| |__/ / | |   | |   "+"    "+color.BOLD+color.fail+"   | |   | |  | || |__| || |__| || |__   |   \ | |   | |   "+ color.end)
-	print(color.recv+"|  __ (  | |   | |   "+"    "+color.BOLD+color.fail+"   | |   | |  | ||    _/ |    _/ |  __|  | |\ \| |   | |   "+ color.end)
-	print(color.recv+"| |  \ \ | |   | |   "+"    "+color.BOLD+color.fail+"   | |   | |  | || |\ \  | |\ \  | |     | | \ | |   | |   "+ color.end)
-	print(color.recv+"| |___| || |   | |   "+"    "+color.BOLD+color.fail+"   | |   | |__| || | \ \ | | \ \ | |____ | |  \  |   | |   "+ color.end)
-	print(color.recv+"|______/ |_|   |_|   "+"    "+color.BOLD+color.fail+"   |_|   |______||_|  \_\|_|  \_\|______||_|   \_|   |_|   "+ color.end)
+	print(color.recv+" ______              "+"    "+color.fail+" _______                                                  "+color.end)
+	print(color.recv+"|  ___ \             "+"    "+color.fail+"|__   __|                                                 "+color.end)
+	print(color.recv+"| |   | | _  _______ "+"    "+color.fail+"   | |    ______  _____   _____   ______  __   _  _______ "+color.end)
+	print(color.recv+"| |__/ / | ||__   __|"+"    "+color.fail+"   | |   |  __  || __  \ | __  \ |  ____||  \ | ||__   __|"+color.end)
+	print(color.recv+"|  __ (  | |   | |   "+"    "+color.fail+"   | |   | |  | ||    _/ |    _/ | |__   | \ \| |   | |   "+color.end)
+	print(color.recv+"| |  \ \ | |   | |   "+"    "+color.fail+"   | |   | |  | || |\ \  | |\ \  |  __|  | |\ | |   | |   "+color.end)
+	print(color.recv+"| |___| || |   | |   "+"    "+color.fail+"   | |   | |__| || | \ \ | | \ \ | |____ | | \  |   | |   "+color.end)
+	print(color.recv+"|______/ |_|   |_|   "+"    "+color.fail+"   |_|   |______||_|  \_\|_|  \_\|______||_|  \_|   |_|   "+color.end)
 	print("\n")
+	print(color.fail+"« 1 » STAMPA PEER CONOSCIUTI"+color.end)
 	print(color.fail+"« 0 » CHIUDI IL SERVER"+color.end)
 	
 def setIp(n):
@@ -74,6 +75,9 @@ class clientServer(object):
 				print(color.recv+"CHIUSURA SERVER"+color.end)
 				#self.sockUDPServer.sendto(("LOGO").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				stopServer(self)
+			elif cmd is "1":
+				print(color.recv+"STAMPA VICINI"+color.end)
+				self.sockUDPServer.sendto(("STMV").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 		
 			
 if __name__ == "__main__":

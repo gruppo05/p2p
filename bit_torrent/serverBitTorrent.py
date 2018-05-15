@@ -8,27 +8,18 @@ class color:
 	recv = '\033[36m'
 	green = '\033[32m'
 	send = '\033[33m'
-	fail = '\033[31m'
+	fail = '\033[1m'+'\033[31m'
 	end = '\033[0m'
-	BOLD = '\033[1m'
-	UNDERLINE = '\033[4m'
 
 
 def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS User")
-	self.dbReader.execute("DROP TABLE IF EXISTS Pktid")
 	self.dbReader.execute("DROP TABLE IF EXISTS File")
-	self.dbReader.execute("DROP TABLE IF EXISTS download")
-	self.dbReader.execute("DROP TABLE IF EXISTS TrackedFile")
-	# 0 -> user
-	# 1 -> supernodo
-	# 2 -> supernodo scelto	
-	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text, SessionID text)")
-	self.dbReader.execute("CREATE TABLE Pktid (Pktid text, Timestamp DATETIME)")
-	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text)")
-	self.dbReader.execute("CREATE TABLE download (Filemd5 text, Filename text)")
-	self.dbReader.execute("CREATE TABLE TrackedFile (IPP2P text, PP2P text, Filemd5 text, Filename text)")
+	self.dbReader.execute("DROP TABLE IF EXISTS Parts")
 	
+	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text, SessionID text)")
+	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
+	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text)")
 
 def closeServer(self):
 	time.sleep(0.1)
@@ -225,12 +216,69 @@ class serverBitTorrent(object):
 					
 				except:
 					SessionID = "0000000000000000"
-					Print("Errore nella procedura di login server")
+					print("Errore nella procedura di login server")
 				finally:
 					msg = "ALGI"+SessionID
 					connection.sendall(msg.encode())
 					connection.close()
-					
+			elif command == "LOOK":
+				sessionID = connection.recv(16).decode()
+				ricerca = connection.recv(20).decode()
+				self.dbReader.execute("SELECT SessionID FROM User WHERE SessionID = ?", (sessionID,))
+				resultUser = self.dbReader.fetchone()
+				if resultUser is None:
+					msg = "ALOO000"
+					print("Utente non registrato.")
+				else:
+					ricerca = ricerca.strip()
+					self.dbReader.execute("SELECT COUNT(Filemd5) FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%"))
+					resultCount = self.dbReader.fetchone()
+					i = 0
+					msg="ALOO" + str(resultCount[0])
+					if resultCount[0] > 0:
+						self.dbReader.execute("SELECT u.IPP2P, u.PP2P, f.Lenfile, f.Lenpart FROM File AS f JOIN User AS U WHERE u.SessionID = f.SessionID AND Filename LIKE ?", ("%"+ricerca+"%"))
+						resultFile = self.dbReader.fetchall()
+						for files in resultFile:
+							msg = msg + files[0] + files[1] + files[2] + files[3]
+				connection.sendall(msg.encode())
+				connection.close()
+			elif command == "FCHU":
+				try:
+					sessionID = connection.recv(16).decode()
+					filemd5 = connection.recv(32).decode()
+					self.dbReader.execute("SELECT * FROM User WHERE SessionID LIKE ?", (sessionID,))
+					resultUser = self.dbReader.fetchone()
+					if resultUser is None:
+						msg = "AFCH000"
+						print("Utente non registrato")
+					else:
+						self.dbReader.execute("SELECT DISTINCT IPP2P, PP2P FROM Parts WHERE Filemd5 LIKE ?", (filemd5,))
+						resultParts = self.dbReader.fetchall()
+						if resultParts is None:
+							msg = "AFCH000"
+							print("Parti non presenti. File non in condivisione.")
+						else:
+							msg = "AFCH" + str(len(resultParts)).ljust(3)
+							for user in resultParts:
+								self.dbReader.execute("SELECT IdParts FROM PARTS WHERE IPP2P LIKE ?", (user[0]))
+								resultParts = self.dbReader.fetchall()
+								partList = 0
+								self.dbReader.execute("SELECT Lenfile, Lenpart FROM File WHERE Filemd5 LIKE ?", (filemd5,))
+								data = self.dbReader.fetchone()
+								nParts = data[0]/data[1]
+								nByte = int(nParts/8)
+								if (nParts%8)!=0:
+									nByte = nByte + 1
+								for ids in resultParts:
+									partList = partList + (2**(nByte*8 - ids[0]))
+								#creo il messaggio
+								msg = msg + user[0] + user[1] + str(partList)
+				except:
+					print("Errore nella FCHU")
+					msg = "AFCH000"
+				finally:
+					connection.sendall(msg.encode())
+					connection.close()
 		except:
 			connection.close()
 			return False
@@ -246,6 +294,8 @@ class serverBitTorrent(object):
 			if command == "STOP":
 				print("Ricevuto STOP!")
 				closeServer(self)
+			elif command == "STMV":
+				print("QUI DEVO MANDARE INDIETRO I VICINI")
 				
 	
 

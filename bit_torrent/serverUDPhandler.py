@@ -58,6 +58,21 @@ def splitIp(ip):
 	splitted = ip.split(".")
 	ip = str(int(splitted[0]))+"."+str(int(splitted[1]))+"."+str(int(splitted[2]))+"."+str(int(splitted[3]))
 	return ip
+
+	
+def encryptMD5(self, filename):
+	#calcolo hash file
+	BLOCKSIZE = 128
+	hasher = hashlib.md5()
+	with open(filename, 'rb') as f:
+		buf = f.read(BLOCKSIZE)
+		while len(buf) > 0:
+			hasher.update(buf)
+			buf = f.read(BLOCKSIZE)
+		f.close()
+	hasher.update(self.myIPP2P.encode())
+	filemd5 = hasher.hexdigest()
+	return(filemd5)
 	
 def setConnection(ip, port, msg):
 	try:
@@ -79,7 +94,7 @@ def setConnection(ip, port, msg):
 	except:
 		print(color.fail+"Errore connessione 'not close'"+color.end)
 	return peer_socket
-
+	
 def timerChunk():
 	sec = 0
 	while True:
@@ -87,6 +102,21 @@ def timerChunk():
 		sec = sec + var.setting.timeDebug
 		if int(sec) == 10:
 			sec = 0
+
+def encryptMD5(filename):
+	#calcolo hash file
+	BLOCKSIZE = 128
+	hasher = hashlib.md5()
+	with open(filename, 'rb') as f:
+		buf = f.read(BLOCKSIZE)
+		while len(buf) > 0:
+			hasher.update(buf)
+			buf = f.read(BLOCKSIZE)
+		f.close()
+	filemd5 = hasher.hexdigest()
+	hasher.update((var.setting.myIPP2P).encode())
+	filemd5IP = hasher.hexdigest()
+	return(filemd5)	
 
 class serverUDPhandler(object):
 	def __init__(self):
@@ -136,7 +166,52 @@ class serverUDPhandler(object):
 				threading.Thread(target = self.recvDownload, args = (connection,client_address)).start()
 			except:
 				return False
-	
+				
+	def calcID(self, partList, nParts):
+		if partList == 1:
+			return nParts, (partList-1)
+		else:
+			idParts = nParts
+			lenParts = 1
+			while lenParts < partList:
+				idParts = idParts - 1
+				lenParts = lenParts * 2
+			idParts = idParts + 1
+			lenParts = lenParts/2	
+			partList = partList - lenParts
+			return idParts, partList
+		
+	def gettinParts(self, sessionID, filemd5):
+		msg = "FCHU" + sessionID + filemd5
+		peer_socket = setNotCloseConnection(self.ServerIP, self.ServerPORT, msg)
+		self.dbReader.execute("SELECT Lenfile, Lenpart FROM File WHERE Filemd5 LIKE ?", ("%"+filemd5+"%",))
+		resultFile = self.dbReader.fetchone()
+		nParts = int(resultFile[0])/int(resultFile[1])
+		lenBit = int(nParts/8)
+		if (nParts % 8) > 0:
+			lenBit = lenBit + 1
+		data, addr = self.sockUDPServer.recvfrom(4)
+		command = data.decode()
+		if command == "AFCH":
+			hitpeer = int(peer_socket.recv(3).decode())
+			if hitpeer > 0 :
+				i = 0
+				while i < hitpeer:
+					ipp2p = peer_socket.recv(55).decode()
+					pp2p = peer_socket.recv(5).decode()
+					partList = int.from_bytes(peer_socket.recv(lenBit), 'big')
+					while partList > 0:
+						idPart, partList = calcID(self, partList, nParts)
+						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, idParts))
+					'''
+					while lenBit > 1:
+						#idParts, partList = calcId(partList, nParts)
+						self.dbReader.execute("SELECT IdParts FROM Parts WHERE Filemd5 LIKE ? AND IPP2P <> ?", ("%"+filemd5+"%", ))
+						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, idParts))
+					'''
+					i = i + 1
+		peer_socket.close()
+		
 	def serverUDP(self):
 		print(color.green+"In attesa di comandi interni..."+color.end)
 		while True:
@@ -157,7 +232,18 @@ class serverUDPhandler(object):
 				print(color.green+"Server settato con successo"+color.end)
 				#gestione cronometro
 				threading.Thread(target = timerChunk, args = '').start()
-		
+			
+			elif command == "ADDR":
+				filename = self.sockUDPServer.recvfrom(100)[0].decode()
+				filename = var.setting.userPath+filename.strip()
+				filemd5 = encryptMD5(self, filename)
+				print("FILE MD5 --> "+str(filemd5))
+				
+				'''
+				“ADDR”[4B].SessionID[16B].LenFile[10B].LenPart[6B].
+					Filename[100B].​ Filemd5_i[32B]
+				'''
+			
 			elif command == "LOGI":
 				msg = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
 				try:
@@ -200,9 +286,11 @@ class serverUDPhandler(object):
 						lenfile = peer_socket(10).decode()
 						lenpart = peer_socket(6).decoce()
 						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, Lenfile, Lenpart) values (?, ?, ?, ?)", (filemd5, filename, lenfile, lenpart))
+						i = i + 1
 					print("Trovati " + nIdMd5 + " file.")
 				self.sockUDPClient.sendto((str(nIdMd5)).ljust(3), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
+				#posso inserire la richiesta delle parti
 			
 			elif command == "FDWN":
 				data, noused = self.sockUDPServer.recvfrom(20)
@@ -260,6 +348,7 @@ class serverUDPhandler(object):
 							print("Errore nell'esecuzione del thread")
 					count = count +1
 			
+
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
 				self.sockUDPServer.close()
@@ -317,7 +406,7 @@ class serverUDPhandler(object):
 					spaces = ' ' * (bar_length - len(hashes))
 					sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
 					i = i + 1
-			
+
 				percent = float(i) / numChunk
 				hashes = '#' * int(round(percent * bar_length))
 				spaces = ' ' * (bar_length - len(hashes))
@@ -332,15 +421,15 @@ class serverUDPhandler(object):
 				print("Errore nella procedure di download parte --> ",idParts )
 				#se non funziona tolgo i file tra quelli a disposizione
 				self.dbReader.execute("DELETE FROM Parts WHERE IPP2P=? AND IdParts=?", (self.myIPP2P,idParts))
-				self.sockUDPClient.sendto(("ARE0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT)				
+				self.sockUDPClient.sendto(("ARE0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))				
 				
 			self.dbReader.execute("UPDATE Parts SET Downloaded=? where IPP2P=? AND IdParts=?",(1,self.myIPP2P,idParts))
 			self.sockUDPClient.sendto(("ARE1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-			
+
 			#Da controllare se ho tutte le parti!!!
 			# *************** IMPORTANTE *************************** #	
 		
-			#Recupero il file
+			'''#Recupero il file
 			self.dbReader.execute("SELECT Filemd5,Lenfile, Lenpart FROM File WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
 			resultFile = self.dbReader.fetchone()
 			Filemd5 = resultFile[0]
@@ -356,7 +445,7 @@ class serverUDPhandler(object):
 		
 			while count < numPart:
 			
-			
+			'''
 			
 		peer_socket.close()
 	
