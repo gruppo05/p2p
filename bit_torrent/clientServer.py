@@ -30,7 +30,8 @@ def printMenu():
 	print(color.recv+"| |___| || |   | |   "+"    "+color.fail+"   | |   | |__| || | \ \ | | \ \ | |____ | | \  |   | |   "+color.end)
 	print(color.recv+"|______/ |_|   |_|   "+"    "+color.fail+"   |_|   |______||_|  \_\|_|  \_\|______||_|  \_|   |_|   "+color.end)
 	print("\n")
-	print(color.fail+"« 1 » STAMPA PEER CONOSCIUTI"+color.end)
+	print("« 1 » STAMPA PEER CONOSCIUTI")
+	print("« 2 » STAMPA FILE CONOSCIUTI")
 	print(color.fail+"« 0 » CHIUDI IL SERVER"+color.end)
 	
 def setIp(n):
@@ -52,6 +53,7 @@ class clientServer(object):
 		self.UDP_IP = "127.0.0.1"
 		self.UDP_PORT_SERVER = 30001
 		UDP_PORT_CLIENT = 30002
+		self.UDP_END = ""
 		
 		# Socket UPD ipv4 client in attesa
 		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -78,7 +80,17 @@ class clientServer(object):
 			elif cmd is "1":
 				print(color.recv+"STAMPA VICINI"+color.end)
 				self.sockUDPServer.sendto(("STMV").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
-		
+			elif cmd is "2":
+				print(color.recv+"STAMPA FILE CONOSCIUTI"+color.end)
+				self.sockUDPServer.sendto(("STMF").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				while True:
+					buff = self.sockUDPClient.recvfrom(103)[0].decode()
+					if buff == self.UDP_END.ljust(103):
+						print(color.recv+"\nFine lista parts\n"+color.end)
+						cmd = input("Premi invio per continuare")
+						break
+					else:
+						print(buff)
 			
 if __name__ == "__main__":
     client = clientServer()

@@ -25,9 +25,7 @@ def clearAndSetDB(self):
 	#1 --> Parte scaricata con successo
 	
 	# ************** DA TOGLIERE ************* #	
-	self.dbReader.execute("INSERT INTO File (Filemd5, Filename, SessionID, Lenfile,Lenpart ) values (?, ?, ?, ?, ?)", ("aaaabbbbccccddddeeeeffffgggghhhh", "PROVAAAAA", "UkWzuXRVRABgY5vs", "300", "100"))
-	
-	#Da togliere
+	self.dbReader.execute("INSERT INTO File (Filemd5, filename,sessionId , lenfile, lenpart) values (?,?,?,?,?)", ("aaaabbbbccccddddeeeeffffgggghhhh", "PROVAAAAA", "okokokokokokokokokok", "500", "100"))
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000003", "0"))
@@ -37,7 +35,6 @@ def clearAndSetDB(self):
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.005|fc00:0000:0000:0000:0000:0000:0005:0005","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
 
 	# **************************************** #		
-		
 def setIp(n):
 	if n < 10:
 		n = "00"+str(n)
@@ -133,6 +130,7 @@ class serverUDPhandler(object):
 		self.UDP_END = ""
 		self.timeDebug = var.setting.timeDebug
 		self.BUFF = 1024
+		self.lenPart = 262144
 		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -181,15 +179,19 @@ class serverUDPhandler(object):
 			partList = partList - lenParts
 			return idParts, partList
 		
-	def gettinParts(self, sessionID, filemd5):
-		msg = "FCHU" + sessionID + filemd5
-		peer_socket = setNotCloseConnection(self.ServerIP, self.ServerPORT, msg)
+	def gettingParts(self, sessionID, filemd5):
+		msg = "FCHU" + sessionID.ljust(16) + filemd5.ljust(32)
+		peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
+		print(filemd5)
 		self.dbReader.execute("SELECT Lenfile, Lenpart FROM File WHERE Filemd5 LIKE ?", ("%"+filemd5+"%",))
-		resultFile = self.dbReader.fetchone()
+		resultFile = self.dbReader.fetchone()	
+		print(resultFile)
 		nParts = int(resultFile[0])/int(resultFile[1])
+		print("Deve essere 5: " + str(nParts))
 		lenBit = int(nParts/8)
 		if (nParts % 8) > 0:
 			lenBit = lenBit + 1
+		print("Deve essere 1: " + str(lenBit))
 		data, addr = self.sockUDPServer.recvfrom(4)
 		command = data.decode()
 		if command == "AFCH":
@@ -236,18 +238,68 @@ class serverUDPhandler(object):
 			elif command == "ADDR":
 				filename = self.sockUDPServer.recvfrom(100)[0].decode()
 				filename = var.setting.userPath+filename.strip()
-				filemd5 = encryptMD5(self, filename)
-				print("FILE MD5 --> "+str(filemd5))
+				filemd5 = encryptMD5(filename)
 				
-				'''
-				“ADDR”[4B].SessionID[16B].LenFile[10B].LenPart[6B].
-					Filename[100B].​ Filemd5_i[32B]
-				'''
+				fileSize = os.path.getsize(filename)
+				numParts = int((fileSize / self.lenPart) + 1)
+				
+				try:
+					fileToDivide = open(filename, 'rb')
+				except OSError as e:
+					print(e)
+					self.sockUDPClient.sendto(("0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				
+				data = fileToDivide.read()
+				sys.stdout.flush()
+				fileToDivide.close()
+				
+				dirName = var.setting.userPath+"/"+filemd5+"/"
+				if not os.path.exists(dirName):
+					os.makedirs(dirName)
+				i = 1
+				gap = 0
+				while i <= numParts:
+					try:
+						#fd = open(dirName+""+str(i), os.O_CREAT)
+						fd = open(dirName+""+str(i), 'wb')
+					except OSError as e:
+						print(e)
+						self.sockUDPClient.sendto(("0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					
+					endGap = gap+self.lenPart
+					if endGap > fileSize:
+						endGap = fileSize
+
+					fd.write(data[gap:endGap])
+					sys.stdout.flush()
+					fd.close()
+					
+					gap += self.lenPart
+					i += 1
+				
+				msg = "ADDR"+self.mySessionID+str(fileSize).ljust(10)+str(self.lenPart).ljust(6)+filename.ljust(100)+filemd5.ljust(32)
+				try:				
+					peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
+					#aspetto la risposta
+					command = peer_socket.recv(4).decode()
+					if command == "AADR":
+						nPart = int(peer_socket.recv(8).decode())
+						print("Ricevuto <-- "+color.send+"AADR"+str(nPart)+color.end)
+						if nPart == numParts:
+							self.sockUDPClient.sendto(("1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+						else:
+							self.sockUDPClient.sendto(("0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+							time.sleep(10)
+				except:
+					print(color.fail+"Errore aggiunta file"+color.end)
+					self.sockUDPClient.sendto(("0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					time.sleep(10)
+
 			
 			elif command == "LOGI":
 				msg = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
 				try:
-					peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)					
+					peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 					command = peer_socket.recv(4).decode()
 					if command == "ALGI":
 						#setto il mio sessionID
@@ -285,7 +337,7 @@ class serverUDPhandler(object):
 					self.sockUDPClient.sendto(("ALOG").encode(),(self.UDP_IP,self.UDP_PORT_CLIENT))
 					self.sockUDPClient.sendto((partOwn.ljust(10)).encode(),(self.UDP_IP,self.UDP_PORT_CLIENT))
 				peer_socket.close()
-					
+
 			
 			elif command == "FIND":
 				ricerca = str(self.sockUDPServer.recvfrom(20).decode())
@@ -294,7 +346,7 @@ class serverUDPhandler(object):
 				msg = "LOOK" + sessionID + ricerca
 				print("Invio messaggio -> " + msg + " a " + self.ServerIP + " alla porta " + self.ServerPORT)
 				
-				peer_socket = setNotCloseConnection(self.ServerIP, self.ServerPORT, msg)
+				peer_socket = setConnection(self.ServerIP, self.ServerPORT, msg)
 				command = peer_socket.recv(4).decode()
 				print("Ricevuto " + command)
 				if command is "ALOO":
@@ -374,6 +426,13 @@ class serverUDPhandler(object):
 				self.sockUDPServer.close()
 				self.sockUDPClient.close()
 				os._exit(0) 
+			
+			elif command == "FCHU":
+	
+				print("Debugging FCHU...")
+				print("ok")
+				self.gettingParts(self.mySessionID,"aaaabbbbccccddddeeeeffffgggghhhh")
+				print("Gettingparts completata.")
 	
 	def sendDownload(self, ip, port, msg):
 		try:
@@ -404,7 +463,7 @@ class serverUDPhandler(object):
 			print("Ricevuto "+color.recv+"AREP"+color.end)
 			try:
 				#dal messaggio inviato estraggo l'identificativo
-				fd = open(var.setting.userPath + "" + idParts, 'wb')					
+				fd = open(var.setting.userPath + "" + idParts, 'wb')
 				numChunk = peer_socket.recv(6).decode()
 				numChunk = int(numChunk)
 
@@ -448,7 +507,7 @@ class serverUDPhandler(object):
 
 			#Da controllare se ho tutte le parti!!!
 			# *************** IMPORTANTE *************************** #	
-		
+			
 			'''#Recupero il file
 			self.dbReader.execute("SELECT Filemd5,Lenfile, Lenpart FROM File WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
 			resultFile = self.dbReader.fetchone()
@@ -462,10 +521,29 @@ class serverUDPhandler(object):
 				count = 0
 			else:
 				count = data[0]
-		
-			while count < numPart:
-			
 			'''
+			i = 1
+			data = "".encode()
+			while j <= numPart:
+				try:
+					fd = open(dirName+""+str(i), 'rb')
+				except OSError as e:
+					print(e)
+				
+				data += fd.read()
+				#print(data)
+				sys.stdout.flush()
+				fd.close()
+				i += 1
+			
+				
+			try:
+				fileToCompact = open(dirName+"fileCompleto", 'wb')
+			except OSError as e:
+				print(e)
+			fileToCompact.write(data)
+			sys.stdout.flush()
+			fileToCompact.close()
 			
 		peer_socket.close()
 	

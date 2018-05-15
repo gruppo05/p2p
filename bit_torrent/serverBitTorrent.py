@@ -19,8 +19,27 @@ def clearAndSetDB(self):
 	
 	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text, SessionID text)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
-	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text)")
-
+	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text, Downloaded text)")
+		# ************** DA TOGLIERE ************* #	
+	self.dbReader.execute("INSERT INTO File (Filemd5, Filename, SessionID, Lenfile,Lenpart ) values (?, ?, ?, ?, ?)", ("aaaabbbbccccddddeeeeffffgggghhhh", "PROVAAAAA", "okokokokokokokok", "500", "100"))
+	
+	self.dbReader.execute("INSERT INTO File (Filemd5, Filename, SessionID, Lenfile,Lenpart ) values (?, ?, ?, ?, ?)", ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "PornoXXX", "UkWzuXRVRABgY5vs", "300", "100"))
+	
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000003", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000004", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000005", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000004", "0"))	
+	
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.004|fc00:0000:0000:0000:0000:0000:0005:0004","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.005|fc00:0000:0000:0000:0000:0000:0005:0005","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
+	
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "00000001", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "00000002", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "00000003", "0"))
 	
 
 def closeServer(self):
@@ -161,7 +180,8 @@ class serverBitTorrent(object):
 
 		self.timeDebug = var.setting.timeDebug
 		self.BUFF = 1024
-		self.super = ""
+		self.UDP_END = ""
+		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
@@ -200,6 +220,7 @@ class serverBitTorrent(object):
 	
 	def server(self, connection, client_address):
 		command = connection.recv(4).decode()
+		print("\n")
 		try:
 			if command == "LOGI":
 				try:
@@ -309,26 +330,59 @@ class serverBitTorrent(object):
 							print("Parti non presenti. File non in condivisione.")
 						else:
 							msg = "AFCH" + str(len(resultParts)).ljust(3)
-							for user in resultParts:
-								self.dbReader.execute("SELECT IdParts FROM PARTS WHERE IPP2P LIKE ?", (user[0]))
-								resultParts = self.dbReader.fetchall()
+							for parts in resultParts:
+								self.dbReader.execute("SELECT IdParts FROM Parts WHERE IPP2P LIKE ? AND Filemd5 LIKE ?", (parts[0],filemd5))
+								resultID = self.dbReader.fetchall()
 								partList = 0
 								self.dbReader.execute("SELECT Lenfile, Lenpart FROM File WHERE Filemd5 LIKE ?", (filemd5,))
 								data = self.dbReader.fetchone()
-								nParts = data[0]/data[1]
-								nByte = int(nParts/8)
+								nParts = int(int(data[0])/int(data[1]))
+								nByte = int(int(nParts)/8)
 								if (nParts%8)!=0:
 									nByte = nByte + 1
-								for ids in resultParts:
-									partList = partList + (2**(nByte*8 - ids[0]))
+								
+								print("parti dell'utente in byte:", nByte, "E npart:", nParts)
+								for ids in resultID:
+									partList = partList + (2**(nByte*8 - int(ids[0])))
 								#creo il messaggio
-								msg = msg + user[0] + user[1] + str(partList)
+								msg = msg + parts[0] + parts[1] + str(partList)
+								print("MSG --> ", msg)
 				except:
 					print("Errore nella FCHU")
 					msg = "AFCH000"
 				finally:
 					connection.sendall(msg.encode())
 					connection.close()
+			elif command == "ADDR":
+				try:
+					sessionID = connection.recv(16).decode()
+					lenFile = int(connection.recv(10).decode())
+					lenPart = int(connection.recv(6).decode())
+					filename = connection.recv(100).decode()
+					filemd5 = connection.recv(32).decode()
+					self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) VALUES (?, ?, ?)",(filemd5, filename, sessionID))
+					print(color.green+"Inserito nuovo file dal peer -> "+color.green+sessionID+color.end)
+					
+
+					numPart = int((lenFile / lenPart) + 1)
+					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
+					data = self.dbReader.fetchone()
+					i = 1
+					while i <= numPart:
+						self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, str(i)))
+						i += 1
+						
+					print(color.green+"# Parti salvate -> "+str(i)+color.end)
+
+					msg = "AADR"+str(numPart).ljust(8)
+					print("MSG --> "+msg)
+					connection.sendall(msg.encode())
+					connection.close()
+				except:
+					print(color.fail+"Errore invio "+color.recv+"AADR"+color.end)
+					connection.close()
+					
+					
 		except:
 			connection.close()
 			return False
@@ -346,6 +400,13 @@ class serverBitTorrent(object):
 				closeServer(self)
 			elif command == "STMV":
 				print("QUI DEVO MANDARE INDIETRO I VICINI")
+			elif command == "STMF":
+				self.dbReader.execute("SELECT * FROM Parts ORDER BY Filemd5")
+				data = self.dbReader.fetchall()
+				for f in data:
+					self.sockUDPClient.sendto((f[2]+"-"+str(f[1]).ljust(5)+"-"+str(f[0]).ljust(55)+"-"+str(f[3]).ljust(8)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.sockUDPClient.sendto(self.UDP_END.ljust(103).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				
 				
 	
 
