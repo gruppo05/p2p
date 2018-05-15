@@ -35,6 +35,7 @@ def printMenu():
 	print("« 3 » RICERCA FILE")
 	print("« 4 » SCARICA FILE")
 	print("« 5 » PROVA FCHU PER IL DEBUG")
+	print("« 6 » LOGOUT")
 	print(color.fail+"« 0 » CHIUDI IL CLIENT"+color.end)
 	
 	
@@ -181,6 +182,19 @@ class clientBitTorrent(object):
 			elif cmd is "5":
 				print(color.recv+"FCHU"+color.end)
 				self.sockUDPServer.sendto(("FCHU").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+			
+			elif cmd is "6":
+				print(color.recv + "LOGOUT" + color.end)
+				self.sockUDPServer.sendto(("LOGO").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				answer = self.sockUDPClient.recvfrom(4)[0].decode()
+				parti = self.sockUDPClient.recvfrom(10)[0].decode()
+				if answer == "NLOG":
+					print(color.fail + "NON possibile effettuare il logout" + color.end)
+					print(color.fail + "parti ancora da scaricare: " + color.recv + str(parti) + color.end)
+				if answer == "ALOG":
+					#print(color.green + "LOGOUT" + color.end)
+					print(color.green + "parti scaricate completamente: " + str(parti) + color.end)
+					stopServer(self)
 			
 if __name__ == "__main__":
     client = clientBitTorrent()

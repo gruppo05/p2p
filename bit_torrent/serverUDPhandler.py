@@ -312,8 +312,28 @@ class serverUDPhandler(object):
 						self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 					peer_socket.close()
 				except:
-					print(color.fail+"Errore salvataggio SessionID"+color.end)
-					self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+						print(color.fail+"Errore salvataggio SessionID"+color.end)
+						self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+
+			elif command == "LOGO":
+				msg = "LOGO"+str(self.mySessionID).ljust(16)
+				peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
+				command = peer_socket.recv(4).decode()
+				print(command)
+				if command == "NLOG":
+					partDown = peer_socket.recv(10).decode()
+					print("Ricevuto <-- "+color.send+command+str(partDown)+color.end)
+					print(color.fail + "Impossibile effettuare il logout" + color.end)
+					self.sockUDPClient.sendto(("NLOG").encode(),(self.UDP_IP,self.UDP_PORT_CLIENT))
+					self.sockUDPClient.sendto((partDown.ljust(10)).encode(),(self.UDP_IP,self.UDP_PORT_CLIENT))
+				elif command == "ALOG":
+					partOwn = peer_socket.recv(10).decode()
+					print("Ricevuto <-- "+color.send+command+str(partOwn)+color.end)
+					print(color.green + "Logout consentito" + color.end)
+					self.sockUDPClient.sendto(("ALOG").encode(),(self.UDP_IP,self.UDP_PORT_CLIENT))
+					self.sockUDPClient.sendto((partOwn.ljust(10)).encode(),(self.UDP_IP,self.UDP_PORT_CLIENT))
+				peer_socket.close()
+
 			
 			elif command == "FIND":
 				ricerca = str(self.sockUDPServer.recvfrom(20).decode())
