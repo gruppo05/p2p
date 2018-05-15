@@ -19,7 +19,7 @@ def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS download")
 	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text)")
 	self.dbReader.execute("CREATE TABLE Pktid (Pktid text, Timestamp DATETIME)")
-	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, IPP2P text)")
+	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, IPP2P text, PP2P text)")
 	self.dbReader.execute("CREATE TABLE download (Filemd5 text, Filename text)")
     
 def PktidGenerator():
@@ -58,8 +58,7 @@ def encryptMD5(filename):
 def setConnection(ip, port, msg):
 	try:
 		rnd = random()
-		rnd = 0.1
-		if(rnd<0.5):
+		if(rnd<0.995):
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+color.end)
 			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
@@ -71,7 +70,7 @@ def setConnection(ip, port, msg):
 			peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 			peer_socket.connect((ip, port))
 		
-		#print("Invio --> "+color.send+msg+color.end)
+		print("Invio --> "+color.send+msg+color.end)
 		peer_socket.sendall(msg.encode())
 		peer_socket.close()
 		
@@ -102,7 +101,9 @@ class GnutellaServer(object):
 		self.UDP_PORT_CLIENT = 50000
 		self.endUDP1 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
 		self.endUDP2 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
-		self.BUFF = 99999
+		self.endUDP3 = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+		self.BUFF = 1024
 		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -156,7 +157,7 @@ class GnutellaServer(object):
 				if os.path.isfile(PATH) and os.access(PATH, os.R_OK):
 					filemd5 = encryptMD5(PATH)
 					msg = "1"
-					self.dbReader.execute("INSERT INTO File (filemd5, filename, IPP2P) values (?, ?, ?)", (filemd5, filename, self.myIPP2P))
+					self.dbReader.execute("INSERT INTO File (filemd5, filename, IPP2P, PP2P) values (?, ?, ?, ?)", (filemd5, filename, self.myIPP2P, self.PORT))
 					print(color.green+"Trovato. Aggiunto file in condivisione"+color.end)
 				else:
 					msg = "0"
@@ -166,7 +167,6 @@ class GnutellaServer(object):
 				self.sockUDPClient.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 	
 			elif command == "QUER":
-				
 				myPktid = PktidGenerator()
 				self.dbReader.execute("INSERT INTO pktid (Pktid, Timestamp) values (?, ?)", (myPktid, datetime.datetime.now()))
 				TTL = setNumber(5)
@@ -185,25 +185,112 @@ class GnutellaServer(object):
 				
 			elif command == "RETR":
 				
-				filename, addr = self.sockUDPServer.recvfrom(20)
-				
+				print("ricevuto RETR")
+				filename, useless = self.sockUDPServer.recvfrom(20)
 				filename = filename.decode()
 				filename = filename.strip()
-				self.dbReader.execute("SELECT * FROM File WHERE Filename LIKE ? AND IPP2P NOT LIKE ?", ("%"+filename+"%","%" + self.myIPP2P+"%"))
+				cmd, addr = self.sockUDPServer.recvfrom(3)
+				cmd = cmd.decode()
+				
+				#fix per offset
+				cmd = int(cmd)-1
+				
+				#Recupero il file
+				self.dbReader.execute("SELECT IPP2P, PP2P, Filemd5, Filename FROM file WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
 				resultFile = self.dbReader.fetchone()
+				print("MD5 --> "+str(resultFile[2])+"  FILENAME --> "+str(resultFile[3]))
 				if resultFile is not None:
 					self.dbReader.execute("DELETE FROM Download")
-					self.dbReader.execute("INSERT INTO Download values (?, ?)", (resultFile[0], resultFile[1]))
+					self.dbReader.execute("INSERT INTO Download values (?,?)", (resultFile[2], resultFile[3]))					
+					msg = "RETR" + resultFile[2]
+					ip = resultFile[0]
+					port = int(resultFile[1])
+					try:
+						rnd = random()
+						#rnd = 0.1
+						if(rnd<0.5):
+							ip = splitIp(ip[0:15])						
+							print(color.green+"Connessione IPv4:"+ip+color.end)
+							peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+							peer_socket.connect((ip,port))
+		
+						else:
+							ip = ip[16:55]
+							print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
+							peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+							peer_socket.connect((ip, port))
+		
+						print("Invio --> "+color.send+msg+color.end)
+						peer_socket.sendall(msg.encode())
+						cmd = peer_socket.recv(4).decode()
+						if cmd == "ARET":
+							print("Ricevuto "+color.recv+"ARET"+color.end)
+							try:
+								self.dbReader.execute("SELECT * FROM Download")
+								files = self.dbReader.fetchone()
+								filename = files[1]
+								filename = filename.strip()
+								fd = open(var.Settings.userPath + "" + filename, 'wb')					
+								numChunk = peer_socket.recv(6).decode()
+								numChunk = int(numChunk)
 					
-					self.dbReader.execute("SELECT * FROM user WHERE IPP2P LIKE ?", ('%'+resultFile[2]+'%',))
-					resultUser = self.dbReader.fetchone()
+								i = 0
+								print("Inizio download...")
+								bar_length = 60
+								time1 = time.time()
+								while i < numChunk:
+									lun = peer_socket.recv(5).decode()
+									while len(lun) < 5:
+										lun = lun + peer_socket.recv(1).decode()
+									lun = int(lun)
+									data = peer_socket.recv(lun)
+									while len(data) < lun:
+										data += peer_socket.recv(1)
+									fd.write(data)
+									percent = float(i) / numChunk
+									hashes = '#' * int(round(percent * bar_length))
+									spaces = ' ' * (bar_length - len(hashes))
+									sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+									i = i + 1
 					
-					msg = "RETR" + resultFile[0]
+								percent = float(i) / numChunk
+								hashes = '#' * int(round(percent * bar_length))
+								spaces = ' ' * (bar_length - len(hashes))
+								sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+								time2 = time.time()
+								sys.stdout.flush()
+								fd.close()
+								peer_socket.close()
+								print("\n")
+								totTime = time2 - time1
+								print(color.green + "Scaricato il file" + color.end+" in "+str(int(totTime))+"s")
 					
-					setConnection(resultUser[0], int(resultUser[1]), msg)
+							except OSError:
+								print("Impossibile aprire il file: controlla di avere i permessi")
+								self.sockUDPClient.sendto(("ARE0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+								return False
+							print(color.fail+"Finito baby"+color.end)
+							self.sockUDPClient.sendto(("ARE1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+							
+					except:
+						print("Nessun vicino trovato!")
+					
+					
+					setConnection(resultFile[0], int(resultFile[1]), msg)
 				else:
 					print("File non presente nel database")
-
+					
+			elif command == "FDWN":
+				data, noused = self.sockUDPServer.recvfrom(20)
+				filename = data.decode()
+				filename = filename.strip()
+								
+				self.dbReader.execute("SELECT IPP2P, PP2P, Filemd5, Filename FROM File WHERE Filename LIKE ?", ("%"+filename+"%",))
+				files = self.dbReader.fetchall()
+				for f in files:
+					self.sockUDPClient.sendto((str(f[0].ljust(55))+"-"+str(f[1]).ljust(5)+"-"+str(f[2].ljust(32))+"-"+str(f[3].ljust(100))).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.sockUDPClient.sendto((self.endUDP3).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+			
 			elif command == "STMV":
 				self.dbReader.execute("SELECT * FROM user")
 				vicini = self.dbReader.fetchall()
@@ -307,60 +394,44 @@ class GnutellaServer(object):
 					
 			elif command == "RETR":
 				print("Ricevuto "+color.recv+"RETR"+color.end)
-				
+			
 				#inviare un file che ho
 				FileMD5 = connection.recv(32).decode()
+				print("FileMD5", FileMD5)
 				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
 				resultFile = self.dbReader.fetchone()
 				filename=resultFile[0].replace(" ","")
-				
+			
 				try:
 					fd = os.open(var.Settings.userPath+""+filename, os.O_RDONLY)
 				except OSError as e:
 					print(e)
-				if fd is not -1:					
-					addrIPv4 = str(client_address).split(":")[-1].split("'")[0]
-					#addrIPv6 = str(client_address).split("'")[1].split(":"+addrIPv4)[0]
-					addrIPv4 = str(setIp(int(addrIPv4.split(".")[0])))+"."+str(setIp(int(addrIPv4.split(".")[1])))+"."+str(setIp(int(addrIPv4.split(".")[2])))+"."+str(setIp(int(addrIPv4.split(".")[3])))
-					self.dbReader.execute("SELECT IPP2P, PP2P FROM User WHERE IPP2P LIKE ?",('%'+addrIPv4+'%',))
-					data = self.dbReader.fetchone()
-					ip = data[0]
-					port = data[1]
-					
-					try:
-						ip = splitIp(ip[0:15])				
-						print(color.green+"Connessione IPv4:"+ip+color.end)
-						peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-						peer_socket.connect((ip,int(port)))
-					except:
-						print("Errore invio messaggio")
-					
+				if fd is not -1:
 					filesize = int(os.path.getsize(var.Settings.userPath+""+filename))
 					num = int(filesize) / self.BUFF
-					
 					if (filesize % self.BUFF)!= 0:
 						num = num + 1
-					
+				
 					num = int(num)
-					
 					msg = "ARET" + str(num).zfill(6)
-					print ('Trasferimento iniziato di ', resultFile[0], '     [BYTES ', filesize, ']')
+					
+					print ('Trasferimento iniziato di ', resultFile[0], ' [BYTES ', filesize, ']')
 					#funzione progressBar
-					peer_socket.send(msg.encode())
+					connection.send(msg.encode())
 					i = 0
 					while i < num:
 						buf = os.read(fd,self.BUFF)
-
+						
 						if not buf: break
 						lbuf = len(buf)
 						lbuf = str(lbuf).zfill(5)
-						peer_socket.send(lbuf.encode())
-						peer_socket.send(buf)
+						connection.send(lbuf.encode())
+						connection.send(buf)
 						i = i + 1
-						
+					
 					os.close(fd)
 					print(color.green+"\nFine UPLOAD"+color.end)					
-					peer_socket.close()
+					connection.close()
 				else: 
 					print("Il file non esiste!")
 				
@@ -406,7 +477,7 @@ class GnutellaServer(object):
 					
 					if data is None:
 						#se il file non esiste nel db lo inserisco
-						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, IPP2P) values (?, ?, ?)", (Filemd5, Filename, IPP2P))
+						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, IPP2P, PP2P) values (?, ?, ?, ?)", (Filemd5, Filename, IPP2P, PP2P))
 						print(color.green + "Aggiunto alla lista un nuovo file" + color.end)
 					else:
 						print(color.fail + "File già presente" + color.end)
@@ -435,7 +506,6 @@ class GnutellaServer(object):
 							lun = lun + connection.recv(1).decode()
 						lun = int(lun)
 						data = connection.recv(lun)
-						time.sleep(3)
 						while len(data) < lun:
 							data += connection.recv(1)
 						fd.write(data)
