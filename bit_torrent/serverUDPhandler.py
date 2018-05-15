@@ -133,6 +133,7 @@ class serverUDPhandler(object):
 		self.UDP_END = ""
 		self.timeDebug = var.setting.timeDebug
 		self.BUFF = 1024
+		self.lenPart = 262144
 		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -236,7 +237,53 @@ class serverUDPhandler(object):
 			elif command == "ADDR":
 				filename = self.sockUDPServer.recvfrom(100)[0].decode()
 				filename = var.setting.userPath+filename.strip()
-				filemd5 = encryptMD5(self, filename)
+				filemd5 = encryptMD5(filename)
+				
+				fileSize = os.path.getsize(filename)
+				numParts = int((fileSize / self.lenPart) + 1)
+				
+				print("FILE SIZE --> "+str(fileSize))
+				#print("NUM PARTS --> "+str(numParts))
+				
+				try:
+					fileToDivide = open(filename, 'rb')
+				except OSError as e:
+					print(e)
+				
+				data = fileToDivide.read()
+				
+				sys.stdout.flush()
+				fileToDivide.close()
+				
+				#print(data)
+				
+				dirName = var.setting.userPath+"/"+filemd5+"/"
+				if not os.path.exists(dirName):
+					os.makedirs(dirName)
+				i = 1
+				gap = 0
+				while i <= numParts:
+					try:
+						#fd = open(dirName+""+str(i), os.O_CREAT)
+						fd = open(dirName+""+str(i), 'wb')
+					except OSError as e:
+						print(e)
+					
+					endGap = gap+self.lenPart
+					print("GAP ->		"+str(gap))
+					
+					#print("FILE SIZE ->	"+str(fileSize))
+					if endGap > fileSize:
+						endGap = fileSize
+					print("END GAP ->	"+str(endGap))
+					
+					fd.write(data[gap:endGap])
+					sys.stdout.flush()
+					fd.close()
+					
+					gap += self.lenPart
+					
+					i += 1
 				print("FILE MD5 --> "+str(filemd5))
 				
 				'''
@@ -384,7 +431,7 @@ class serverUDPhandler(object):
 			print("Ricevuto "+color.recv+"AREP"+color.end)
 			try:
 				#dal messaggio inviato estraggo l'identificativo
-				fd = open(var.setting.userPath + "" + idParts, 'wb')					
+				fd = open(var.setting.userPath + "" + idParts, 'wb')
 				numChunk = peer_socket.recv(6).decode()
 				numChunk = int(numChunk)
 
@@ -428,7 +475,7 @@ class serverUDPhandler(object):
 
 			#Da controllare se ho tutte le parti!!!
 			# *************** IMPORTANTE *************************** #	
-		
+			
 			'''#Recupero il file
 			self.dbReader.execute("SELECT Filemd5,Lenfile, Lenpart FROM File WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
 			resultFile = self.dbReader.fetchone()
@@ -442,10 +489,29 @@ class serverUDPhandler(object):
 				count = 0
 			else:
 				count = data[0]
-		
-			while count < numPart:
-			
 			'''
+			i = 1
+			data = "".encode()
+			while j <= numPart:
+				try:
+					fd = open(dirName+""+str(i), 'rb')
+				except OSError as e:
+					print(e)
+				
+				data += fd.read()
+				#print(data)
+				sys.stdout.flush()
+				fd.close()
+				i += 1
+			
+				
+			try:
+				fileToCompact = open(dirName+"fileCompleto", 'wb')
+			except OSError as e:
+				print(e)
+			fileToCompact.write(data)
+			sys.stdout.flush()
+			fileToCompact.close()
 			
 		peer_socket.close()
 	
