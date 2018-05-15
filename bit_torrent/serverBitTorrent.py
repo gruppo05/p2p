@@ -236,6 +236,7 @@ class serverBitTorrent(object):
 					msg = "ALGI"+SessionID
 					connection.sendall(msg.encode())
 					connection.close()
+					
 			elif command == "LOOK":
 				sessionID = connection.recv(16).decode()
 				ricerca = connection.recv(20).decode()

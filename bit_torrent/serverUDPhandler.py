@@ -432,9 +432,10 @@ class serverUDPhandler(object):
 			print(color.fail+"Errore connessione 'not close'"+color.end)
 		
 		#Blocco in attesa di risposta
-		command = peer_socket.recv(4).decode()
-		
+		filemd5 = msg[5:36]
 		idParts = msg[37:45]
+		
+		command = peer_socket.recv(4).decode()
 		
 		if command == "AREP":
 			print("Ricevuto "+color.recv+"AREP"+color.end)
@@ -481,49 +482,40 @@ class serverUDPhandler(object):
 				
 			self.dbReader.execute("UPDATE Parts SET Downloaded=? where IPP2P=? AND IdParts=?",(1,self.myIPP2P,idParts))
 			self.sockUDPClient.sendto(("ARE1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+			
+			peer_socket.close()
 
-			#Da controllare se ho tutte le parti!!!
-			# *************** IMPORTANTE *************************** #	
+			#Recupero le informazioni del file
+			self.dbReader.execute("SELECT Lenfile, Lenpart FROM File WHERE Filemd5 LIKE ?", (filemd5,))
+			infoFile = self.dbReader.fetchone()
+			numPart = int(infoFile[0])/int(infoFile[1])
 			
-			'''#Recupero il file
-			self.dbReader.execute("SELECT Filemd5,Lenfile, Lenpart FROM File WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
-			resultFile = self.dbReader.fetchone()
-			Filemd5 = resultFile[0]
-			
-			numPart = int(resultFile[1])/int(resultFile[2])
-			
+			#Conto quante parti ho
 			self.dbReader.execute("SELECT COUNT(Filemd5) FROM Parts WHERE Filemd5=? AND IPP2P=? AND PP2P=?", (Filemd5, self.myIPP2P, self.PORT))
 			data = self.dbReader.fetchone()
-			if data is None:
-				count = 0
-			else:
-				count = data[0]
-			'''
-			i = 1
-			data = "".encode()
-			while j <= numPart:
+			#se ho tutte le parti compatto la foto 
+			if data[0] == numPart:
+				dirName = var.setting.userPath+"/"+filemd5+"/"
+				i = 1
+				data = "".encode()
+				while j <= numPart:
+					try:
+						fd = open(dirName+""+str(i), 'rb')
+					except OSError as e:
+						print(e)
+				
+					data += fd.read()
+					#print(data)
+					sys.stdout.flush()
+					fd.close()
+					i += 1
 				try:
-					fd = open(dirName+""+str(i), 'rb')
+					fileToCompact = open(dirName, 'wb')
 				except OSError as e:
 					print(e)
-				
-				data += fd.read()
-				#print(data)
+				fileToCompact.write(data)
 				sys.stdout.flush()
-				fd.close()
-				i += 1
-			
-				
-			try:
-				fileToCompact = open(dirName+"fileCompleto", 'wb')
-			except OSError as e:
-				print(e)
-			fileToCompact.write(data)
-			sys.stdout.flush()
-			fileToCompact.close()
-			
-		peer_socket.close()
-	
+				fileToCompact.close()	
 	
 	def recvDownload(self, connection, client_address):
 		command = connection.recv(4).decode()
