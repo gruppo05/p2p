@@ -243,20 +243,15 @@ class serverUDPhandler(object):
 				fileSize = os.path.getsize(filename)
 				numParts = int((fileSize / self.lenPart) + 1)
 				
-				print("FILE SIZE --> "+str(fileSize))
-				#print("NUM PARTS --> "+str(numParts))
-				
 				try:
 					fileToDivide = open(filename, 'rb')
 				except OSError as e:
 					print(e)
+					self.sockUDPClient.sendto(("0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				
 				data = fileToDivide.read()
-				
 				sys.stdout.flush()
 				fileToDivide.close()
-				
-				#print(data)
 				
 				dirName = var.setting.userPath+"/"+filemd5+"/"
 				if not os.path.exists(dirName):
@@ -269,33 +264,42 @@ class serverUDPhandler(object):
 						fd = open(dirName+""+str(i), 'wb')
 					except OSError as e:
 						print(e)
+						self.sockUDPClient.sendto(("0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 					
 					endGap = gap+self.lenPart
-					print("GAP ->		"+str(gap))
-					
-					#print("FILE SIZE ->	"+str(fileSize))
 					if endGap > fileSize:
 						endGap = fileSize
-					print("END GAP ->	"+str(endGap))
-					
+
 					fd.write(data[gap:endGap])
 					sys.stdout.flush()
 					fd.close()
 					
 					gap += self.lenPart
-					
 					i += 1
-				print("FILE MD5 --> "+str(filemd5))
 				
-				'''
-				“ADDR”[4B].SessionID[16B].LenFile[10B].LenPart[6B].
-					Filename[100B].​ Filemd5_i[32B]
-				'''
+				msg = "ADDR"+self.mySessionID+str(fileSize).ljust(10)+str(self.lenPart).ljust(6)+filename.ljust(100)+filemd5.ljust(32)
+				try:				
+					peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
+					#aspetto la risposta
+					command = peer_socket.recv(4).decode()
+					if command == "AADR":
+						nPart = int(peer_socket.recv(8).decode())
+						print("Ricevuto <-- "+color.send+"AADR"+str(nPart)+color.end)
+						if nPart == numParts:
+							self.sockUDPClient.sendto(("1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+						else:
+							self.sockUDPClient.sendto(("0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+							time.sleep(10)
+				except:
+					print(color.fail+"Errore aggiunta file"+color.end)
+					self.sockUDPClient.sendto(("0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					time.sleep(10)
+
 			
 			elif command == "LOGI":
 				msg = "LOGI"+str(self.myIPP2P).ljust(55)+str(self.PORT).ljust(5)
 				try:
-					peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)					
+					peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 					command = peer_socket.recv(4).decode()
 					if command == "ALGI":
 						#setto il mio sessionID
@@ -312,8 +316,8 @@ class serverUDPhandler(object):
 						self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 					peer_socket.close()
 				except:
-						print(color.fail+"Errore salvataggio SessionID"+color.end)
-						self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					print(color.fail+"Errore salvataggio SessionID"+color.end)
+					self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			elif command == "FIND":
 				ricerca, useless = self.sockUDPServer.recvfrom(20).decode()
