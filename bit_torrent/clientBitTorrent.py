@@ -1,4 +1,5 @@
-import socket, sqlite3, string, subprocess, os, time 
+import socket, sqlite3, string, subprocess, os, time
+import setting as var
 from random import *
 
 class color:
@@ -28,13 +29,14 @@ def printMenu():
 	print(color.recv+"| |  \ \ | |   | |   "+"    "+color.green+"   | |   | |  | || |\ \  | |\ \  |  __|  | |\ | |   | |   "+color.end)
 	print(color.recv+"| |___| || |   | |   "+"    "+color.green+"   | |   | |__| || | \ \ | | \ \ | |____ | | \  |   | |   "+color.end)
 	print(color.recv+"|______/ |_|   |_|   "+"    "+color.green+"   |_|   |______||_|  \_\|_|  \_\|______||_|  \_|   |_|   "+color.end)
-	print("\n\n")
+	print("\n")
 	print("« 1 » AGGIUNGI FILE IN CONDIVISIONE")
 	print("« 2 » RIMUOVI FILE")
 	print("« 3 » RICERCA FILE")
 	print("« 4 » SCARICA FILE")
 	print("« 5 » PROVA FCHU PER IL DEBUG")
 	print(color.fail+"« 0 » CHIUDI IL CLIENT"+color.end)
+	
 	
 def setIp(n):
 	if n < 10:
@@ -103,21 +105,25 @@ class clientBitTorrent(object):
 
 			elif cmd is "1":
 				print(color.recv+"AGGIUNGI FILE"+color.end)
-				self.sockUDPServer.sendto(("ADDR").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
-				filename = input("Inserisci nome da condividere: ")
-				filename = filename.ljust(100)
-				self.sockUDPServer.sendto((filename).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				filename = input("Inserisci nome del file da condividere: ")
+				try:
+					path = var.setting.userPath+""+filename
+					f = open(path, 'rb')
+					
+					self.sockUDPServer.sendto(("ADDR").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+					filename = filename.ljust(100)
+					self.sockUDPServer.sendto((filename).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				
-				command, useless = self.sockUDPClient.recvfrom(1)
-				com = command.decode()
-				if com is "1":
-					print(color.green+"File aggiunto con successo"+color.end)
-				else:
-					print(color.fail+"Impossibile aggiungere il file"+color.end)
-				time.sleep(1)
-
-			elif cmd is "2":
-				print(color.recv+"RIMUOVI FILE"+color.end)
+					command = self.sockUDPClient.recvfrom(1)[0].decode()
+					if command is "1":
+						print(color.green+"File aggiunto con successo"+color.end)
+					else:
+						print(color.fail+"Impossibile aggiungere il file"+color.end)
+					time.sleep(1)
+				except:
+					print(color.fail+"Il file non è presente nella directory di condivisione"+color.end)
+					input("Premi invio per continuare")
+				
 				
 			elif cmd is "3":
 				print(color.recv+"RICERCA FILE"+color.end)
