@@ -114,14 +114,13 @@ class GnutellaClient(object):
 								break
 							else:
 								print(color.fail+"Errore download file!"+color.end)
-								break
+							break
 						elif int(cmd) > count:
 							print("Errore nella scelta")
 							break
 					else:
 						print(color.recv+str(count)+" - "+cmd+color.end)
 						count = count+1
-			
 			elif cmd is "5":
 				print("STAMPA VICINI TROVATI")
 				self.sockUDPServer.sendto(("STMV").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))

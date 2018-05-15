@@ -34,7 +34,6 @@ def clearAndSetDB(self):
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.007|fc00:0000:0000:0000:0000:0000:0005:0007","5000", "6592ca41e119841f401da8d364d74e8c", "3", "0"))
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.007|fc00:0000:0000:0000:0000:0000:0005:0007","5000", "6592ca41e119841f401da8d364d74e8c", "4", "0"))
 
-	
 
 	# **************************************** #		
 	
@@ -320,8 +319,28 @@ class serverUDPhandler(object):
 						self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 					peer_socket.close()
 				except:
-					print(color.fail+"Errore salvataggio SessionID"+color.end)
-					self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+						print(color.fail+"Errore salvataggio SessionID"+color.end)
+						self.sockUDPClient.sendto(("LOG0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+
+			elif command == "LOGO":
+				msg = "LOGO"+str(self.mySessionID).ljust(16)
+				peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
+				command = peer_socket.recv(4).decode()
+				print(command)
+				if command == "NLOG":
+					partDown = peer_socket.recv(10).decode()
+					print("Ricevuto <-- "+color.send+command+str(partDown)+color.end)
+					print(color.fail + "Impossibile effettuare il logout" + color.end)
+					self.sockUDPClient.sendto(("NLOG").encode(),(self.UDP_IP,self.UDP_PORT_CLIENT))
+					self.sockUDPClient.sendto((partDown.ljust(10)).encode(),(self.UDP_IP,self.UDP_PORT_CLIENT))
+				elif command == "ALOG":
+					partOwn = peer_socket.recv(10).decode()
+					print("Ricevuto <-- "+color.send+command+str(partOwn)+color.end)
+					print(color.green + "Logout consentito" + color.end)
+					self.sockUDPClient.sendto(("ALOG").encode(),(self.UDP_IP,self.UDP_PORT_CLIENT))
+					self.sockUDPClient.sendto((partOwn.ljust(10)).encode(),(self.UDP_IP,self.UDP_PORT_CLIENT))
+				peer_socket.close()
+
 			
 			elif command == "FIND":
 				ricerca, useless = self.sockUDPServer.recvfrom(20).decode()
@@ -539,20 +558,19 @@ class serverUDPhandler(object):
 			print("Ricevuto "+color.recv+"RETP"+color.end)
 		
 			#inviare un file che ho
-			fileMD5 = connection.recv(32).decode()
-			idParts = connection.recv(8).decode()
-				
+			filemd5 = connection.recv(32).decode()
+			idParts = connection.recv(8).decode().strip()
+			dirName = var.setting.userPath+""+filemd5+"/"
 			try:
-				fd = os.open(var.setting.userPath++""+idParts, os.O_RDONLY)
+				fd = os.open(dirName+""+idParts, os.O_RDONLY)
 			except OSError as e:
 				print(e)
+				
 			if fd is not -1:
-				partsize = int(os.path.getsize(var.setting.userPath+"/"+fileMD5+"/"+idParts))
-				num = int(partsize) / self.BUFF
+				partsize = int(os.path.getsize(dirName+""+idParts))
+				num = int(partsize / self.BUFF)
 				if (partsize % self.BUFF)!= 0:
 					num = num + 1
-			
-				num = int(num)
 				msg = "AREP" + str(num).zfill(6)
 				
 				print ('Trasferimento iniziato di ', idParts, ' [BYTES ', partsize, ']')
@@ -567,7 +585,7 @@ class serverUDPhandler(object):
 					lbuf = str(lbuf).zfill(5)
 					connection.send(lbuf.encode())
 					connection.send(buf)
-					i = i + 1
+					i += 1
 				
 				os.close(fd)
 				print(color.green+"\nFine UPLOAD"+color.end)					

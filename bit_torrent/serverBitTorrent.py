@@ -20,7 +20,9 @@ def clearAndSetDB(self):
 	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text, SessionID text)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
 	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text, Downloaded text)")
-		# ************** DA TOGLIERE ************* #	
+		# ************** DA TOGLIERE ************* #
+		
+	'''	
 	self.dbReader.execute("INSERT INTO File (Filemd5, Filename, SessionID, Lenfile,Lenpart ) values (?, ?, ?, ?, ?)", ("aaaabbbbccccddddeeeeffffgggghhhh", "PROVAAAAA", "okokokokokokokok", "500", "100"))
 	
 	self.dbReader.execute("INSERT INTO File (Filemd5, Filename, SessionID, Lenfile,Lenpart ) values (?, ?, ?, ?, ?)", ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "PornoXXX", "UkWzuXRVRABgY5vs", "300", "100"))
@@ -40,7 +42,8 @@ def clearAndSetDB(self):
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "00000001", "0"))
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "00000002", "0"))
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "00000003", "0"))
-	
+	'''
+
 def closeServer(self):
 	time.sleep(0.1)
 	self.sockUDPServer.close()
@@ -238,7 +241,54 @@ class serverBitTorrent(object):
 					msg = "ALGI"+SessionID
 					connection.sendall(msg.encode())
 					connection.close()
-					
+
+			elif command == "LOGO":
+				SessionID = connection.recv(16).decode()
+				PartiNonScaricate = 0
+				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
+				self.dbReader.execute("SELECT Filemd5,Lenfile,Lenpart FROM File WHERE SessionID=?",(SessionID,))
+				resultFile = self.dbReader.fetchone()
+				if resultFile is None:
+					print(color.green+ "Nessun File presente con SessionID "+ SessionID +color.end)
+				else:
+					for data in resultFile:	
+						Filemd5 = data[0]
+						nPart = int(data[1])/int(data[2])
+						self.dbReader.execute("SELECT DISTINCT COUNT(*) FROM Parts WHERE Filemd5=? AND IPP2P!=? ",(Filemd5,self.myIPP2P,))
+						resultCount = self.dbReader.fetchone()
+						partiScaricate = resultCount[0]
+						if int(partiScaricate) == int(nPart):
+							#è possibile effetturare il logout per questo file
+							print(color.green+"Tutte le parti di - "+Filemd5+" -("+nPart+")- sono state scaricate" +color.end)
+						else:
+							print(color.fail+"File: - "+Filemd5+" - non completamente scaricato - ("+str(nPart-partiScaricate)+")"+color.end)
+							PartiNonScaricate = PartiNonScaricate + int(nPart-partiScaricate)
+				if PartiNonScaricate > 0:
+					msg = "NLOG"+str(PartiNonScaricate).ljust(10)
+				else:
+					self.dbReader.execute("SELECT COUNT(IdParts) FROM Parts WHERE IPP2P=?",(self.myIPP2P,))
+					data = self.dbReader.fetchone()
+					if data is None:
+						PartiScaricate = 0
+					else:
+						PartiScaricate = int(data[0])
+					#elimino dal db l'utente e i suoi file
+					try:
+						self.dbReader.execute("SELECT IPP2P FROM user WHERE SessionID=?",(SessionID,))
+						data = self.dbReader.fetchone()					
+						IP_outer = data[0]
+						self.dbReader.execute("DELETE FROM Parts WHERE IPP2P=?", (IP_outer,))
+						self.dbReader.execute("DELETE FROM File WHERE SessionID=?", (SessionID,))
+						self.dbReader.execute("DELETE FROM user WHERE SessionID=?", (SessionID,))
+					except OSError as e: 
+						print(e)						
+						print(color.fail+"Errore nell'eliminazione dell'utente e dei suoi file"+color.end)
+					finally:		
+						msg = "ALOG" + str(PartiScaricate).ljust(10)
+						print("Invio --> "+msg)
+				connection.sendall(msg.encode())
+				connection.close()					
+							
 			elif command == "LOOK":
 				sessionID = connection.recv(16).decode()
 				ricerca = connection.recv(20).decode()
@@ -319,10 +369,9 @@ class serverBitTorrent(object):
 						self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, str(i)))
 						i += 1
 						
-					print(color.green+"# Parti salvate -> "+str(i)+color.end)
 
 					msg = "AADR"+str(numPart).ljust(8)
-					print("MSG --> "+msg)
+					print("Invio --> "+color.send+msg+color.end)
 					connection.sendall(msg.encode())
 					connection.close()
 				except:
