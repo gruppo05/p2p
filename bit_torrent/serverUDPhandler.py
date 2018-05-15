@@ -20,20 +20,24 @@ def clearAndSetDB(self):
 	
 	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text, SessionID text)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
-	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text)")
+	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text, Downloaded text)")
+	#0 --> Parte non ancora scaricata
+	#1 --> Parte scaricata con successo
 	
-	
+	# ************** DA TOGLIERE ************* #	
 	self.dbReader.execute("INSERT INTO File (Filemd5, Filename, SessionID, Lenfile,Lenpart ) values (?, ?, ?, ?, ?)", ("aaaabbbbccccddddeeeeffffgggghhhh", "PROVAAAAA", "UkWzuXRVRABgY5vs", "300", "100"))
 	
 	#Da togliere
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?,?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "A"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?,?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "B"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?,?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "C"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?,?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "A"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?,?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "B"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?,?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "A"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?,?, ?, ?)", ("172.016.005.002fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "A"))
-	
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000003", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.004|fc00:0000:0000:0000:0000:0000:0005:0004","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.005|fc00:0000:0000:0000:0000:0000:0005:0005","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
+
+	# **************************************** #		
+		
 def setIp(n):
 	if n < 10:
 		n = "00"+str(n)
@@ -129,7 +133,7 @@ class serverUDPhandler(object):
 		while True:
 			try:
 				connection, client_address = self.sock.accept()
-				threading.Thread(target = self.download, args = (connection,client_address)).start()
+				threading.Thread(target = self.recvDownload, args = (connection,client_address)).start()
 			except:
 				return False
 	
@@ -179,8 +183,8 @@ class serverUDPhandler(object):
 			
 			elif command == "FIND":
 				ricerca = str(self.sockUDPServer.recvfrom(20).decode())
-				self.dbReader.execute("SELECT SessionID FROM User WHERE IPP2P LIKE ?", (self.myIPP2P,))
-				sessionID = self.dbReader.fetchone()
+				sessionID = self.mySessionID 
+				
 				msg = "LOOK" + sessionID + ricerca
 				print("Invio messaggio -> " + msg + " a " + self.ServerIP + " alla porta " + self.ServerPORT)
 				
@@ -234,130 +238,171 @@ class serverUDPhandler(object):
 					count = 0
 				else:
 					count = data[0]
-				print(count)
-				
+			
 				while count < numPart:
-				
+					print("COUNT =", count)
 					#recupero tutti le parti necessari ...  <--------------- ordineate per minori risultati
-					self.dbReader.execute("SELECT COUNT(IdParts) as Seed, IdParts, IPP2P, PP2P, Filemd5 FROM Parts WHERE Filemd5 NOT IN (SELECT Filemd5 FROM Parts WHERE Filemd5=? AND IPP2P=? AND PP2P=?) GROUP BY IdParts ORDER BY Seed ASC", (Filemd5, self.myIPP2P, self.PORT))
+
+					self.dbReader.execute("SELECT COUNT(IdParts) as Seed, IdParts, IPP2P, PP2P, Filemd5  FROM Parts WHERE IPP2P!=? AND Filemd5=? AND IdParts NOT IN (SELECT IdParts FROM Parts WHERE IPP2P=?) GROUP BY IdParts OrDER BY Seed ASC", (self.myIPP2P, Filemd5, self.myIPP2P))
 					resultParts = self.dbReader.fetchone()
-				
+					
 					#se non ho già quella parte la chiedo
 					if resultParts is not None:
+						#inserisco la parte nel db con Downloaded--> 0, se la ricevo aggiorno il db e metto 1
+						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", (self.myIPP2P,self.PORT,Filemd5,resultParts[1], 0))
 						msg = "RETP" + str(Filemd5).ljust(32)+str(resultParts[1]).ljust(8)
 						print("Invio -->", msg)
 						
-						
-					count = count +1
-						#peer_socket = setConnection(resultParts[2], int(resultParts[3]), msg)
-						#command = peer_socket.recv(4).decode()
-						#count = count +1
-					
-					
-					
-					''' arrivato qui					
-					if command == "ARET":
-						print("Ricevuto "+color.recv+"ARET"+color.end)
+						randPort = randrange(60000,65000)
 						try:
-							self.dbReader.execute("SELECT * FROM Download")
-							files = self.dbReader.fetchone()
-							filename = files[1]
-
-							fd = open(var.setting.userPath + "" + filename, 'wb')					
-							numChunk = peer_socket.recv(6).decode()
-							numChunk = int(numChunk)
-
-							i = 0
-							print("Inizio download...")
-							bar_length = 60
-							time1 = time.time()
-							while i < numChunk:
-								lun = peer_socket.recv(5).decode()
-								while len(lun) < 5:
-									lun = lun + peer_socket.recv(1).decode()
-								lun = int(lun)
-								data = peer_socket.recv(lun)
-								while len(data) < lun:
-									data += peer_socket.recv(1)
-								fd.write(data)
-								percent = float(i) / numChunk
-								hashes = '#' * int(round(percent * bar_length))
-								spaces = ' ' * (bar_length - len(hashes))
-								sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
-								i = i + 1
-							
-							percent = float(i) / numChunk
-							hashes = '#' * int(round(percent * bar_length))
-							spaces = ' ' * (bar_length - len(hashes))
-							sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
-							time2 = time.time()
-							sys.stdout.flush()
-							fd.close()
-							print("\n")
-							totTime = time2 - time1
-							print(color.green + "Scaricato il file" + color.end+" in "+str(int(totTime))+"s")
-							
-						except OSError:
-							print("Impossibile aprire il file: controlla di avere i permessi")
-							self.sockUDPClient.sendto(("ARE0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-							return False
-						print(color.fail+"Finito baby"+color.end)
-						self.sockUDPClient.sendto(("ARE1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-					
-					peer_socket.close()
-					 '''
+							threading.Thread(target = self.sendDownload, args = (resultParts[2], randPort, msg)).start()
+						except:
+							print("Errore nell'esecuzione del thread")
+					count = count +1
 			
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
 				self.sockUDPServer.close()
 				self.sockUDPClient.close()
 				os._exit(0) 
+	
+	def sendDownload(self, ip, port, msg):
+		try:
+			rnd = random()
+			if(rnd<0.5):
+				ip = splitIp(ip[0:15])						
+				print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
+				peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+				peer_socket.connect((ip,port))
 
-	def download(self, connection, client_address):
-		command = connection.recv(4).decode()
-		if command == "RETR":
-				print("Ricevuto "+color.recv+"RETR"+color.end)
+			else:
+				ip = ip[16:55]
+				print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
+				peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+				peer_socket.connect((ip, port))
+
+			print("Invio --> "+color.send+msg+color.end)
+			peer_socket.sendall(msg.encode())
+		except:
+			print(color.fail+"Errore connessione 'not close'"+color.end)
+		
+		#Blocco in attesa di risposta
+		command = peer_socket.recv(4).decode()
+		
+		idParts = msg[37:45]
+		
+		if command == "AREP":
+			print("Ricevuto "+color.recv+"AREP"+color.end)
+			try:
+				#dal messaggio inviato estraggo l'identificativo
+				fd = open(var.setting.userPath + "" + idParts, 'wb')					
+				numChunk = peer_socket.recv(6).decode()
+				numChunk = int(numChunk)
+
+				i = 0
+				print("Inizio download parte --> ",idParts)
+				bar_length = 60
+				time1 = time.time()
+				while i < numChunk:
+					lun = peer_socket.recv(5).decode()
+					while len(lun) < 5:
+						lun = lun + peer_socket.recv(1).decode()
+					lun = int(lun)
+					data = peer_socket.recv(lun)
+					while len(data) < lun:
+						data += peer_socket.recv(1)
+					fd.write(data)
+					percent = float(i) / numChunk
+					hashes = '#' * int(round(percent * bar_length))
+					spaces = ' ' * (bar_length - len(hashes))
+					sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+					i = i + 1
 			
-				#inviare un file che ho
-				FileMD5 = connection.recv(32).decode()
-				print("FileMD5", FileMD5)
-				self.dbReader.execute("SELECT Filename FROM File WHERE FileMD5 = ?",(FileMD5,))
-				resultFile = self.dbReader.fetchone()
-				filename=resultFile[0].replace(" ","")
-			
-				try:
-					fd = os.open(var.setting.userPath+""+filename, os.O_RDONLY)
-				except OSError as e:
-					print(e)
-				if fd is not -1:
-					filesize = int(os.path.getsize(var.setting.userPath+""+filename))
-					num = int(filesize) / self.BUFF
-					if (filesize % self.BUFF)!= 0:
-						num = num + 1
+				percent = float(i) / numChunk
+				hashes = '#' * int(round(percent * bar_length))
+				spaces = ' ' * (bar_length - len(hashes))
+				sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+				time2 = time.time()
+				sys.stdout.flush()
+				fd.close()
+				print("\n")
+				totTime = time2 - time1
+				print(color.green + "Scaricato la parte " + idParts + color.end+" in "+str(int(totTime))+"s")			
+			except OSError:
+				print("Errore nella procedure di download parte --> ",idParts )
+				#se non funziona tolgo i file tra quelli a disposizione
+				self.dbReader.execute("DELETE FROM Parts WHERE IPP2P=? AND IdParts=?", (self.myIPP2P,idParts))
+				self.sockUDPClient.sendto(("ARE0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT)				
 				
-					num = int(num)
-					msg = "ARET" + str(num).zfill(6)
+			self.dbReader.execute("UPDATE Parts SET Downloaded=? where IPP2P=? AND IdParts=?",(1,self.myIPP2P,idParts))
+			self.sockUDPClient.sendto(("ARE1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+			
+			#Da controllare se ho tutte le parti!!!
+			# *************** IMPORTANTE *************************** #	
+		
+			#Recupero il file
+			self.dbReader.execute("SELECT Filemd5,Lenfile, Lenpart FROM File WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
+			resultFile = self.dbReader.fetchone()
+			Filemd5 = resultFile[0]
+			
+			numPart = int(resultFile[1])/int(resultFile[2])
+			
+			self.dbReader.execute("SELECT COUNT(Filemd5) FROM Parts WHERE Filemd5=? AND IPP2P=? AND PP2P=?", (Filemd5, self.myIPP2P, self.PORT))
+			data = self.dbReader.fetchone()
+			if data is None:
+				count = 0
+			else:
+				count = data[0]
+		
+			while count < numPart:
+			
+			
+			
+		peer_socket.close()
+	
+	
+	def recvDownload(self, connection, client_address):
+		command = connection.recv(4).decode()
+		if command == "RETP":
+			print("Ricevuto "+color.recv+"RETP"+color.end)
+		
+			#inviare un file che ho
+			FileMD5 = connection.recv(32).decode()
+			idParts = connection.recv(8).decode()
+				
+			try:
+				fd = os.open(var.setting.userPath+""+idParts, os.O_RDONLY)
+			except OSError as e:
+				print(e)
+			if fd is not -1:
+				partsize = int(os.path.getsize(var.setting.userPath+""+idParts))
+				num = int(partsize) / self.BUFF
+				if (partsize % self.BUFF)!= 0:
+					num = num + 1
+			
+				num = int(num)
+				msg = "AREP" + str(num).zfill(6)
+				
+				print ('Trasferimento iniziato di ', idParts, ' [BYTES ', partsize, ']')
+				print(5)
+				#funzione progressBar
+				connection.send(msg.encode())
+				i = 0
+				while i < num:
+					buf = os.read(fd,self.BUFF)
 					
-					print ('Trasferimento iniziato di ', resultFile[0], ' [BYTES ', filesize, ']')
-					print(5)
-					#funzione progressBar
-					connection.send(msg.encode())
-					i = 0
-					while i < num:
-						buf = os.read(fd,self.BUFF)
-						
-						if not buf: break
-						lbuf = len(buf)
-						lbuf = str(lbuf).zfill(5)
-						connection.send(lbuf.encode())
-						connection.send(buf)
-						i = i + 1
-					
-					os.close(fd)
-					print(color.green+"\nFine UPLOAD"+color.end)					
-					connection.close()
-				else: 
-					print("Il file non esiste!")
+					if not buf: break
+					lbuf = len(buf)
+					lbuf = str(lbuf).zfill(5)
+					connection.send(lbuf.encode())
+					connection.send(buf)
+					i = i + 1
+				
+				os.close(fd)
+				print(color.green+"\nFine UPLOAD"+color.end)					
+				connection.close()
+			else: 
+				print("Parte non trovata!")
 					
 if __name__ == "__main__":
     serverUDP = serverUDPhandler()
