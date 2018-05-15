@@ -323,10 +323,9 @@ class serverBitTorrent(object):
 						self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, str(i)))
 						i += 1
 						
-					print(color.green+"# Parti salvate -> "+str(i)+color.end)
 
 					msg = "AADR"+str(numPart).ljust(8)
-					print("MSG --> "+msg)
+					print("Invio --> "+color.send+msg+color.end)
 					connection.sendall(msg.encode())
 					connection.close()
 				except:

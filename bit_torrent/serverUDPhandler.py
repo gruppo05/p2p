@@ -25,15 +25,11 @@ def clearAndSetDB(self):
 	#1 --> Parte scaricata con successo
 	
 	# ************** DA TOGLIERE ************* #	
-	self.dbReader.execute("INSERT INTO File (Filemd5, filename,sessionId , lenfile, lenpart) values (?,?,?,?,?)", ("aaaabbbbccccddddeeeeffffgggghhhh", "PROVAAAAA", "okokokokokokokokokok", "500", "100"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000003", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.004|fc00:0000:0000:0000:0000:0000:0005:0004","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.005|fc00:0000:0000:0000:0000:0000:0005:0005","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-
+	self.dbReader.execute("INSERT INTO File (Filemd5, filename, SessionID, lenfile, lenpart) values (?,?,?,?,?)", ("6592ca41e119841f401da8d364d74e8c", "harambe.png", "F9MyRoGwEVNhelGn", "861285", "262144"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.007|fc00:0000:0000:0000:0000:0000:0005:0007","5000", "6592ca41e119841f401da8d364d74e8c", "1", "1"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.007|fc00:0000:0000:0000:0000:0000:0005:0007","5000", "6592ca41e119841f401da8d364d74e8c", "2", "1"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.007|fc00:0000:0000:0000:0000:0000:0005:0007","5000", "6592ca41e119841f401da8d364d74e8c", "3", "1"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.007|fc00:0000:0000:0000:0000:0000:0005:0007","5000", "6592ca41e119841f401da8d364d74e8c", "4", "1"))
 	# **************************************** #		
 def setIp(n):
 	if n < 10:
@@ -534,24 +530,22 @@ class serverUDPhandler(object):
 			print("Ricevuto "+color.recv+"RETP"+color.end)
 		
 			#inviare un file che ho
-			FileMD5 = connection.recv(32).decode()
-			idParts = connection.recv(8).decode()
-				
+			filemd5 = connection.recv(32).decode()
+			idParts = connection.recv(8).decode().strip()
+			dirName = var.setting.userPath+""+filemd5+"/"
 			try:
-				fd = os.open(var.setting.userPath+""+idParts, os.O_RDONLY)
+				fd = os.open(dirName+""+idParts, os.O_RDONLY)
 			except OSError as e:
 				print(e)
+				
 			if fd is not -1:
-				partsize = int(os.path.getsize(var.setting.userPath+""+idParts))
-				num = int(partsize) / self.BUFF
+				partsize = int(os.path.getsize(dirName+""+idParts))
+				num = int(partsize / self.BUFF)
 				if (partsize % self.BUFF)!= 0:
 					num = num + 1
-			
-				num = int(num)
 				msg = "AREP" + str(num).zfill(6)
 				
 				print ('Trasferimento iniziato di ', idParts, ' [BYTES ', partsize, ']')
-				print(5)
 				#funzione progressBar
 				connection.send(msg.encode())
 				i = 0
@@ -563,7 +557,7 @@ class serverUDPhandler(object):
 					lbuf = str(lbuf).zfill(5)
 					connection.send(lbuf.encode())
 					connection.send(buf)
-					i = i + 1
+					i += 1
 				
 				os.close(fd)
 				print(color.green+"\nFine UPLOAD"+color.end)					
