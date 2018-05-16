@@ -19,7 +19,9 @@ def clearAndSetDB(self):
 	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text, SessionID text)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
 	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text, Downloaded text)")
-		# ************** DA TOGLIERE ************* #	
+		# ************** DA TOGLIERE ************* #
+		
+	'''	
 	self.dbReader.execute("INSERT INTO File (Filemd5, Filename, SessionID, Lenfile,Lenpart ) values (?, ?, ?, ?, ?)", ("aaaabbbbccccddddeeeeffffgggghhhh", "PROVAAAAA", "okokokokokokokok", "500", "100"))
 	
 	self.dbReader.execute("INSERT INTO File (Filemd5, Filename, SessionID, Lenfile,Lenpart ) values (?, ?, ?, ?, ?)", ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "PornoXXX", "UkWzuXRVRABgY5vs", "300", "100"))
@@ -39,7 +41,7 @@ def clearAndSetDB(self):
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "00000001", "0"))
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "00000002", "0"))
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "00000003", "0"))
-	
+	'''
 
 def closeServer(self):
 	time.sleep(0.1)
@@ -143,11 +145,6 @@ def setNotCloseConnection(ip, port, msg):
 	except:
 		print(color.fail+"Errore connessione 'not close'"+color.end)
 	return peer_socket
-	
-def sendToSuper(self, messaggio):
-	self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE Super = ?",(2,))
-	mySuper = self.dbReader.fetchone()
-	setConnection(mySuper[0], 3000, messaggio)
 
 def sessionIdGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
@@ -370,7 +367,7 @@ class serverBitTorrent(object):
 						i += 1	
 					print(color.green+"# Parti salvate -> "+str(i)+color.end)
 					msg = "AADR"+str(numPart).ljust(8)
-					print("MSG --> "+msg)
+					print("Invio --> "+color.send+msg+color.end)
 					connection.sendall(msg.encode())
 					connection.close()
 				except:

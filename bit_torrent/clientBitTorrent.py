@@ -158,20 +158,20 @@ class clientBitTorrent(object):
 						if cmd == "0":
 							break
 						elif int(cmd) < count:
-							msg = "RETR"
+							msg = "RETP"
 							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 							msg = ricerca.ljust(3)
 							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 							msg = cmd.ljust(3)
 							self.sockUDPServer.sendto((msg).encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
-							cmd, addr = self.sockUDPClient.recvfrom(4)
-							cmd = cmd.decode()
-							
+							cmd = self.sockUDPClient.recvfrom(4)[0].decode()
 							if cmd == "ARE1":
 								print(color.green+"File scaricato!"+color.end)
+								input("Premi invio per continuare")
 								break
 							else:
 								print(color.fail+"Errore download file!"+color.end)
+								input("Premi invio per continuare")
 								break
 						elif int(cmd) > count:
 							print("Errore nella scelta")
