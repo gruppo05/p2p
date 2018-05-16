@@ -74,6 +74,7 @@ def encryptMD5(self, filename):
 def setConnection(ip, port, msg):
 	try:
 		rnd = random()
+		rnd=0.1
 		if(rnd<0.5):
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)

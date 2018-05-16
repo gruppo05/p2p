@@ -11,7 +11,6 @@ class color:
 	fail = '\033[1m'+'\033[31m'
 	end = '\033[0m'
 
-
 def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS User")
 	self.dbReader.execute("DROP TABLE IF EXISTS File")
@@ -81,7 +80,6 @@ def setIPv6(n):
 		n = "0"+str(n)
 	return n
 
-
 def progBar(i):
 	i = i+1
 	bar_length = 60
@@ -135,13 +133,11 @@ def setNotCloseConnection(ip, port, msg):
 			print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
 			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 			peer_socket.connect((ip,port))
-
 		else:
 			ip = ip[16:55]
 			print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
 			peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 			peer_socket.connect((ip, port))
-
 		print("Invio --> "+color.send+msg+color.end)
 		peer_socket.sendall(msg.encode())
 	except:
@@ -156,46 +152,37 @@ def sendToSuper(self, messaggio):
 def sessionIdGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
 	
-
 def getTime(t):
 	a = str(datetime.datetime.now())
-
 	ht = int(t.split(" ")[1].split(":")[0]) * 60 * 60
 	mt = int(t.split(" ")[1].split(":")[1]) * 60
 	st = int(t.split(" ")[1].split(":")[2].split(".")[0])
 	time1 = ht + mt + st
-	
 	ha = int(a.split(" ")[1].split(":")[0]) * 60 * 60
 	ma = int(a.split(" ")[1].split(":")[1]) * 60
 	sa = int(a.split(" ")[1].split(":")[2].split(".")[0])
 	time2 = ha + ma + sa
 	return time2 - time1
 
-
 class serverBitTorrent(object):
 	def __init__(self):
 		IP = ""
 		self.PORT = 3000
 		self.myIPP2P = var.setting.myIPP2P
-
 		self.timeDebug = var.setting.timeDebug
 		self.BUFF = 1024
 		self.UDP_END = ""
-		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
 		# Creo tabella user
 		clearAndSetDB(self)
-		
 		# Socket ipv4/ipv6 port 3000
 		self.server_address = (IP, int(self.PORT))
 		self.sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 		self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 		self.sock.bind(self.server_address)
 		self.sock.listen(5)
-		
-		
 		# Socket UDP
 		self.UDP_IP = "127.0.0.1"
 		self.UDP_PORT_CLIENT = 30002
@@ -209,7 +196,6 @@ class serverBitTorrent(object):
 	def serverHandler(self):
 		#crea thread interno per far comunicare client e server
 		threading.Thread(target = self.serverUDP, args = '').start()
-		
 		print(color.green+"In attesa di connessione..."+color.end)
 		while True:
 			try:
@@ -236,7 +222,6 @@ class serverBitTorrent(object):
 					else:						
 						SessionID = data[0]
 						print(color.fail+"Utente già presente con sessionID -> "+color.recv+SessionID+color.end)
-					
 				except:
 					SessionID = "0000000000000000"
 					print("Errore nella procedura di login server")
@@ -295,6 +280,7 @@ class serverBitTorrent(object):
 			elif command == "LOOK":
 				sessionID = connection.recv(16).decode()
 				ricerca = connection.recv(20).decode()
+				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + sessionID + color.end)
 				self.dbReader.execute("SELECT SessionID FROM User WHERE SessionID = ?", (sessionID,))
 				resultUser = self.dbReader.fetchone()
 				if resultUser is None:
@@ -302,57 +288,70 @@ class serverBitTorrent(object):
 					print("Utente non registrato.")
 				else:
 					ricerca = ricerca.strip()
-					self.dbReader.execute("SELECT COUNT(Filemd5) FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%"))
+					self.dbReader.execute("SELECT COUNT(Filemd5) FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
 					resultCount = self.dbReader.fetchone()
 					i = 0
-					msg="ALOO" + str(resultCount[0])
-					if resultCount[0] > 0:
-						self.dbReader.execute("SELECT u.IPP2P, u.PP2P, f.Lenfile, f.Lenpart FROM File AS f JOIN User AS U WHERE u.SessionID = f.SessionID AND Filename LIKE ?", ("%"+ricerca+"%"))
+					msg="ALOO" + str(resultCount[0]).ljust(3)
+					if int(resultCount[0]) > 0:
+						self.dbReader.execute("SELECT filemd5, filename, Lenfile, Lenpart FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
 						resultFile = self.dbReader.fetchall()
 						for files in resultFile:
-							msg = msg + files[0] + files[1] + files[2] + files[3]
+							msg = msg + files[0].ljust(32) + files[1].ljust(100) + str(files[2]).ljust(10) + str(files[3]).ljust(6)
 				connection.sendall(msg.encode())
 				connection.close()
+				
 			elif command == "FCHU":
-				try:
-					sessionID = connection.recv(16).decode()
-					filemd5 = connection.recv(32).decode()
-					self.dbReader.execute("SELECT * FROM User WHERE SessionID LIKE ?", (sessionID,))
-					resultUser = self.dbReader.fetchone()
-					if resultUser is None:
-						msg = "AFCH000"
-						print("Utente non registrato")
-					else:
-						self.dbReader.execute("SELECT DISTINCT IPP2P, PP2P FROM Parts WHERE Filemd5 LIKE ?", (filemd5,))
-						resultParts = self.dbReader.fetchall()
-						if resultParts is None:
-							msg = "AFCH000"
-							print("Parti non presenti. File non in condivisione.")
-						else:
-							msg = "AFCH" + str(len(resultParts)).ljust(3)
-							for parts in resultParts:
-								self.dbReader.execute("SELECT IdParts FROM Parts WHERE IPP2P LIKE ? AND Filemd5 LIKE ?", (parts[0],filemd5))
-								resultID = self.dbReader.fetchall()
-								partList = 0
-								self.dbReader.execute("SELECT Lenfile, Lenpart FROM File WHERE Filemd5 LIKE ?", (filemd5,))
-								data = self.dbReader.fetchone()
-								nParts = int(int(data[0])/int(data[1]))
-								nByte = int(int(nParts)/8)
-								if (nParts%8)!=0:
-									nByte = nByte + 1
-								
-								print("parti dell'utente in byte:", nByte, "E npart:", nParts)
-								for ids in resultID:
-									partList = partList + (2**(nByte*8 - int(ids[0])))
-								#creo il messaggio
-								msg = msg + parts[0] + parts[1] + str(partList)
-								print("MSG --> ", msg)
-				except:
-					print("Errore nella FCHU")
+				sessionID = connection.recv(16).decode()
+				filemd5 = connection.recv(32).decode()
+				self.dbReader.execute("SELECT * FROM User WHERE SessionID LIKE ?", (sessionID,))
+				resultUser = self.dbReader.fetchone()
+				if resultUser is None:
 					msg = "AFCH000"
-				finally:
+					print("Utente non registrato")
 					connection.sendall(msg.encode())
-					connection.close()
+				else:
+					print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + resultUser[0] + color.end)
+					self.dbReader.execute("SELECT DISTINCT IPP2P, PP2P FROM Parts WHERE Filemd5 LIKE ?", (filemd5,))
+					resultParts = self.dbReader.fetchall()
+					#print("Ho trovato "+str(len(resultParts))+" ip diversi che hanno almeno una parte")
+					if resultParts is None:
+						msg = "AFCH000"
+						print("Parti non presenti. File non in condivisione.")
+						connection.sendall(msg.encode())
+					else:
+						print("Invio parti in corso...")
+						msg = "AFCH" + str(len(resultParts)).ljust(3)
+						connection.sendall(msg.encode())
+						for parts in resultParts:
+							self.dbReader.execute("SELECT IdParts FROM Parts WHERE IPP2P LIKE ? AND Filemd5 LIKE ?", (parts[0],filemd5))
+							resultID = self.dbReader.fetchall()
+							partList = 0
+							self.dbReader.execute("SELECT Lenfile, Lenpart FROM File WHERE Filemd5 LIKE ?", (filemd5,))
+							data = self.dbReader.fetchone()
+							nParts = int(int(data[0])/int(data[1]))
+							#print("file diviso in " + str(nParts)+ " parti")
+							nByte = int(int(nParts)/8)
+							if (nParts%8)!=0:
+								nByte = nByte + 1
+							
+							#print("byte:"+ str(nByte))
+							for ids in resultID:
+								partList = partList + (2**(nByte*8 - int(ids[0])))
+							#creo il messaggio
+							
+							msg = parts[0] + parts[1]
+							connection.sendall(msg.encode())
+							#print("MSG --> ", msg)
+							#print(bin(partList)[2:10])
+							#print(partList)
+							
+							connection.sendall((partList).to_bytes(nByte,byteorder='big'))
+							
+							#connessione valida solo per numeri minori di 255
+							#connection.sendall(bytes([partList]))
+				connection.close()
+				print("Invio completato.")
+				
 			elif command == "ADDR":
 				try:
 					sessionID = connection.recv(16).decode()
@@ -362,18 +361,14 @@ class serverBitTorrent(object):
 					filemd5 = connection.recv(32).decode()
 					self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) VALUES (?, ?, ?)",(filemd5, filename, sessionID))
 					print(color.green+"Inserito nuovo file dal peer -> "+color.green+sessionID+color.end)
-					
-
 					numPart = int((lenFile / lenPart) + 1)
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
 					data = self.dbReader.fetchone()
 					i = 1
 					while i <= numPart:
 						self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, str(i)))
-						i += 1
-						
+						i += 1	
 					print(color.green+"# Parti salvate -> "+str(i)+color.end)
-
 					msg = "AADR"+str(numPart).ljust(8)
 					print("MSG --> "+msg)
 					connection.sendall(msg.encode())
@@ -381,13 +376,10 @@ class serverBitTorrent(object):
 				except:
 					print(color.fail+"Errore invio "+color.recv+"AADR"+color.end)
 					connection.close()
-					
-					
 		except:
 			connection.close()
 			return False
-	
-	
+			
 	def serverUDP(self):
 		print(color.green+"In attesa di comandi interni..."+color.end)
 		while True:
@@ -407,14 +399,6 @@ class serverBitTorrent(object):
 					self.sockUDPClient.sendto((f[2]+"-"+str(f[1]).ljust(5)+"-"+str(f[0]).ljust(55)+"-"+str(f[3]).ljust(8)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				self.sockUDPClient.sendto(self.UDP_END.ljust(103).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				
-				
-	
-
 if __name__ == "__main__":
     bitTorrent = serverBitTorrent()
 bitTorrent.serverHandler()
-
-
-
-
-
