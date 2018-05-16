@@ -34,7 +34,7 @@ def printMenu():
 	print("« 2 » RIMUOVI FILE")
 	print("« 3 » RICERCA FILE")
 	print("« 4 » SCARICA FILE")
-	print("« 5 » PROVA FCHU PER IL DEBUG")
+	print("« 5 » STAMPA PARTI RICHIESTE AL SERVER")
 	print("« 6 » LOGOUT")
 	print(color.fail+"« 0 » CHIUDI IL CLIENT"+color.end)
 	
@@ -132,7 +132,8 @@ class clientBitTorrent(object):
 				ricerca = input("Inserisci il nome del file da cercare: ")
 				ricerca = ricerca.ljust(20)
 				self.sockUDPServer.sendto(ricerca.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
-				cmd = self.sockUDPClient.recvfrom(3)
+				cmd, useless = self.sockUDPClient.recvfrom(3)
+				cmd = cmd.decode()
 				if int(cmd) > 1:
 					print("Ricerca completata. Trovati " + str(cmd) + " file.")
 				else:
@@ -180,8 +181,8 @@ class clientBitTorrent(object):
 						print(color.recv+str(count)+" - "+cmd+color.end)
 						count = count+1
 			elif cmd is "5":
-				print(color.recv+"FCHU"+color.end)
-				self.sockUDPServer.sendto(("FCHU").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
+				print(color.recv+"STMC"+color.end)
+				self.sockUDPServer.sendto(("STMC").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 			
 			elif cmd is "6":
 				print(color.recv + "LOGOUT" + color.end)
