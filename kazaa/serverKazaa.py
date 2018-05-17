@@ -90,6 +90,7 @@ def encryptMD5(filename):
 def setConnection(ip, port, msg):
 	try:
 		rnd = random()
+		rnd = 0.1
 		if(rnd<0.5):
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+" PORT:"+str(port)+color.end)
@@ -276,7 +277,7 @@ class Kazaa(object):
 				PATH = var.Settings.userPath+filename.strip()
 				self.dbReader.execute("SELECT SessionID FROM user where IPP2P=? AND Super = ?", (self.myIPP2P,0))
 				sessionID = self.dbReader.fetchone()
-				
+				print(str(PATH))
 				if os.path.isfile(PATH) and os.access(PATH, os.R_OK):
 					filemd5 = encryptMD5(PATH)
 					
@@ -573,7 +574,6 @@ class Kazaa(object):
 					data = self.dbReader.fetchone() 
 					if data is None:
 						self.dbReader.execute("INSERT INTO user (Super, IPP2P, PP2P) values (?, ?, ?)",(1, IPP2P, PP2P))
-						da
 						print(color.green + "Aggiunto nuovo supernodo" + color.end)
 					else:
 						#verifico se ho salvato l'utente come user normale. In questo caso lo aggiorno come root
