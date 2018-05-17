@@ -240,14 +240,14 @@ class serverUDPhandler(object):
 			
 			elif command == "ADDR":
 				filename = self.sockUDPServer.recvfrom(100)[0].decode()
-				filename = var.setting.userPath+filename.strip()
-				filemd5 = encryptMD5(filename)
+				path = var.setting.userPath+filename.strip()
+				filemd5 = encryptMD5(path)
 				
-				fileSize = os.path.getsize(filename)
+				fileSize = os.path.getsize(path)
 				numParts = int((fileSize / self.lenPart) + 1)
 				
 				try:
-					fileToDivide = open(filename, 'rb')
+					fileToDivide = open(path, 'rb')
 				except OSError as e:
 					print(e)
 					self.sockUDPClient.sendto(("0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
@@ -520,7 +520,7 @@ class serverUDPhandler(object):
 					peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 					command = peer_socket.recv(4).decode()
 					if command == "APAD":
-						nPart = int(peer_socket.recv(8).decode())
+						nPart = peer_socket.recv(8).decode()
 						print("Ricevuto <-- "+color.send+"APAD"+str(nPart)+color.end)	
 				except:
 					print(color.fail+"Errore nella comunicazione con il server"+color.end)
