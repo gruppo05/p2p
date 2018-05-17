@@ -22,34 +22,7 @@ def clearAndSetDB(self):
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
 	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text, Downloaded text)")
 	#0 --> Parte non ancora scaricata
-	#1 --> Parte scaricata con successo
-	
-	
-	
-	# ************** DA TOGLIERE ************* #	
-<<<<<<< HEAD
-	self.dbReader.execute("INSERT INTO File (Filemd5, filename,sessionId , lenfile, lenpart) values (?,?,?,?,?)", ("aaaabbbbccccddddeeeeffffgggghhhh", "PROVAAAAA", "okokokokokokokokokok", "500", "100"))
-	'''
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000003", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.004|fc00:0000:0000:0000:0000:0000:0005:0004","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.005|fc00:0000:0000:0000:0000:0000:0005:0005","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-'''
-=======
-	self.dbReader.execute("INSERT INTO File (Filemd5, filename, SessionID, lenfile, lenpart) values (?,?,?,?,?)", ("6592ca41e119841f401da8d364d74e8c", "harambe.png", "F9MyRoGwEVNhelGn", "861285", "262144"))
-	
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.007|fc00:0000:0000:0000:0000:0000:0005:0007","5000", "6592ca41e119841f401da8d364d74e8c", "1", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.007|fc00:0000:0000:0000:0000:0000:0005:0007","5000", "6592ca41e119841f401da8d364d74e8c", "2", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.007|fc00:0000:0000:0000:0000:0000:0005:0007","5000", "6592ca41e119841f401da8d364d74e8c", "3", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.007|fc00:0000:0000:0000:0000:0000:0005:0007","5000", "6592ca41e119841f401da8d364d74e8c", "4", "0"))
-
-
->>>>>>> f15bbb6374c318c40cc40a23e3f91c322f01bd79
-	# **************************************** #		
-	
+	#1 --> Parte scaricata con successo		
 	
 def setIp(n):
 	if n < 10:
@@ -90,7 +63,6 @@ def encryptMD5(self, filename):
 def setConnection(ip, port, msg):
 	try:
 		rnd = random()
-		rnd=0.1
 		if(rnd<0.5):
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
@@ -375,7 +347,8 @@ class serverUDPhandler(object):
 						i = i + 1
 				self.sockUDPClient.sendto((str(nIdMd5)).ljust(3).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
-				#posso inserire la richiesta delle parti
+				#dopo aver fatto la ricerca, chiedo dove si trovano le parti
+				self.gettingParts(self.mySessionID, filemd5)
 			
 			elif command == "FDWN":
 				data, noused = self.sockUDPServer.recvfrom(20)
