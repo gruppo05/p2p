@@ -19,155 +19,22 @@ def clearAndSetDB(self):
 	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text, SessionID text)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
 	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text, Downloaded text)")
-		# ************** DA TOGLIERE ************* #
-		
-	'''	
-	self.dbReader.execute("INSERT INTO File (Filemd5, Filename, SessionID, Lenfile,Lenpart ) values (?, ?, ?, ?, ?)", ("aaaabbbbccccddddeeeeffffgggghhhh", "PROVAAAAA", "okokokokokokokok", "500", "100"))
 	
-	self.dbReader.execute("INSERT INTO File (Filemd5, Filename, SessionID, Lenfile,Lenpart ) values (?, ?, ?, ?, ?)", ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "PornoXXX", "UkWzuXRVRABgY5vs", "300", "100"))
-	
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000003", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000004", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000005", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000004", "0"))	
-	
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.004|fc00:0000:0000:0000:0000:0000:0005:0004","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.005|fc00:0000:0000:0000:0000:0000:0005:0005","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "00000002", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "00000003", "0"))
-	'''
-
 def closeServer(self):
 	time.sleep(0.1)
 	self.sockUDPServer.close()
 	self.sockUDPClient.close()
 	os._exit(0)
     
-def PktidGenerator():
-	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
-
-def setNumber(n):
-	if n < 10:
-		n = "0"+str(n)
-	return n
-
-def setCopy(copy):
-	if copy > 1000:
-		copy = 999
-	elif copy < 100 and copy > 9:
-		copy = "0"+str(copy)
-	elif copy < 10:
-		copy = "00"+str(copy)
-	return copy
-	
-def setIp(n):
-	if n < 10:
-		n = "00"+str(n)
-	elif n < 100:
-		n = "0"+str(n)
-	return n
-	
-def setIPv6(n):
-	if n < 10:
-		n = "000"+str(n)
-	elif n < 100:
-		n = "00"+str(n)
-	elif n < 1000:
-		n = "0"+str(n)
-	return n
-
-def progBar(i):
-	i = i+1
-	bar_length = 60
-	hashes = '#' * i * 3
-	spaces = ' ' * (bar_length - len(hashes))
-	sys.stdout.write("\r[{0}] {1}s".format(hashes + spaces, int(i)))			
-
-def splitIp(ip):
-	splitted = ip.split(".")
-	ip = str(int(splitted[0]))+"."+str(int(splitted[1]))+"."+str(int(splitted[2]))+"."+str(int(splitted[3]))
-	return ip
-	
-def encryptMD5(filename):
-	#calcolo hash file
-	BLOCKSIZE = 128
-	hasher = hashlib.md5()
-	with open(filename, 'rb') as f:
-		buf = f.read(BLOCKSIZE)
-		while len(buf) > 0:
-			hasher.update(buf)
-			buf = f.read(BLOCKSIZE)
-		f.close()
-	filemd5 = hasher.hexdigest()
-	return(filemd5)	
-
-def setConnection(ip, port, msg):
-	try:
-		rnd = random()
-		if(rnd<0.5):
-			ip = splitIp(ip[0:15])						
-			print(color.green+"Connessione IPv4:"+ip+" PORT:"+str(port)+color.end)
-			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-			peer_socket.connect((ip,port))		
-		else:
-			ip = ip[16:55]
-			print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
-			peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-			peer_socket.connect((ip, port))
-		
-		print("Invio --> "+color.send+msg+color.end)
-		peer_socket.send(msg.encode())
-		peer_socket.close()
-	except:
-		print("Nessun vicino trovato!")
-
-def setNotCloseConnection(ip, port, msg):
-	try:
-		rnd = random()
-		if(rnd<0.5):
-			ip = splitIp(ip[0:15])						
-			print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
-			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-			peer_socket.connect((ip,port))
-		else:
-			ip = ip[16:55]
-			print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
-			peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-			peer_socket.connect((ip, port))
-		print("Invio --> "+color.send+msg+color.end)
-		peer_socket.sendall(msg.encode())
-	except:
-		print(color.fail+"Errore connessione 'not close'"+color.end)
-	return peer_socket
-
 def sessionIdGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
 	
-def getTime(t):
-	a = str(datetime.datetime.now())
-	ht = int(t.split(" ")[1].split(":")[0]) * 60 * 60
-	mt = int(t.split(" ")[1].split(":")[1]) * 60
-	st = int(t.split(" ")[1].split(":")[2].split(".")[0])
-	time1 = ht + mt + st
-	ha = int(a.split(" ")[1].split(":")[0]) * 60 * 60
-	ma = int(a.split(" ")[1].split(":")[1]) * 60
-	sa = int(a.split(" ")[1].split(":")[2].split(".")[0])
-	time2 = ha + ma + sa
-	return time2 - time1
-
 class serverBitTorrent(object):
 	def __init__(self):
 		IP = ""
 		self.PORT = 3000
 		self.myIPP2P = var.setting.myIPP2P
 		self.timeDebug = var.setting.timeDebug
-		self.BUFF = 1024
 		self.UDP_END = ""
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -335,17 +202,10 @@ class serverBitTorrent(object):
 							for ids in resultID:
 								partList = partList + (2**(nByte*8 - int(ids[0])))
 							#creo il messaggio
-							
 							msg = parts[0] + parts[1]
 							connection.sendall(msg.encode())
-							#print("MSG --> ", msg)
-							#print(bin(partList)[2:10])
-							#print(partList)
-							
 							connection.sendall((partList).to_bytes(nByte,byteorder='big'))
 							
-							#connessione valida solo per numeri minori di 255
-							#connection.sendall(bytes([partList]))
 				connection.close()
 				print("Invio completato.")
 				
@@ -372,6 +232,28 @@ class serverBitTorrent(object):
 					connection.close()
 				except:
 					print(color.fail+"Errore invio "+color.recv+"AADR"+color.end)
+					connection.close()
+					
+			elif command == "APAD":
+				try:
+					sessionID = connection.recv(16).decode()
+					filemd5 = connection.recv(32).decode()
+					idParts = connection.recv(8).decode().strip()
+					
+					#cerco ip e port
+					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
+					data = self.dbReader.fetchone()
+					
+					#aggiungo la parte
+					self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, idParts))
+					
+					print(color.green+" Aggiunta parte "+idParts+ color.green+sessionID+color.end)
+					msg = "AADR"+str(numPart).ljust(8)
+					print("Invio --> "+color.send+msg+color.end)
+					connection.sendall(msg.encode())
+					connection.close()
+				except:
+					print(color.fail+"Errore invio "+color.recv+"APAD"+color.end)
 					connection.close()
 		except:
 			connection.close()
