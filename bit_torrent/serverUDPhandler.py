@@ -343,7 +343,7 @@ class serverUDPhandler(object):
 				ricerca, useless = self.sockUDPServer.recvfrom(20)
 				ricerca = ricerca.decode().strip()
 				sessionID = self.mySessionID 
-				msg = "LOOK" + sessionID + ricerca.ljust(20)
+				msg = "LOOK" + sessionID.ljust(16) + ricerca.ljust(20)
 				print("Invio messaggio -> " + msg + " a " + self.ServerIP + " alla porta " + self.ServerPORT)
 				peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 				command = peer_socket.recv(4).decode()
@@ -352,17 +352,17 @@ class serverUDPhandler(object):
 					print("Ricevuto <-- "+color.send+command+""+str(nIdMd5)+color.end)
 					i=0
 					while i < int(nIdMd5):
-						filemd5 = peer_socket.recv(32).decode()
+						filemd5 = peer_socket.recv(32).decode().strip()
 						filename = peer_socket.recv(100).decode().strip()
 						lenfile = peer_socket.recv(10).decode().strip()
 						lenpart = peer_socket.recv(6).decode().strip()
-						print("lenfile" +str(lenfile) +" lenpart  " + lenpart)
 						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, Lenfile, Lenpart, SessionID) values (?, ?, ?, ?, ?)", (filemd5, filename, lenfile, lenpart, "okokokokokokokokokok"))
 						i = i + 1
 				self.sockUDPClient.sendto((str(nIdMd5)).ljust(3).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
+				print(color.green + "Ricerca completata. Trovati " +str(i-1) + " file." + color.end)
 				#dopo aver fatto la ricerca, chiedo dove si trovano le parti
-				self.dbReader.execute("SELECT Filemd5 FROM File WHERE SessionID <> ?", (self.mySessionID,))
+				self.dbReader.execute("SELECT Filemd5 FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
 				resultFile = self.dbReader.fetchall()
 				for files in resultFile:
 					self.gettingParts(self.mySessionID, files[0])
