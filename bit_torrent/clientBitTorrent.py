@@ -31,13 +31,11 @@ def printMenu():
 	print(color.recv+"|______/ |_|   |_|   "+"    "+color.green+"   |_|   |______||_|  \_\|_|  \_\|______||_|  \_|   |_|   "+color.end)
 	print("\n")
 	print("« 1 » AGGIUNGI FILE IN CONDIVISIONE")
-	print("« 2 » RIMUOVI FILE")
 	print("« 3 » RICERCA FILE")
 	print("« 4 » SCARICA FILE")
 	print("« 5 » STAMPA PARTI RICHIESTE AL SERVER")
 	print("« 6 » LOGOUT")
 	print(color.fail+"« 0 » CHIUDI IL CLIENT"+color.end)
-	
 	
 def setIp(n):
 	if n < 10:

@@ -226,28 +226,32 @@ class serverBitTorrent(object):
 					msg = "ALGI"+SessionID
 					connection.sendall(msg.encode())
 					connection.close()
-
+			
 			elif command == "LOGO":
 				SessionID = connection.recv(16).decode()
 				PartiNonScaricate = 0
 				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
-				self.dbReader.execute("SELECT Filemd5,Lenfile,Lenpart FROM File WHERE SessionID=?",(SessionID,))
-				resultFile = self.dbReader.fetchone()
+				self.dbReader.execute("SELECT Filemd5, Lenfile, Lenpart FROM File WHERE SessionID=?",(SessionID,))
+				resultFile = self.dbReader.fetchall()
 				if resultFile is None:
 					print(color.green+ "Nessun File presente con SessionID "+ SessionID +color.end)
 				else:
-					for data in resultFile:	
-						Filemd5 = data[0]
-						nPart = int(data[1])/int(data[2])
-						self.dbReader.execute("SELECT DISTINCT COUNT(*) FROM Parts WHERE Filemd5=? AND IPP2P!=? ",(Filemd5,self.myIPP2P,))
+					for data in resultFile:
+						filemd5 = data[0]
+						nPart = int(int(data[1])/int(data[2]) +1)
+						print("NPARTI --> "+str(nPart))
+						self.dbReader.execute("SELECT DISTINCT COUNT(*) FROM Parts WHERE Filemd5=? AND IPP2P!=? ",(filemd5,self.myIPP2P,))
 						resultCount = self.dbReader.fetchone()
-						partiScaricate = resultCount[0]
-						if int(partiScaricate) == int(nPart):
+						partiScaricate = int(resultCount[0])
+						print("Parti scaricate --> "+str(partiScaricate))
+						if partiScaricate == int(nPart):
 							#è possibile effetturare il logout per questo file
-							print(color.green+"Tutte le parti di - "+Filemd5+" -("+nPart+")- sono state scaricate" +color.end)
+							print(color.green+"Tutte le parti di - "+filemd5+" -("+nPart+")- sono state scaricate" +color.end)
 						else:
-							print(color.fail+"File: - "+Filemd5+" - non completamente scaricato - ("+str(nPart-partiScaricate)+")"+color.end)
+							print(color.fail+"File: "+filemd5+" non completamente scaricato. Rimangono "+str(nPart-partiScaricate)+" parti"+color.end)
 							PartiNonScaricate = PartiNonScaricate + int(nPart-partiScaricate)
+							print("PARTI NON SCARICATE --> "+str(PartiNonScaricate))
+				print("PARTI NON SCARICATE --> "+str(PartiNonScaricate))
 				if PartiNonScaricate > 0:
 					msg = "NLOG"+str(PartiNonScaricate).ljust(10)
 				else:
@@ -265,12 +269,13 @@ class serverBitTorrent(object):
 						self.dbReader.execute("DELETE FROM Parts WHERE IPP2P=?", (IP_outer,))
 						self.dbReader.execute("DELETE FROM File WHERE SessionID=?", (SessionID,))
 						self.dbReader.execute("DELETE FROM user WHERE SessionID=?", (SessionID,))
+						msg = "ALOG" + str(PartiScaricate).ljust(10)
 					except OSError as e: 
 						print(e)						
 						print(color.fail+"Errore nell'eliminazione dell'utente e dei suoi file"+color.end)
-					finally:		
-						msg = "ALOG" + str(PartiScaricate).ljust(10)
-						print("Invio --> "+msg)
+						msg = "NLOG" + str(PartiScaricate).ljust(10)
+						
+				print("Invio --> "+msg)
 				connection.sendall(msg.encode())
 				connection.close()					
 							
@@ -356,16 +361,17 @@ class serverBitTorrent(object):
 					lenPart = int(connection.recv(6).decode())
 					filename = connection.recv(100).decode()
 					filemd5 = connection.recv(32).decode()
-					self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) VALUES (?, ?, ?)",(filemd5, filename, sessionID))
-					print(color.green+"Inserito nuovo file dal peer -> "+color.green+sessionID+color.end)
+					self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID, Lenfile, Lenpart) VALUES (?, ?, ?, ?, ?)",(filemd5, filename, sessionID, lenFile, lenPart))
+					print(color.green+"Inserito nuovo file dal peer -> "+color.green+color.recv+sessionID+color.end)
 					numPart = int((lenFile / lenPart) + 1)
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
 					data = self.dbReader.fetchone()
 					i = 1
 					while i <= numPart:
 						self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, str(i)))
-						i += 1	
-					print(color.green+"# Parti salvate -> "+str(i)+color.end)
+						i += 1
+					i -= 1
+					print("Numero parti salvate -> "+str(i))
 					msg = "AADR"+str(numPart).ljust(8)
 					print("Invio --> "+color.send+msg+color.end)
 					connection.sendall(msg.encode())
