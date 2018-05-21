@@ -154,12 +154,13 @@ class serverBitTorrent(object):
 					ricerca = ricerca.strip()
 					self.dbReader.execute("SELECT COUNT(Filemd5) FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
 					resultCount = self.dbReader.fetchone()
-					i = 0
+					#i = 0
 					msg="ALOO" + str(resultCount[0]).ljust(3)
 					if int(resultCount[0]) > 0:
 						self.dbReader.execute("SELECT filemd5, filename, Lenfile, Lenpart FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
 						resultFile = self.dbReader.fetchall()
 						for files in resultFile:
+							print("lenfile "+str(files[2])+"lenpart "+str(files[3]))
 							msg = msg + files[0].ljust(32) + files[1].ljust(100) + str(files[2]).ljust(10) + str(files[3]).ljust(6)
 				print("Invio --> "+msg)
 				connection.sendall(msg.encode())
@@ -218,7 +219,7 @@ class serverBitTorrent(object):
 					lenPart = int(connection.recv(6).decode())
 					filename = connection.recv(100).decode()
 					filemd5 = connection.recv(32).decode()
-					self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) VALUES (?, ?, ?)",(filemd5, filename, sessionID))
+					self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID, lenfile, lenpart) VALUES (?, ?, ?, ?, ?)",(filemd5, filename, sessionID, lenFile, lenPart))
 					print(color.green+"Inserito nuovo file dal peer -> "+color.green+sessionID+color.end)
 					numPart = int((lenFile / lenPart) + 1)
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
@@ -236,21 +237,18 @@ class serverBitTorrent(object):
 					print(color.fail+"Errore invio "+color.recv+"AADR"+color.end)
 					connection.close()
 					
-			elif command == "APAD":
+			elif command == "RPAD":
 				try:
 					sessionID = connection.recv(16).decode()
 					filemd5 = connection.recv(32).decode()
 					idParts = connection.recv(8).decode().strip()
-					
 					#cerco ip e port
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
 					data = self.dbReader.fetchone()
-					
 					#aggiungo la parte
 					self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, idParts))
-					
 					print(color.green+" Aggiunta parte "+idParts+ color.green+sessionID+color.end)
-					msg = "AADR"+str(numPart).ljust(8)
+					msg = "APAD"+str(numPart).ljust(8)
 					print("Invio --> "+color.send+msg+color.end)
 					connection.sendall(msg.encode())
 					connection.close()
