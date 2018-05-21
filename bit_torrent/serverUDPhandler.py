@@ -22,7 +22,22 @@ def clearAndSetDB(self):
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
 	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text, Downloaded text)")
 	#0 --> Parte non ancora scaricata
-	#1 --> Parte scaricata con successo	
+	#1 --> Parte scaricata con successo
+	
+	
+	
+	# ************** DA TOGLIERE ************* #	
+	self.dbReader.execute("INSERT INTO File (Filemd5, filename,sessionId , lenfile, lenpart) values (?,?,?,?,?)", ("aaaabbbbccccddddeeeeffffgggghhhh", "PROVAAAAA", "okokokokokokokokokok", "500", "100"))
+	'''
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000003", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.004|fc00:0000:0000:0000:0000:0000:0005:0004","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
+	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.005|fc00:0000:0000:0000:0000:0000:0005:0005","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
+'''
+	# **************************************** #		
 	
 	
 def setIp(n):
@@ -64,7 +79,6 @@ def encryptMD5(self, filename):
 def setConnection(ip, port, msg):
 	try:
 		rnd = random()
-		#rnd=0.1
 		if(rnd<0.5):
 			ip = splitIp(ip[0:15])						
 			print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
@@ -492,48 +506,62 @@ class serverUDPhandler(object):
 				print("\n")
 				totTime = time2 - time1
 				print(color.green + "Scaricato la parte " + idParts + color.end+" in "+str(int(totTime))+"s")			
+				
+				peer_socket.close()	
+				self.dbReader.execute("UPDATE Parts SET Downloaded=? where IPP2P=? AND IdParts=?",(1,self.myIPP2P,idParts))
+			
+				#la mando al server				
+				msg = "RPAD"+str(self.mySessionID).ljust(16)+filemd5.ljust(32)+idParts.ljust(8)
+				
+				#aspetto la risposta
+				try:
+					peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
+					command = peer_socket.recv(4).decode()
+					if command == "APAD":
+						nPart = peer_socket.recv(8).decode()
+						print("Ricevuto <-- "+color.send+"APAD"+str(nPart)+color.end)	
+				except:
+					print(color.fail+"Errore nella comunicazione con il server"+color.end)
+					
+				#Recupero le informazioni del file
+				self.dbReader.execute("SELECT Lenfile, Lenpart, Filename FROM File WHERE Filemd5=?", (filemd5,))
+				infoFile = self.dbReader.fetchone()
+				numPart = int(int(infoFile[0]) / int(infoFile[1])) + 1
+				#Conto quante parti ho
+				self.dbReader.execute("SELECT COUNT(Filemd5) FROM Parts WHERE Filemd5=? AND IPP2P=? AND Downloaded=?", (filemd5, self.myIPP2P, 1))
+				result = self.dbReader.fetchone()
+				#se ho tutte le parti compatto la foto 
+				if result[0] == numPart:
+					dirName = var.setting.userPath+""+filemd5+"/"
+					i = 1
+					data = "".encode()
+					while i <= numPart:
+						try:
+							fd = open(dirName+""+str(i), 'rb')
+						except OSError as e:
+							print(e)
+						data += fd.read()
+						#print(data)
+						sys.stdout.flush()
+						fd.close()
+						i += 1
+					try:
+						downloadDir = var.setting.userPath+"/download/"
+						if not os.path.exists(downloadDir):
+							os.makedirs(downloadDir)
+						fileToCompact = open(downloadDir+""+infoFile[2], 'wb')
+					except OSError as e:
+						print(e)
+					fileToCompact.write(data)
+					sys.stdout.flush()
+					fileToCompact.close()
+					self.sockUDPClient.sendto(("ARE1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				
 			except OSError:
 				print("Errore nella procedure di download parte --> ",idParts )
 				#se non funziona tolgo i file tra quelli a disposizione
 				self.dbReader.execute("DELETE FROM Parts WHERE IPP2P=? AND IdParts=?", (self.myIPP2P,idParts))
 				self.sockUDPClient.sendto(("ARE0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))				
-			
-			peer_socket.close()	
-			self.dbReader.execute("UPDATE Parts SET Downloaded=? where IPP2P=? AND IdParts=?",(1,self.myIPP2P,idParts))
-			
-			#Recupero le informazioni del file
-			self.dbReader.execute("SELECT Lenfile, Lenpart, Filename FROM File WHERE Filemd5=?", (filemd5,))
-			infoFile = self.dbReader.fetchone()
-			numPart = int(int(infoFile[0]) / int(infoFile[1])) + 1
-			#Conto quante parti ho
-			self.dbReader.execute("SELECT COUNT(Filemd5) FROM Parts WHERE Filemd5=? AND IPP2P=? AND Downloaded=?", (filemd5, self.myIPP2P, 1))
-			result = self.dbReader.fetchone()
-			#se ho tutte le parti compatto la foto 
-			if result[0] == numPart:
-				dirName = var.setting.userPath+""+filemd5+"/"
-				i = 1
-				data = "".encode()
-				while i <= numPart:
-					try:
-						fd = open(dirName+""+str(i), 'rb')
-					except OSError as e:
-						print(e)
-					data += fd.read()
-					#print(data)
-					sys.stdout.flush()
-					fd.close()
-					i += 1
-				try:
-					downloadDir = var.setting.userPath+"/download/"
-					if not os.path.exists(downloadDir):
-						os.makedirs(downloadDir)
-					fileToCompact = open(downloadDir+""+infoFile[2], 'wb')
-				except OSError as e:
-					print(e)
-				fileToCompact.write(data)
-				sys.stdout.flush()
-				fileToCompact.close()
-				self.sockUDPClient.sendto(("ARE1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 
 	
 	def recvDownload(self, connection, client_address):
