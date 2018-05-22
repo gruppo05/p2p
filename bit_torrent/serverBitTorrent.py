@@ -232,16 +232,16 @@ class serverBitTorrent(object):
 				PartiNonScaricate = 0
 				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
 				self.dbReader.execute("SELECT Filemd5,Lenfile,Lenpart FROM File WHERE SessionID=?",(SessionID,))
-				resultFile = self.dbReader.fetchone()
+				resultFile = self.dbReader.fetchall()
 				if resultFile is None:
 					print(color.green+ "Nessun File presente con SessionID "+ SessionID +color.end)
 				else:
 					for data in resultFile:	
 						Filemd5 = data[0]
-						nPart = int(data[1])/int(data[2])
+						nPart = int((int(data[1])/int(data[2]))+1)
 						self.dbReader.execute("SELECT DISTINCT COUNT(*) FROM Parts WHERE Filemd5=? AND IPP2P!=? ",(Filemd5,self.myIPP2P,))
 						resultCount = self.dbReader.fetchone()
-						partiScaricate = resultCount[0]
+						partiScaricate = int(resultCount[0])
 						if int(partiScaricate) == int(nPart):
 							#è possibile effetturare il logout per questo file
 							print(color.green+"Tutte le parti di - "+Filemd5+" -("+nPart+")- sono state scaricate" +color.end)
@@ -270,7 +270,7 @@ class serverBitTorrent(object):
 						print(color.fail+"Errore nell'eliminazione dell'utente e dei suoi file"+color.end)
 					finally:		
 						msg = "ALOG" + str(PartiScaricate).ljust(10)
-						print("Invio --> "+msg)
+				print("Invio --> "+msg)
 				connection.sendall(msg.encode())
 				connection.close()					
 							
