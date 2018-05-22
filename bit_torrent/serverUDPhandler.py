@@ -338,7 +338,10 @@ class serverUDPhandler(object):
 						filename = peer_socket.recv(100).decode().strip()
 						lenfile = peer_socket.recv(10).decode().strip()
 						lenpart = peer_socket.recv(6).decode().strip()
-						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, Lenfile, Lenpart, SessionID) values (?, ?, ?, ?, ?)", (filemd5, filename, lenfile, lenpart, "okokokokokokokokokok"))
+						self.dbReader.execute("SELECT Filemd5 FROM File WHERE Filemd5 LIKE ?", (filemd5,))
+						f = self.dbReader.fetchone()
+						if f is None:
+							self.dbReader.execute("INSERT INTO File (Filemd5, Filename, Lenfile, Lenpart, SessionID) values (?, ?, ?, ?, ?)", (filemd5, filename, lenfile, lenpart, "okokokokokokokokokok"))
 						i = i + 1
 				self.sockUDPClient.sendto((str(nIdMd5)).ljust(3).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
@@ -429,6 +432,15 @@ class serverUDPhandler(object):
 					print("Parti in condivisione:")
 				for part in parts:
 					print("IP: " +part[0]+ " PARTE IN CONDIVISIONE: " +part[1])
+				self.dbReader.execute("SELECT Filename, SessionID FROM File")
+				files = self.dbReader.fetchall()
+				if len(files)==0:
+					print("Non ci sono file.")
+				else:
+					print("file in condivisione:")
+					for f in files:
+						print("filename: " +f[0]+ " sessionID IN CONDIVISIONE: " +f[1])
+					
 	
 	def sendDownload(self, ip, port, msg):
 		try:

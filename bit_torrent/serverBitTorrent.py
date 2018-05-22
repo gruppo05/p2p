@@ -169,7 +169,6 @@ class serverBitTorrent(object):
 						self.dbReader.execute("SELECT filemd5, filename, Lenfile, Lenpart FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
 						resultFile = self.dbReader.fetchall()
 						for files in resultFile:
-							print("lenfile "+str(files[2])+"lenpart "+str(files[3]))
 							msg = msg + files[0].ljust(32) + files[1].ljust(100) + str(files[2]).ljust(10) + str(files[3]).ljust(6)
 				print("Invio --> "+msg)
 				connection.sendall(msg.encode())
@@ -214,9 +213,19 @@ class serverBitTorrent(object):
 							for ids in resultID:
 								partList = partList + (2**(nByte*8 - int(ids[0])))
 							#creo il messaggio
+							print("ok1")
 							msg = parts[0] + parts[1]
+							print("ok2")
 							connection.sendall(msg.encode())
-							connection.sendall((partList).to_bytes(nByte,byteorder='big'))
+							print("ok3")
+							try:
+								print(partList)#non è un intero ERRORE
+								ripperoni = (partList).to_bytes(nByte, byteorder='big')
+								print(ripperoni)
+								connection.sendall(ripperoni)
+							except:
+								print("Errore sulla partlist")
+							print("ok")
 							
 				connection.close()
 				print("Invio completato.")
