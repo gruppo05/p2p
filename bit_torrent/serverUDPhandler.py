@@ -338,7 +338,7 @@ class serverUDPhandler(object):
 						filename = peer_socket.recv(100).decode().strip()
 						lenfile = peer_socket.recv(10).decode().strip()
 						lenpart = peer_socket.recv(6).decode().strip()
-						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, Lenfile, Lenpart, SessionID) values (?, ?, ?, ?, ?)", (filemd5, filename, lenfile, lenpart, "okokokokokokokokokok"))
+						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, Lenfile, Lenpart) values (?, ?, ?, ?)", (filemd5, filename, lenfile, lenpart))
 						i = i + 1
 				self.sockUDPClient.sendto((str(nIdMd5)).ljust(3).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
@@ -358,8 +358,8 @@ class serverUDPhandler(object):
 				self.dbReader.execute("SELECT Filemd5, Filename, SessionID FROM File WHERE Filename LIKE ?", ("%"+filename+"%",))
 				files = self.dbReader.fetchall()
 				for f in files:
-					self.sockUDPClient.sendto((str(f[0]).ljust(32)+"-"+str(f[1]).ljust(100)+"-"+str(f[2].ljust(16))).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-				self.sockUDPClient.sendto(((self.UDP_END).ljust(148)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					self.sockUDPClient.sendto((str(f[0]).ljust(32)+"-"+str(f[1]).ljust(100)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.sockUDPClient.sendto(((self.UDP_END).ljust(133)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			elif command == "RETP":
 				print("ricevuto RETP")
@@ -479,10 +479,10 @@ class serverUDPhandler(object):
 					while len(data) < lun:
 						data += peer_socket.recv(1)
 					fd.write(data)
-					percent = float(i) / numChunk
+					'''percent = float(i) / numChunk
 					hashes = '#' * int(round(percent * bar_length))
 					spaces = ' ' * (bar_length - len(hashes))
-					sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+					sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))'''
 					i = i + 1
 
 				'''percent = float(i) / numChunk
@@ -494,7 +494,7 @@ class serverUDPhandler(object):
 				fd.close()
 				print("\n")
 				totTime = time2 - time1
-				print(color.green + "Scaricato la parte " + idParts + color.end+" in "+str(int(totTime))+"s")			
+				print(color.green + "Scaricato <-- parte " + idParts + color.end+" (time: "+str(int(totTime))+"s)")			
 				
 				peer_socket.close()	
 				try:
