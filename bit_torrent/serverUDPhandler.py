@@ -8,7 +8,7 @@ class color:
 	recv = '\033[36m'
 	green = '\033[32m'
 	send = '\033[33m'
-	fail = '\033[31m'
+	fail = '\033[1m'+'\033[31m'
 	end = '\033[0m'
 	BOLD = '\033[1m'
 	UNDERLINE = '\033[4m'
@@ -308,7 +308,6 @@ class serverUDPhandler(object):
 				msg = "LOGO"+str(self.mySessionID).ljust(16)
 				peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 				command = peer_socket.recv(4).decode()
-				print(command)
 				if command == "NLOG":
 					partDown = peer_socket.recv(10).decode()
 					print("Ricevuto <-- "+color.send+command+str(partDown)+color.end)
@@ -322,7 +321,6 @@ class serverUDPhandler(object):
 					self.sockUDPClient.sendto(("ALOG").encode(),(self.UDP_IP,self.UDP_PORT_CLIENT))
 					self.sockUDPClient.sendto((partOwn.ljust(10)).encode(),(self.UDP_IP,self.UDP_PORT_CLIENT))
 				peer_socket.close()
-
 			
 			elif command == "FIND":
 				ricerca = self.sockUDPServer.recvfrom(20)[0].decode().strip()
