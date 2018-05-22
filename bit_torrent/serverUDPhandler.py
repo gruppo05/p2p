@@ -395,17 +395,28 @@ class serverUDPhandler(object):
 					
 				while count <= numPart:
 					#recupero tutti le parti necessarie ...  <--------------- ordinate per minori risultati
-					self.dbReader.execute("SELECT COUNT(IdParts) as Seed, IdParts, IPP2P, PP2P, Filemd5 FROM Parts WHERE IPP2P!=? AND Filemd5=? AND IdParts NOT IN (SELECT IdParts FROM Parts WHERE IPP2P=?) GROUP BY IdParts ORDER BY Seed ASC", (self.myIPP2P, Filemd5, self.myIPP2P))
+					self.dbReader.execute("SELECT COUNT(IdParts) as Seed, IdParts, IPP2P, PP2P, Filemd5 FROM Parts WHERE IPP2P!=? AND Filemd5=? AND IdParts NOT IN (SELECT IdParts FROM Parts WHERE IPP2P=?) GROUP BY IdParts ORDER BY Seed, IdParts ASC", (self.myIPP2P, Filemd5, self.myIPP2P))
 					resultParts = self.dbReader.fetchone()
+					idParts = resultParts[1]
+					ip = resultParts[2]
+					port = resultParts[3]
 					
 					#se non ho già quella parte la chiedo
 					if resultParts is not None:
-						print("PARTE", resultParts[1], "trovati", resultParts[0])
+						if resultParts[0] > 1:
+							#se ho più risultati seleziono randomicamente IP 
+							rnd = randint(1, int(resultParts[0])) - 1 
+							self.dbReader.execute("SELECT IPP2P, PP2P FROM Parts WHERE IdParts=? LIMIT 1 OFFSET ?", (resultParts[0], rnd))
+							resultParts = self.dbReader.fetchone()
+							#aggiorno ip e port con quello casuale
+							ip = resultParts[0]
+							port = resultParts[1]
+							
 						#inserisco la parte nel db con Downloaded--> 0, se la ricevo aggiorno il db e metto 1
-						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", (self.myIPP2P,self.PORT,Filemd5,resultParts[1], 0))
-						msg = "RETP" + str(Filemd5).ljust(32)+str(resultParts[1]).ljust(8)
+						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", (self.myIPP2P,self.PORT,Filemd5,idParts, 0))
+						msg = "RETP" + str(Filemd5).ljust(32)+str(idParts).ljust(8)
 						try:
-							threading.Thread(target = self.download, args = (resultParts[2], int(resultParts[3]), msg)).start()
+							threading.Thread(target = self.download, args = (ip, int(port), msg)).start()
 						except:
 							print("Errore nell'esecuzione del thread")
 					else:
