@@ -244,16 +244,30 @@ class serverBitTorrent(object):
 					connection.close()
 					
 			elif command == "RPAD":
+				print("\n\nRicevuto: "+color.recv+command+color.end)
 				try:
 					sessionID = connection.recv(16).decode()
 					filemd5 = connection.recv(32).decode()
+					
 					idParts = connection.recv(8).decode().strip()
+					print("\n\nRicevuto: "+color.recv+sessionID+" "+filemd5+" "+idParts+" "+color.end)
+					
 					#cerco ip e port
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
 					data = self.dbReader.fetchone()
-					#aggiungo la parte
-					self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, idParts))
-					print(color.green+" Aggiunta parte "+idParts+ color.green+sessionID+color.end)
+
+					#verifico se ho la parte
+					self.dbReader.execute("SELECT * FROM parts WHERE IPP2P=? AND Filemd5=? AND idParts=?", (data[0],filemd5,idParts))					
+					result = self.dbReader.fetchone()
+					if result is None:
+						#aggiungo la parte
+						self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, idParts))
+						print(color.green+"Aggiunta parte "+idParts+ color.green+" da "+sessionID+color.end)
+					else:
+						print(color.fail+"Parte "+idParts+ color.fail+" da "+sessionID+color.end+"già presente")
+					self.dbReader.execute("SELECT COUNT(IdParts) FROM parts WHERE IPP2P=? AND Filemd5=?", (data[0], filemd5))
+					numPart = self.dbReader.fetchone()[0]
+					print("NUMPART ->",numPart)
 					msg = "APAD"+str(numPart).ljust(8)
 					print("Invio --> "+color.send+msg+color.end)
 					connection.sendall(msg.encode())

@@ -23,19 +23,7 @@ def clearAndSetDB(self):
 	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text, Downloaded text)")
 	#0 --> Parte non ancora scaricata
 	#1 --> Parte scaricata con successo		
-	
-	# ************** DA TOGLIERE ************* #	
-	#self.dbReader.execute("INSERT INTO File (Filemd5, filename,sessionId , lenfile, lenpart) values (?,?,?,?,?)", ("aaaabbbbccccddddeeeeffffgggghhhh", "PROVAAAAA", "okokokokokokokokokok", "500", "100"))
-	'''
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000003", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.004|fc00:0000:0000:0000:0000:0000:0005:0004","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.005|fc00:0000:0000:0000:0000:0000:0005:0005","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	'''
-	
+
 def setIp(n):
 	if n < 10:
 		n = "00"+str(n)
@@ -341,7 +329,7 @@ class serverUDPhandler(object):
 			elif command == "FIND":
 				ricerca = self.sockUDPServer.recvfrom(20)[0].decode().strip()
 				sessionID = self.mySessionID 
-				msg = "LOOK" + sessionID + ricerca.ljust(20)
+				msg = "LOOK" + sessionID.ljust(16) + ricerca.ljust(20)
 				print("Invio messaggio -> " + msg + " a " + self.ServerIP + " alla porta " + self.ServerPORT)
 				peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 				command = peer_socket.recv(4).decode()
@@ -350,17 +338,17 @@ class serverUDPhandler(object):
 					print("Ricevuto <-- "+color.send+command+""+str(nIdMd5)+color.end)
 					i=0
 					while i < int(nIdMd5):
-						filemd5 = peer_socket.recv(32).decode()
+						filemd5 = peer_socket.recv(32).decode().strip()
 						filename = peer_socket.recv(100).decode().strip()
 						lenfile = peer_socket.recv(10).decode().strip()
 						lenpart = peer_socket.recv(6).decode().strip()
-						print("lenfile" +str(lenfile) +" lenpart  " + lenpart)
 						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, Lenfile, Lenpart, SessionID) values (?, ?, ?, ?, ?)", (filemd5, filename, lenfile, lenpart, "okokokokokokokokokok"))
 						i = i + 1
 				self.sockUDPClient.sendto((str(nIdMd5)).ljust(3).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
+				print(color.green + "Ricerca completata. Trovati " +str(i-1) + " file." + color.end)
 				#dopo aver fatto la ricerca, chiedo dove si trovano le parti
-				self.dbReader.execute("SELECT Filemd5 FROM File WHERE SessionID <> ?", (self.mySessionID,))
+				self.dbReader.execute("SELECT Filemd5 FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
 				resultFile = self.dbReader.fetchall()
 				for files in resultFile:
 					self.gettingParts(self.mySessionID, files[0])
@@ -520,7 +508,6 @@ class serverUDPhandler(object):
 				try:
 					peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 					command = peer_socket.recv(4).decode()
-					print("Stampa di debug riga 525 : Ricevuto"+str(command))
 					if command == "APAD":
 						nPart = peer_socket.recv(8).decode()
 						print("Ricevuto <-- "+color.send+"APAD"+str(nPart)+color.end)	
