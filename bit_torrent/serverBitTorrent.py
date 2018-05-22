@@ -18,7 +18,7 @@ def clearAndSetDB(self):
 	
 	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text, SessionID text)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
-	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text, Downloaded text)")
+	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text)")
 	
 def closeServer(self):
 	time.sleep(0.1)
@@ -97,32 +97,35 @@ class serverBitTorrent(object):
 			elif command == "LOGO":
 				SessionID = connection.recv(16).decode()
 				PartiNonScaricate = 0
+				PartiScaricate = 0
 				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
-				self.dbReader.execute("SELECT Filemd5, Lenfile, Lenpart FROM File WHERE SessionID=?",(SessionID,))
+				self.dbReader.execute("SELECT IPP2P FROM User WHERE SessionID=?", (SessionID,))
+				ip = self.dbReader.fetchone()[0]
+				self.dbReader.execute("SELECT IdParts, Filemd5 FROM Parts WHERE IPP2P=?",(ip,))				
+				#self.dbReader.execute("SELECT Filemd5, Lenfile, Lenpart FROM File WHERE SessionID=?",(SessionID,))
 				resultFile = self.dbReader.fetchall()
-				self.dbReader.execute("SELECT IPP2P FROM User WHERE SessionID LIKE ?", (SessionID,))
-				ip = self.dbReader.fetchone()
+				
 				if resultFile is None:
 					print(color.green+ "Nessun File presente con SessionID "+ SessionID +color.end)
 				else:
 					for data in resultFile:
-						filemd5 = data[0]
-						nPart = int(int(data[1])/int(data[2]) +1)
-						print("NPARTI --> "+str(nPart))
-						print(ip)
-						self.dbReader.execute("SELECT DISTINCT COUNT(*) FROM Parts WHERE Filemd5=? AND IPP2P LIKE ? ",(filemd5,ip,))
-						resultCount = self.dbReader.fetchone()
-						print(resultCount[0])
-						partiScaricate = int(resultCount[0])
-						print("Parti scaricate --> "+str(partiScaricate))
-						if partiScaricate == int(nPart):
-							#è possibile effetturare il logout per questo file
-							print(color.green+"Tutte le parti di - "+Str(filemd5)+" -("+str(nPart)+")- sono state scaricate" +color.end)
+						idParts = data[0]						
+						filemd5 = data[1]						
+						self.dbReader.execute("SELECT COUNT(IdParts) FROM Parts WHERE Filemd5=? AND IdParts=?",(filemd5,idParts))
+						resultCount = int(self.dbReader.fetchone()[0])
+						###DELETE PART
+						if resultCount > 1:
+							self.dbReader.execute("DELETE FROM Parts WHERE Filemd5=? AND IdParts=? AND IPP2P=?",(filemd5, idParts, ip))
+							PartiScaricate += 1
 						else:
-							print(color.fail+"File: "+filemd5+" non completamente scaricato. Rimangono "+str(nPart-partiScaricate)+" parti"+color.end)
-							PartiNonScaricate = PartiNonScaricate + int(nPart-partiScaricate)
-							print("PARTI NON SCARICATE --> "+str(PartiNonScaricate))
-				print("PARTI NON SCARICATE --> "+str(PartiNonScaricate))
+							PartiNonScaricate += 1
+				print("Parti MIE Non scaricate --> "+str(PartiNonScaricate))
+				print("Parti MIE Scaricate --> "+str(PartiScaricate))
+	
+				self.dbReader.execute("SELECT COUNT(IdParts) FROM Parts WHERE IPP2P=?",(ip,))				
+
+
+
 				if PartiNonScaricate > 0:
 					msg = "NLOG"+str(PartiNonScaricate).ljust(10)
 				else:
@@ -145,8 +148,7 @@ class serverBitTorrent(object):
 						print(e)						
 						print(color.fail+"Errore nell'eliminazione dell'utente e dei suoi file"+color.end)
 						msg = "NLOG" + str(PartiScaricate).ljust(10)
-						
-				print("Invio --> "+msg)
+				print(color.send + "Invio --> " + msg + color.end)
 				connection.sendall(msg.encode())
 				connection.close()					
 							

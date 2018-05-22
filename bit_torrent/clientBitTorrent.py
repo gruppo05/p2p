@@ -149,9 +149,9 @@ class clientBitTorrent(object):
 				count = 1;
 				print(color.recv+"RISULTATI TROVATI:"+color.end)	
 				while True:
-					buff, addr = self.sockUDPClient.recvfrom(195)
+					buff, addr = self.sockUDPClient.recvfrom(133)
 					cmd = buff.decode()
-					if cmd == self.UDP_END.ljust(148):
+					if cmd == self.UDP_END.ljust(133):
 						print(color.recv+"0 - Annulla\n______________________________\n"+color.end)
 						cmd = input("Quale risultato vuoi scaricare? ")
 						if cmd == "0":
