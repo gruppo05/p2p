@@ -22,12 +22,10 @@ def clearAndSetDB(self):
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
 	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text, Downloaded text)")
 	#0 --> Parte non ancora scaricata
-	#1 --> Parte scaricata con successo
-	
-	
+	#1 --> Parte scaricata con successo		
 	
 	# ************** DA TOGLIERE ************* #	
-	self.dbReader.execute("INSERT INTO File (Filemd5, filename,sessionId , lenfile, lenpart) values (?,?,?,?,?)", ("aaaabbbbccccddddeeeeffffgggghhhh", "PROVAAAAA", "okokokokokokokokokok", "500", "100"))
+	#self.dbReader.execute("INSERT INTO File (Filemd5, filename,sessionId , lenfile, lenpart) values (?,?,?,?,?)", ("aaaabbbbccccddddeeeeffffgggghhhh", "PROVAAAAA", "okokokokokokokokokok", "500", "100"))
 	'''
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
@@ -36,9 +34,7 @@ def clearAndSetDB(self):
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.004|fc00:0000:0000:0000:0000:0000:0005:0004","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
 	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.005|fc00:0000:0000:0000:0000:0000:0005:0005","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-'''
-	# **************************************** #		
-	
+	'''
 	
 def setIp(n):
 	if n < 10:
@@ -190,7 +186,9 @@ class serverUDPhandler(object):
 		peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 		self.dbReader.execute("SELECT Lenfile, Lenpart FROM File WHERE Filemd5 LIKE ?", ("%"+filemd5+"%",))
 		resultFile = self.dbReader.fetchone()	
-		nParts = int(resultFile[0])/int(resultFile[1])
+		nParts = int(int(resultFile[0])/int(resultFile[1]))
+		if (nParts % 8) > 0:
+			nParts = nParts + 1
 		lenBytes = int(nParts/8)
 		if (nParts % 8) > 0:
 			lenBytes = lenBytes + 1
@@ -349,18 +347,23 @@ class serverUDPhandler(object):
 				command = peer_socket.recv(4).decode()
 				nIdMd5 = peer_socket.recv(3).decode()
 				if command == "ALOO":
+					print("Ricevuto <-- "+color.send+command+""+str(nIdMd5)+color.end)
 					i=0
 					while i < int(nIdMd5):
 						filemd5 = peer_socket.recv(32).decode()
-						filename = peer_socket.recv(100).decode()
-						print(filename)
-						lenfile = peer_socket.recv(10).decode()
-						lenpart = peer_socket.recv(6).decode()
-						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, Lenfile, Lenpart) values (?, ?, ?, ?)", (filemd5, filename, lenfile, lenpart))
+						filename = peer_socket.recv(100).decode().strip()
+						lenfile = peer_socket.recv(10).decode().strip()
+						lenpart = peer_socket.recv(6).decode().strip()
+						print("lenfile" +str(lenfile) +" lenpart  " + lenpart)
+						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, Lenfile, Lenpart, SessionID) values (?, ?, ?, ?, ?)", (filemd5, filename, lenfile, lenpart, "okokokokokokokokokok"))
 						i = i + 1
 				self.sockUDPClient.sendto((str(nIdMd5)).ljust(3).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
-				#posso inserire la richiesta delle parti
+				#dopo aver fatto la ricerca, chiedo dove si trovano le parti
+				self.dbReader.execute("SELECT Filemd5 FROM File WHERE SessionID <> ?", (self.mySessionID,))
+				resultFile = self.dbReader.fetchall()
+				for files in resultFile:
+					self.gettingParts(self.mySessionID, files[0])
 			
 			elif command == "FDWN":
 				data, noused = self.sockUDPServer.recvfrom(20)
@@ -517,6 +520,7 @@ class serverUDPhandler(object):
 				try:
 					peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 					command = peer_socket.recv(4).decode()
+					print("Stampa di debug riga 525 : Ricevuto"+str(command))
 					if command == "APAD":
 						nPart = peer_socket.recv(8).decode()
 						print("Ricevuto <-- "+color.send+"APAD"+str(nPart)+color.end)	

@@ -167,8 +167,10 @@ class serverBitTorrent(object):
 						for files in resultFile:
 							print("lenfile "+str(files[2])+"lenpart "+str(files[3]))
 							msg = msg + files[0].ljust(32) + files[1].ljust(100) + str(files[2]).ljust(10) + str(files[3]).ljust(6)
+				print("Invio --> "+msg)
 				connection.sendall(msg.encode())
 				connection.close()
+				
 				
 			elif command == "FCHU":
 				sessionID = connection.recv(16).decode()
@@ -222,13 +224,8 @@ class serverBitTorrent(object):
 					lenPart = int(connection.recv(6).decode())
 					filename = connection.recv(100).decode()
 					filemd5 = connection.recv(32).decode()
-<<<<<<< HEAD
 					self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID, Lenfile, Lenpart) VALUES (?, ?, ?, ?, ?)",(filemd5, filename, sessionID, lenFile, lenPart))
 					print(color.green+"Inserito nuovo file dal peer -> "+color.green+color.recv+sessionID+color.end)
-=======
-					self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID, lenfile, lenpart) VALUES (?, ?, ?, ?, ?)",(filemd5, filename, sessionID, lenFile, lenPart))
-					print(color.green+"Inserito nuovo file dal peer -> "+color.green+sessionID+color.end)
->>>>>>> d05099da6b09ddca1a2de4ac32ec1f4045b5bf55
 					numPart = int((lenFile / lenPart) + 1)
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
 					data = self.dbReader.fetchone()
