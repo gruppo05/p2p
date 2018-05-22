@@ -349,9 +349,10 @@ class serverUDPhandler(object):
 				#dopo aver fatto la ricerca, chiedo dove si trovano le parti
 				self.dbReader.execute("SELECT Filemd5 FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
 				resultFile = self.dbReader.fetchall()
-				for files in resultFile:
-					self.gettingParts(self.mySessionID, files[0])
-				print(color.green + "Ricerca parti completata." + color.end)
+				if len(resultFile) > 0:	
+					for files in resultFile:
+						self.gettingParts(self.mySessionID, files[0])
+					print(color.green + "Ricerca parti completata." + color.end)
 			
 			elif command == "FDWN":
 				data, noused = self.sockUDPServer.recvfrom(20)
