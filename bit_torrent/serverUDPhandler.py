@@ -346,7 +346,7 @@ class serverUDPhandler(object):
 				print("Invio messaggio -> " + msg + " a " + self.ServerIP + " alla porta " + self.ServerPORT)
 				peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 				command = peer_socket.recv(4).decode()
-				nIdMd5 = peer_socket.recv(3).decode()
+				nIdMd5 = peer_socket.recv(3).decode().strip()
 				if command == "ALOO":
 					print("Ricevuto <-- "+color.send+command+""+str(nIdMd5)+color.end)
 					i=0
@@ -362,7 +362,7 @@ class serverUDPhandler(object):
 						i = i + 1
 				self.sockUDPClient.sendto((str(nIdMd5)).ljust(3).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
-				print(color.green + "Ricerca completata. Trovati " +str(i) + " file." + color.end)
+				print(color.green + "Ricerca completata. Trovati " +str(nIdMd5) + " file." + color.end)
 				#dopo aver fatto la ricerca, chiedo dove si trovano le parti
 				self.dbReader.execute("SELECT Filemd5 FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
 				resultFile = self.dbReader.fetchall()

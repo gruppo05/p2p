@@ -144,18 +144,20 @@ class serverBitTorrent(object):
 				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + sessionID + color.end)
 				self.dbReader.execute("SELECT SessionID FROM User WHERE SessionID = ?", (sessionID,))
 				resultUser = self.dbReader.fetchone()
+				print("ok")
 				if resultUser is None:
 					msg = "ALOO000"
 					print("Utente non registrato.")
 				else:
 					ricerca = ricerca.strip()
-					self.dbReader.execute("SELECT COUNT(Filemd5) FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
+					self.dbReader.execute("SELECT COUNT(Filemd5) FROM File WHERE Filename LIKE ? AND SessionID <> ?", ("%"+ricerca+"%", sessionID))
 					resultCount = self.dbReader.fetchone()
 					#i = 0
 					msg="ALOO" + str(resultCount[0]).ljust(3)
 					if int(resultCount[0]) > 0:
-						self.dbReader.execute("SELECT filemd5, filename, Lenfile, Lenpart FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
+						self.dbReader.execute("SELECT filemd5, filename, Lenfile, Lenpart FROM File WHERE Filename LIKE ? AND SessionID <> ?", ("%"+ricerca+"%", sessionID))
 						resultFile = self.dbReader.fetchall()
+						print(len(resultFile))
 						for files in resultFile:
 							msg = msg + files[0].ljust(32) + files[1].ljust(100) + str(files[2]).ljust(10) + str(files[3]).ljust(6)
 				print("Invio --> "+msg)
