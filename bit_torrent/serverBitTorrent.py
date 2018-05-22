@@ -100,6 +100,8 @@ class serverBitTorrent(object):
 				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
 				self.dbReader.execute("SELECT Filemd5, Lenfile, Lenpart FROM File WHERE SessionID=?",(SessionID,))
 				resultFile = self.dbReader.fetchall()
+				self.dbReader.execute("SELECT IPP2P FROM User WHERE SessionID LIKE ?", (SessionID,))
+				ip = self.dbReader.fetchone()
 				if resultFile is None:
 					print(color.green+ "Nessun File presente con SessionID "+ SessionID +color.end)
 				else:
@@ -107,13 +109,15 @@ class serverBitTorrent(object):
 						filemd5 = data[0]
 						nPart = int(int(data[1])/int(data[2]) +1)
 						print("NPARTI --> "+str(nPart))
-						self.dbReader.execute("SELECT DISTINCT COUNT(*) FROM Parts WHERE Filemd5=? AND IPP2P!=? ",(filemd5,self.myIPP2P,))
+						print(ip)
+						self.dbReader.execute("SELECT DISTINCT COUNT(*) FROM Parts WHERE Filemd5=? AND IPP2P LIKE ? ",(filemd5,ip,))
 						resultCount = self.dbReader.fetchone()
+						print(resultCount[0])
 						partiScaricate = int(resultCount[0])
 						print("Parti scaricate --> "+str(partiScaricate))
 						if partiScaricate == int(nPart):
 							#è possibile effetturare il logout per questo file
-							print(color.green+"Tutte le parti di - "+filemd5+" -("+nPart+")- sono state scaricate" +color.end)
+							print(color.green+"Tutte le parti di - "+Str(filemd5)+" -("+str(nPart)+")- sono state scaricate" +color.end)
 						else:
 							print(color.fail+"File: "+filemd5+" non completamente scaricato. Rimangono "+str(nPart-partiScaricate)+" parti"+color.end)
 							PartiNonScaricate = PartiNonScaricate + int(nPart-partiScaricate)
@@ -232,8 +236,6 @@ class serverBitTorrent(object):
 					while i <= numPart:
 						self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, str(i)))
 						i += 1
-					i -= 1
-					print("Numero parti salvate -> "+str(i))
 					msg = "AADR"+str(numPart).ljust(8)
 					print("Invio --> "+color.send+msg+color.end)
 					connection.sendall(msg.encode())
@@ -243,13 +245,11 @@ class serverBitTorrent(object):
 					connection.close()
 					
 			elif command == "RPAD":
-				print("\n\nRicevuto: "+color.recv+command+color.end)
 				try:
 					sessionID = connection.recv(16).decode()
 					filemd5 = connection.recv(32).decode()
-					
 					idParts = connection.recv(8).decode().strip()
-					print("\n\nRicevuto: "+color.recv+sessionID+" "+filemd5+" "+idParts+" "+color.end)
+					print("\n\nRicevuto: "+color.recv+command+color.end+" da "+color.recv+ sessionID + color.end)
 					
 					#cerco ip e port
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
@@ -266,7 +266,6 @@ class serverBitTorrent(object):
 						print(color.fail+"Parte "+idParts+ color.fail+" da "+sessionID+color.end+"già presente")
 					self.dbReader.execute("SELECT COUNT(IdParts) FROM parts WHERE IPP2P=? AND Filemd5=?", (data[0], filemd5))
 					numPart = self.dbReader.fetchone()[0]
-					print("NUMPART ->",numPart)
 					msg = "APAD"+str(numPart).ljust(8)
 					print("Invio --> "+color.send+msg+color.end)
 					connection.sendall(msg.encode())

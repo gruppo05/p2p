@@ -31,10 +31,10 @@ def printMenu():
 	print(color.recv+"|______/ |_|   |_|   "+"    "+color.green+"   |_|   |______||_|  \_\|_|  \_\|______||_|  \_|   |_|   "+color.end)
 	print("\n")
 	print("« 1 » AGGIUNGI FILE IN CONDIVISIONE")
-	print("« 3 » RICERCA FILE")
-	print("« 4 » SCARICA FILE")
-	print("« 5 » STAMPA PARTI RICHIESTE AL SERVER")
-	print("« 6 » LOGOUT")
+	print("« 2 » RICERCA FILE")
+	print("« 3 » SCARICA FILE")
+	print("« 4 » STAMPA PARTI RICHIESTE AL SERVER")
+	print("« 5 » LOGOUT")
 	print(color.fail+"« 0 » CHIUDI IL CLIENT"+color.end)
 	
 def setIp(n):
@@ -124,7 +124,7 @@ class clientBitTorrent(object):
 					input("Premi invio per continuare")
 				
 				
-			elif cmd is "3":
+			elif cmd is "2":
 				print(color.recv+"RICERCA FILE"+color.end)
 				self.sockUDPServer.sendto(("FIND").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				ricerca = input("Inserisci il nome del file da cercare: ")
@@ -139,7 +139,7 @@ class clientBitTorrent(object):
 				
 				#da aggiungere tutta la fase di download 
 			
-			elif cmd is "4":
+			elif cmd is "3":
 				print("DOWNLOAD")
 				ricerca = input("Quale file vuoi scaricare?")
 				msg = "FDWN"
@@ -178,11 +178,11 @@ class clientBitTorrent(object):
 					else:
 						print(color.recv+str(count)+" - "+cmd+color.end)
 						count = count+1
-			elif cmd is "5":
+			elif cmd is "4":
 				print(color.recv+"STMC"+color.end)
 				self.sockUDPServer.sendto(("STMC").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 			
-			elif cmd is "6":
+			elif cmd is "5":
 				print(color.recv + "LOGOUT" + color.end)
 				self.sockUDPServer.sendto(("LOGO").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				answer = self.sockUDPClient.recvfrom(4)[0].decode()

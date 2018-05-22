@@ -122,6 +122,9 @@ class serverUDPhandler(object):
 		self.BUFF = 1024
 		self.lenPart = 262144
 		
+		#thread lock
+		self.lock = threading.Lock()
+		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
@@ -170,7 +173,7 @@ class serverUDPhandler(object):
 			return idParts, partList
 		
 	def gettingParts(self, sessionID, filemd5):
-		print("Scaricamento parti in corso..")
+		print("Aggiornamento parti in corso..")
 		msg = "FCHU" + sessionID.ljust(16) + filemd5.ljust(32)
 		peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 		self.dbReader.execute("SELECT Lenfile, Lenpart FROM File WHERE Filemd5 LIKE ?", ("%"+filemd5+"%",))
@@ -188,19 +191,12 @@ class serverUDPhandler(object):
 			hitpeer = int(hitpeer.decode())
 			if hitpeer > 0 :
 				i = 0
-				#print("hitpeer: " + str(hitpeer))
 				while i < hitpeer:
-					print("Scaricamento: "+str(i+1)+"/"+str(hitpeer))
 					ipp2p = peer_socket.recv(55).decode()
 					pp2p = peer_socket.recv(5).decode()
-					#print("ip: " + str(ipp2p) + " p: "+str(pp2p))
-					time.sleep(5)
-					#partList = peer_socket.recv(lenBit)
 					partList = int.from_bytes(peer_socket.recv(lenBytes), 'big')
-					#print(partList)
 					while partList > 0:
 						idParts, partList = self.calcID(partList, (lenBytes*8))
-						#print("Sto inserendo la parte " + str(idParts)+" che appartiene al peer " + str(ipp2p))
 						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, idParts))
 					i = i + 1
 		peer_socket.close()
@@ -347,12 +343,14 @@ class serverUDPhandler(object):
 						i = i + 1
 				self.sockUDPClient.sendto((str(nIdMd5)).ljust(3).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
-				print(color.green + "Ricerca completata. Trovati " +str(i-1) + " file." + color.end)
+				print(color.green + "Ricerca completata. Trovati " +str(i) + " file." + color.end)
 				#dopo aver fatto la ricerca, chiedo dove si trovano le parti
 				self.dbReader.execute("SELECT Filemd5 FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
 				resultFile = self.dbReader.fetchall()
-				for files in resultFile:
-					self.gettingParts(self.mySessionID, files[0])
+				if len(resultFile) > 0:	
+					for files in resultFile:
+						self.gettingParts(self.mySessionID, files[0])
+					print(color.green + "Ricerca parti completata." + color.end)
 			
 			elif command == "FDWN":
 				data, noused = self.sockUDPServer.recvfrom(20)
@@ -488,10 +486,10 @@ class serverUDPhandler(object):
 					sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
 					i = i + 1
 
-				percent = float(i) / numChunk
+				'''percent = float(i) / numChunk
 				hashes = '#' * int(round(percent * bar_length))
 				spaces = ' ' * (bar_length - len(hashes))
-				sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
+				sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))'''
 				time2 = time.time()
 				sys.stdout.flush()
 				fd.close()
@@ -500,13 +498,15 @@ class serverUDPhandler(object):
 				print(color.green + "Scaricato la parte " + idParts + color.end+" in "+str(int(totTime))+"s")			
 				
 				peer_socket.close()	
-				self.dbReader.execute("UPDATE Parts SET Downloaded=? where IPP2P=? AND IdParts=?",(1,self.myIPP2P,idParts))
-			
-				#la mando al server				
-				msg = "RPAD"+str(self.mySessionID).ljust(16)+filemd5.ljust(32)+idParts.ljust(8)
-				
-				#aspetto la risposta
 				try:
+					#accesso in muta esclusione per aggiornamento server
+					self.lock.acquire(True)
+					self.dbReader.execute("UPDATE Parts SET Downloaded=? where IPP2P=? AND IdParts=?",(1,self.myIPP2P,idParts))
+				
+					#la mando al server				
+					msg = "RPAD"+str(self.mySessionID).ljust(16)+filemd5.ljust(32)+idParts.ljust(8)
+				
+					#aspetto la risposta
 					peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 					command = peer_socket.recv(4).decode()
 					if command == "APAD":
@@ -514,40 +514,48 @@ class serverUDPhandler(object):
 						print("Ricevuto <-- "+color.send+"APAD"+str(nPart)+color.end)	
 				except:
 					print(color.fail+"Errore nella comunicazione con il server"+color.end)
+				finally:
+					self.lock.release()
 					
-				#Recupero le informazioni del file
-				self.dbReader.execute("SELECT Lenfile, Lenpart, Filename FROM File WHERE Filemd5=?", (filemd5,))
-				infoFile = self.dbReader.fetchone()
-				numPart = int(int(infoFile[0]) / int(infoFile[1])) + 1
-				#Conto quante parti ho
-				self.dbReader.execute("SELECT COUNT(Filemd5) FROM Parts WHERE Filemd5=? AND IPP2P=? AND Downloaded=?", (filemd5, self.myIPP2P, 1))
-				result = self.dbReader.fetchone()
-				#se ho tutte le parti compatto la foto 
-				if result[0] == numPart:
-					dirName = var.setting.userPath+""+filemd5+"/"
-					i = 1
-					data = "".encode()
-					while i <= numPart:
+				#Recupero le informazioni del file con un mutex
+				try:
+					self.lock.acquire(True)
+					self.dbReader.execute("SELECT Lenfile, Lenpart, Filename FROM File WHERE Filemd5=?", (filemd5,))
+					infoFile = self.dbReader.fetchone()
+					numPart = int(int(infoFile[0]) / int(infoFile[1])) + 1
+					#Conto quante parti ho
+					self.dbReader.execute("SELECT COUNT(Filemd5) FROM Parts WHERE Filemd5=? AND IPP2P=? AND Downloaded=?", (filemd5, self.myIPP2P, 1))
+					result = self.dbReader.fetchone()
+					#se ho tutte le parti compatto la foto 
+					if result[0] == numPart:
+						dirName = var.setting.userPath+""+filemd5+"/"
+						i = 1
+						data = "".encode()
+						while i <= numPart:
+							try:
+								fd = open(dirName+""+str(i), 'rb')
+							except OSError as e:
+								print(e)
+							data += fd.read()
+							#print(data)
+							sys.stdout.flush()
+							fd.close()
+							i += 1
 						try:
-							fd = open(dirName+""+str(i), 'rb')
+							downloadDir = var.setting.userPath+"/download/"
+							if not os.path.exists(downloadDir):
+								os.makedirs(downloadDir)
+							fileToCompact = open(downloadDir+""+infoFile[2], 'wb')
 						except OSError as e:
 							print(e)
-						data += fd.read()
-						#print(data)
+						fileToCompact.write(data)
 						sys.stdout.flush()
-						fd.close()
-						i += 1
-					try:
-						downloadDir = var.setting.userPath+"/download/"
-						if not os.path.exists(downloadDir):
-							os.makedirs(downloadDir)
-						fileToCompact = open(downloadDir+""+infoFile[2], 'wb')
-					except OSError as e:
-						print(e)
-					fileToCompact.write(data)
-					sys.stdout.flush()
-					fileToCompact.close()
-					self.sockUDPClient.sendto(("ARE1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+						fileToCompact.close()
+						self.sockUDPClient.sendto(("ARE1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				except:
+					print("Errore mutex")
+				finally:
+					self.lock.release()
 				
 			except OSError:
 				print("Errore nella procedure di download parte --> ",idParts )
