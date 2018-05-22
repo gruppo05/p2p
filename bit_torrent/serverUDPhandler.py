@@ -105,6 +105,21 @@ def encryptMD5(filename):
 	filemd5IP = hasher.hexdigest()
 	return(filemd5)	
 
+def calcID(partList, lenBytes):
+	if partList == 1:
+		return lenBytes, (partList-1)
+	else:
+		idParts = lenBytes
+		lenParts = 1
+		while lenParts <= partList:
+			idParts = idParts - 1
+			lenParts = lenParts * 2
+		idParts = idParts + 1
+		lenParts = lenParts/2	
+		partList = partList - lenParts
+		return idParts, partList
+		
+		
 class serverUDPhandler(object):
 	def __init__(self):
 		self.ServerIP = ""
@@ -154,23 +169,9 @@ class serverUDPhandler(object):
 		while True:
 			try:
 				connection, client_address = self.sock.accept()
-				threading.Thread(target = self.recvDownload, args = (connection,client_address)).start()
+				threading.Thread(target = self.upload, args = (connection,client_address)).start()
 			except:
 				return False
-				
-	def calcID(self, partList, lenBytes):
-		if partList == 1:
-			return lenBytes, (partList-1)
-		else:
-			idParts = lenBytes
-			lenParts = 1
-			while lenParts <= partList:
-				idParts = idParts - 1
-				lenParts = lenParts * 2
-			idParts = idParts + 1
-			lenParts = lenParts/2	
-			partList = partList - lenParts
-			return idParts, partList
 		
 	def gettingParts(self, sessionID, filemd5):
 		print("Aggiornamento parti in corso..")
@@ -196,7 +197,7 @@ class serverUDPhandler(object):
 					pp2p = peer_socket.recv(5).decode()
 					partList = int.from_bytes(peer_socket.recv(lenBytes), 'big')
 					while partList > 0:
-						idParts, partList = self.calcID(partList, (lenBytes*8))
+						idParts, partList = calcID(partList, (lenBytes*8))
 						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, idParts))
 					i = i + 1
 		peer_socket.close()
@@ -339,7 +340,7 @@ class serverUDPhandler(object):
 						filename = peer_socket.recv(100).decode().strip()
 						lenfile = peer_socket.recv(10).decode().strip()
 						lenpart = peer_socket.recv(6).decode().strip()
-						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, Lenfile, Lenpart, SessionID) values (?, ?, ?, ?, ?)", (filemd5, filename, lenfile, lenpart, "okokokokokokokokokok"))
+						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, Lenfile, Lenpart) values (?, ?, ?, ?)", (filemd5, filename, lenfile, lenpart))
 						i = i + 1
 				self.sockUDPClient.sendto((str(nIdMd5)).ljust(3).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
@@ -359,8 +360,8 @@ class serverUDPhandler(object):
 				self.dbReader.execute("SELECT Filemd5, Filename, SessionID FROM File WHERE Filename LIKE ?", ("%"+filename+"%",))
 				files = self.dbReader.fetchall()
 				for f in files:
-					self.sockUDPClient.sendto((str(f[0]).ljust(32)+"-"+str(f[1]).ljust(100)+"-"+str(f[2].ljust(16))).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-				self.sockUDPClient.sendto(((self.UDP_END).ljust(148)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+					self.sockUDPClient.sendto((str(f[0]).ljust(32)+"-"+str(f[1]).ljust(100)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				self.sockUDPClient.sendto(((self.UDP_END).ljust(133)).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 			
 			elif command == "RETP":
 				print("ricevuto RETP")
@@ -401,7 +402,7 @@ class serverUDPhandler(object):
 						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", (self.myIPP2P,self.PORT,Filemd5,resultParts[1], 0))
 						msg = "RETP" + str(Filemd5).ljust(32)+str(resultParts[1]).ljust(8)
 						try:
-							threading.Thread(target = self.sendDownload, args = (resultParts[2], int(resultParts[3]), msg)).start()
+							threading.Thread(target = self.download, args = (resultParts[2], int(resultParts[3]), msg)).start()
 						except:
 							print("Errore nell'esecuzione del thread")
 					else:
@@ -431,7 +432,7 @@ class serverUDPhandler(object):
 				for part in parts:
 					print("IP: " +part[0]+ " PARTE IN CONDIVISIONE: " +part[1])
 	
-	def sendDownload(self, ip, port, msg):
+	def download(self, ip, port, msg):
 		try:
 			rnd = random()
 			if(rnd<0.5):
@@ -480,22 +481,14 @@ class serverUDPhandler(object):
 					while len(data) < lun:
 						data += peer_socket.recv(1)
 					fd.write(data)
-					percent = float(i) / numChunk
-					hashes = '#' * int(round(percent * bar_length))
-					spaces = ' ' * (bar_length - len(hashes))
-					sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))
 					i = i + 1
 
-				'''percent = float(i) / numChunk
-				hashes = '#' * int(round(percent * bar_length))
-				spaces = ' ' * (bar_length - len(hashes))
-				sys.stdout.write("\rPercent: [{0}] {1}%".format(hashes + spaces, int(round(percent * 100))))'''
 				time2 = time.time()
 				sys.stdout.flush()
 				fd.close()
 				print("\n")
 				totTime = time2 - time1
-				print(color.green + "Scaricato la parte " + idParts + color.end+" in "+str(int(totTime))+"s")			
+				print(color.green + "Scaricato <-- parte " + idParts + color.end+" (time: "+str(int(totTime))+"s)")			
 				
 				peer_socket.close()	
 				try:
@@ -564,7 +557,7 @@ class serverUDPhandler(object):
 				self.sockUDPClient.sendto(("ARE0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))				
 
 	
-	def recvDownload(self, connection, client_address):
+	def upload(self, connection, client_address):
 		command = connection.recv(4).decode()
 		if command == "RETP":
 			print("Ricevuto "+color.recv+"RETP"+color.end)
@@ -600,7 +593,7 @@ class serverUDPhandler(object):
 					i += 1
 				
 				os.close(fd)
-				print(color.green+"\nFine UPLOAD"+color.end)					
+				print(color.green+"Fine UPLOAD parte "+idParts+color.end)					
 				connection.close()
 			else: 
 				print("Parte non trovata!")
