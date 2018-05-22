@@ -96,8 +96,8 @@ class serverBitTorrent(object):
 			
 			elif command == "LOGO":
 				SessionID = connection.recv(16).decode()
-				PartiNonScaricate = 0
-				PartiScaricate = 0
+				partiNonScaricate = 0
+				partiScaricate = 0
 				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
 				self.dbReader.execute("SELECT IPP2P FROM User WHERE SessionID=?", (SessionID,))
 				ip = self.dbReader.fetchone()[0]
@@ -116,38 +116,24 @@ class serverBitTorrent(object):
 						###DELETE PART
 						if resultCount > 1:
 							self.dbReader.execute("DELETE FROM Parts WHERE Filemd5=? AND IdParts=? AND IPP2P=?",(filemd5, idParts, ip))
-							PartiScaricate += 1
+							partiScaricate += 1
 						else:
-							PartiNonScaricate += 1
-				print("Parti MIE Non scaricate --> "+str(PartiNonScaricate))
-				print("Parti MIE Scaricate --> "+str(PartiScaricate))
-	
-				self.dbReader.execute("SELECT COUNT(IdParts) FROM Parts WHERE IPP2P=?",(ip,))				
+							partiNonScaricate += 1
+				print("Parti MIE Non scaricate --> "+str(partiNonScaricate))
+				print("Parti MIE Scaricate --> "+str(partiScaricate))
 
 
 
-				if PartiNonScaricate > 0:
-					msg = "NLOG"+str(PartiNonScaricate).ljust(10)
+				if partiNonScaricate > 0:
+					msg = "NLOG"+str(partiNonScaricate).ljust(10)
 				else:
-					self.dbReader.execute("SELECT COUNT(IdParts) FROM Parts WHERE IPP2P=?",(self.myIPP2P,))
-					data = self.dbReader.fetchone()
-					if data is None:
-						PartiScaricate = 0
-					else:
-						PartiScaricate = int(data[0])
-					#elimino dal db l'utente e i suoi file
 					try:
-						self.dbReader.execute("SELECT IPP2P FROM user WHERE SessionID=?",(SessionID,))
-						data = self.dbReader.fetchone()					
-						IP_outer = data[0]
-						self.dbReader.execute("DELETE FROM Parts WHERE IPP2P=?", (IP_outer,))
-						self.dbReader.execute("DELETE FROM File WHERE SessionID=?", (SessionID,))
 						self.dbReader.execute("DELETE FROM user WHERE SessionID=?", (SessionID,))
-						msg = "ALOG" + str(PartiScaricate).ljust(10)
+						msg = "ALOG" + str(partiScaricate).ljust(10)
 					except OSError as e: 
 						print(e)						
 						print(color.fail+"Errore nell'eliminazione dell'utente e dei suoi file"+color.end)
-						msg = "NLOG" + str(PartiScaricate).ljust(10)
+						msg = "NLOG" + str(partiScaricate).ljust(10)
 				print(color.send + "Invio --> " + msg + color.end)
 				connection.sendall(msg.encode())
 				connection.close()					
