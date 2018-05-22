@@ -22,11 +22,8 @@ def clearAndSetDB(self):
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
 	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text, Downloaded text)")
 	#0 --> Parte non ancora scaricata
-	#1 --> Parte scaricata con successo
-	
-	
-	
-	
+	#1 --> Parte scaricata con successo		
+
 def setIp(n):
 	if n < 10:
 		n = "00"+str(n)
@@ -178,7 +175,9 @@ class serverUDPhandler(object):
 		peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 		self.dbReader.execute("SELECT Lenfile, Lenpart FROM File WHERE Filemd5 LIKE ?", ("%"+filemd5+"%",))
 		resultFile = self.dbReader.fetchone()	
-		nParts = int(resultFile[0])/int(resultFile[1])
+		nParts = int(int(resultFile[0])/int(resultFile[1]))
+		if (nParts % 8) > 0:
+			nParts = nParts + 1
 		lenBytes = int(nParts/8)
 		if (nParts % 8) > 0:
 			lenBytes = lenBytes + 1
@@ -228,14 +227,14 @@ class serverUDPhandler(object):
 			
 			elif command == "ADDR":
 				filename = self.sockUDPServer.recvfrom(100)[0].decode()
-				filename = var.setting.userPath+filename.strip()
-				filemd5 = encryptMD5(filename)
+				path = var.setting.userPath+filename.strip()
+				filemd5 = encryptMD5(path)
 				
-				fileSize = os.path.getsize(filename)
+				fileSize = os.path.getsize(path)
 				numParts = int((fileSize / self.lenPart) + 1)
 				
 				try:
-					fileToDivide = open(filename, 'rb')
+					fileToDivide = open(path, 'rb')
 				except OSError as e:
 					print(e)
 					self.sockUDPClient.sendto(("0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
@@ -280,11 +279,9 @@ class serverUDPhandler(object):
 							self.sockUDPClient.sendto(("1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 						else:
 							self.sockUDPClient.sendto(("0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-							time.sleep(10)
 				except:
 					print(color.fail+"Errore aggiunta file"+color.end)
 					self.sockUDPClient.sendto(("0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
-					time.sleep(10)
 
 			
 			elif command == "LOGI":
@@ -331,27 +328,31 @@ class serverUDPhandler(object):
 
 			
 			elif command == "FIND":
-				ricerca, useless = self.sockUDPServer.recvfrom(20).decode()
-				ricerca = ricerca.strip()
+				ricerca = self.sockUDPServer.recvfrom(20)[0].decode().strip()
 				sessionID = self.mySessionID 
-				msg = "LOOK" + sessionID + ricerca.ljust(20)
+				msg = "LOOK" + sessionID.ljust(16) + ricerca.ljust(20)
 				print("Invio messaggio -> " + msg + " a " + self.ServerIP + " alla porta " + self.ServerPORT)
 				peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 				command = peer_socket.recv(4).decode()
 				nIdMd5 = peer_socket.recv(3).decode()
 				if command == "ALOO":
+					print("Ricevuto <-- "+color.send+command+""+str(nIdMd5)+color.end)
 					i=0
 					while i < int(nIdMd5):
-						filemd5 = peer_socket.recv(32).decode()
-						filename = peer_socket.recv(100).decode()
-						print(filename)
-						lenfile = peer_socket.recv(10).decode()
-						lenpart = peer_socket.recv(6).decode()
-						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, Lenfile, Lenpart) values (?, ?, ?, ?)", (filemd5, filename, lenfile, lenpart))
+						filemd5 = peer_socket.recv(32).decode().strip()
+						filename = peer_socket.recv(100).decode().strip()
+						lenfile = peer_socket.recv(10).decode().strip()
+						lenpart = peer_socket.recv(6).decode().strip()
+						self.dbReader.execute("INSERT INTO File (Filemd5, Filename, Lenfile, Lenpart, SessionID) values (?, ?, ?, ?, ?)", (filemd5, filename, lenfile, lenpart, "okokokokokokokokokok"))
 						i = i + 1
 				self.sockUDPClient.sendto((str(nIdMd5)).ljust(3).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
-				#posso inserire la richiesta delle parti
+				print(color.green + "Ricerca completata. Trovati " +str(i-1) + " file." + color.end)
+				#dopo aver fatto la ricerca, chiedo dove si trovano le parti
+				self.dbReader.execute("SELECT Filemd5 FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
+				resultFile = self.dbReader.fetchall()
+				for files in resultFile:
+					self.gettingParts(self.mySessionID, files[0])
 			
 			elif command == "FDWN":
 				data, noused = self.sockUDPServer.recvfrom(20)
@@ -497,48 +498,62 @@ class serverUDPhandler(object):
 				print("\n")
 				totTime = time2 - time1
 				print(color.green + "Scaricato la parte " + idParts + color.end+" in "+str(int(totTime))+"s")			
+				
+				peer_socket.close()	
+				self.dbReader.execute("UPDATE Parts SET Downloaded=? where IPP2P=? AND IdParts=?",(1,self.myIPP2P,idParts))
+			
+				#la mando al server				
+				msg = "RPAD"+str(self.mySessionID).ljust(16)+filemd5.ljust(32)+idParts.ljust(8)
+				
+				#aspetto la risposta
+				try:
+					peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
+					command = peer_socket.recv(4).decode()
+					if command == "APAD":
+						nPart = peer_socket.recv(8).decode()
+						print("Ricevuto <-- "+color.send+"APAD"+str(nPart)+color.end)	
+				except:
+					print(color.fail+"Errore nella comunicazione con il server"+color.end)
+					
+				#Recupero le informazioni del file
+				self.dbReader.execute("SELECT Lenfile, Lenpart, Filename FROM File WHERE Filemd5=?", (filemd5,))
+				infoFile = self.dbReader.fetchone()
+				numPart = int(int(infoFile[0]) / int(infoFile[1])) + 1
+				#Conto quante parti ho
+				self.dbReader.execute("SELECT COUNT(Filemd5) FROM Parts WHERE Filemd5=? AND IPP2P=? AND Downloaded=?", (filemd5, self.myIPP2P, 1))
+				result = self.dbReader.fetchone()
+				#se ho tutte le parti compatto la foto 
+				if result[0] == numPart:
+					dirName = var.setting.userPath+""+filemd5+"/"
+					i = 1
+					data = "".encode()
+					while i <= numPart:
+						try:
+							fd = open(dirName+""+str(i), 'rb')
+						except OSError as e:
+							print(e)
+						data += fd.read()
+						#print(data)
+						sys.stdout.flush()
+						fd.close()
+						i += 1
+					try:
+						downloadDir = var.setting.userPath+"/download/"
+						if not os.path.exists(downloadDir):
+							os.makedirs(downloadDir)
+						fileToCompact = open(downloadDir+""+infoFile[2], 'wb')
+					except OSError as e:
+						print(e)
+					fileToCompact.write(data)
+					sys.stdout.flush()
+					fileToCompact.close()
+					self.sockUDPClient.sendto(("ARE1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
+				
 			except OSError:
 				print("Errore nella procedure di download parte --> ",idParts )
 				#se non funziona tolgo i file tra quelli a disposizione
 				self.dbReader.execute("DELETE FROM Parts WHERE IPP2P=? AND IdParts=?", (self.myIPP2P,idParts))
 				self.sockUDPClient.sendto(("ARE0").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))				
-			
-			peer_socket.close()	
-			self.dbReader.execute("UPDATE Parts SET Downloaded=? where IPP2P=? AND IdParts=?",(1,self.myIPP2P,idParts))
-			
-			#Recupero le informazioni del file
-			self.dbReader.execute("SELECT Lenfile, Lenpart, Filename FROM File WHERE Filemd5=?", (filemd5,))
-			infoFile = self.dbReader.fetchone()
-			numPart = int(int(infoFile[0]) / int(infoFile[1])) + 1
-			#Conto quante parti ho
-			self.dbReader.execute("SELECT COUNT(Filemd5) FROM Parts WHERE Filemd5=? AND IPP2P=? AND Downloaded=?", (filemd5, self.myIPP2P, 1))
-			result = self.dbReader.fetchone()
-			#se ho tutte le parti compatto la foto 
-			if result[0] == numPart:
-				dirName = var.setting.userPath+""+filemd5+"/"
-				i = 1
-				data = "".encode()
-				while i <= numPart:
-					try:
-						fd = open(dirName+""+str(i), 'rb')
-					except OSError as e:
-						print(e)
-					data += fd.read()
-					#print(data)
-					sys.stdout.flush()
-					fd.close()
-					i += 1
-				try:
-					downloadDir = var.setting.userPath+"/download/"
-					if not os.path.exists(downloadDir):
-						os.makedirs(downloadDir)
-					fileToCompact = open(downloadDir+""+infoFile[2], 'wb')
-				except OSError as e:
-					print(e)
-				fileToCompact.write(data)
-				sys.stdout.flush()
-				fileToCompact.close()
-				self.sockUDPClient.sendto(("ARE1").encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 
 	
 	def recvDownload(self, connection, client_address):
@@ -585,3 +600,5 @@ class serverUDPhandler(object):
 if __name__ == "__main__":
     serverUDP = serverUDPhandler()
 serverUDP.server()
+
+

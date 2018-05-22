@@ -19,155 +19,22 @@ def clearAndSetDB(self):
 	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text, SessionID text)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
 	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text, Downloaded text)")
-		# ************** DA TOGLIERE ************* #
-		
-	'''	
-	self.dbReader.execute("INSERT INTO File (Filemd5, Filename, SessionID, Lenfile,Lenpart ) values (?, ?, ?, ?, ?)", ("aaaabbbbccccddddeeeeffffgggghhhh", "PROVAAAAA", "okokokokokokokok", "500", "100"))
 	
-	self.dbReader.execute("INSERT INTO File (Filemd5, Filename, SessionID, Lenfile,Lenpart ) values (?, ?, ?, ?, ?)", ("xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "PornoXXX", "UkWzuXRVRABgY5vs", "300", "100"))
-	
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000003", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000004", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000005", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.002|fc00:0000:0000:0000:0000:0000:0005:0002","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000004", "0"))	
-	
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.003|fc00:0000:0000:0000:0000:0000:0005:0003","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000002", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.004|fc00:0000:0000:0000:0000:0000:0005:0004","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.005|fc00:0000:0000:0000:0000:0000:0005:0005","50000", "aaaabbbbccccddddeeeeffffgggghhhh", "00000001", "0"))
-	
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "00000001", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "00000002", "0"))
-	self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", ("172.016.005.001|fc00:0000:0000:0000:0000:0000:0005:0001","50000", "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", "00000003", "0"))
-	'''
-
 def closeServer(self):
 	time.sleep(0.1)
 	self.sockUDPServer.close()
 	self.sockUDPClient.close()
 	os._exit(0)
     
-def PktidGenerator():
-	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
-
-def setNumber(n):
-	if n < 10:
-		n = "0"+str(n)
-	return n
-
-def setCopy(copy):
-	if copy > 1000:
-		copy = 999
-	elif copy < 100 and copy > 9:
-		copy = "0"+str(copy)
-	elif copy < 10:
-		copy = "00"+str(copy)
-	return copy
-	
-def setIp(n):
-	if n < 10:
-		n = "00"+str(n)
-	elif n < 100:
-		n = "0"+str(n)
-	return n
-	
-def setIPv6(n):
-	if n < 10:
-		n = "000"+str(n)
-	elif n < 100:
-		n = "00"+str(n)
-	elif n < 1000:
-		n = "0"+str(n)
-	return n
-
-def progBar(i):
-	i = i+1
-	bar_length = 60
-	hashes = '#' * i * 3
-	spaces = ' ' * (bar_length - len(hashes))
-	sys.stdout.write("\r[{0}] {1}s".format(hashes + spaces, int(i)))			
-
-def splitIp(ip):
-	splitted = ip.split(".")
-	ip = str(int(splitted[0]))+"."+str(int(splitted[1]))+"."+str(int(splitted[2]))+"."+str(int(splitted[3]))
-	return ip
-	
-def encryptMD5(filename):
-	#calcolo hash file
-	BLOCKSIZE = 128
-	hasher = hashlib.md5()
-	with open(filename, 'rb') as f:
-		buf = f.read(BLOCKSIZE)
-		while len(buf) > 0:
-			hasher.update(buf)
-			buf = f.read(BLOCKSIZE)
-		f.close()
-	filemd5 = hasher.hexdigest()
-	return(filemd5)	
-
-def setConnection(ip, port, msg):
-	try:
-		rnd = random()
-		if(rnd<0.5):
-			ip = splitIp(ip[0:15])						
-			print(color.green+"Connessione IPv4:"+ip+" PORT:"+str(port)+color.end)
-			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-			peer_socket.connect((ip,port))		
-		else:
-			ip = ip[16:55]
-			print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
-			peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-			peer_socket.connect((ip, port))
-		
-		print("Invio --> "+color.send+msg+color.end)
-		peer_socket.send(msg.encode())
-		peer_socket.close()
-	except:
-		print("Nessun vicino trovato!")
-
-def setNotCloseConnection(ip, port, msg):
-	try:
-		rnd = random()
-		if(rnd<0.5):
-			ip = splitIp(ip[0:15])						
-			print(color.green+"Connessione IPv4:"+ip+ " PORT:"+str(port)+color.end)
-			peer_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-			peer_socket.connect((ip,port))
-		else:
-			ip = ip[16:55]
-			print(color.green+"Connetto con IPv6:"+ip+" PORT:"+str(port)+color.end);
-			peer_socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
-			peer_socket.connect((ip, port))
-		print("Invio --> "+color.send+msg+color.end)
-		peer_socket.sendall(msg.encode())
-	except:
-		print(color.fail+"Errore connessione 'not close'"+color.end)
-	return peer_socket
-
 def sessionIdGenerator():
 	return "".join(choice(string.ascii_letters + string.digits) for x in range(16))
 	
-def getTime(t):
-	a = str(datetime.datetime.now())
-	ht = int(t.split(" ")[1].split(":")[0]) * 60 * 60
-	mt = int(t.split(" ")[1].split(":")[1]) * 60
-	st = int(t.split(" ")[1].split(":")[2].split(".")[0])
-	time1 = ht + mt + st
-	ha = int(a.split(" ")[1].split(":")[0]) * 60 * 60
-	ma = int(a.split(" ")[1].split(":")[1]) * 60
-	sa = int(a.split(" ")[1].split(":")[2].split(".")[0])
-	time2 = ha + ma + sa
-	return time2 - time1
-
 class serverBitTorrent(object):
 	def __init__(self):
 		IP = ""
 		self.PORT = 3000
 		self.myIPP2P = var.setting.myIPP2P
 		self.timeDebug = var.setting.timeDebug
-		self.BUFF = 1024
 		self.UDP_END = ""
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -226,28 +93,32 @@ class serverBitTorrent(object):
 					msg = "ALGI"+SessionID
 					connection.sendall(msg.encode())
 					connection.close()
-
+			
 			elif command == "LOGO":
 				SessionID = connection.recv(16).decode()
 				PartiNonScaricate = 0
 				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
-				self.dbReader.execute("SELECT Filemd5,Lenfile,Lenpart FROM File WHERE SessionID=?",(SessionID,))
+				self.dbReader.execute("SELECT Filemd5, Lenfile, Lenpart FROM File WHERE SessionID=?",(SessionID,))
 				resultFile = self.dbReader.fetchall()
 				if resultFile is None:
 					print(color.green+ "Nessun File presente con SessionID "+ SessionID +color.end)
 				else:
-					for data in resultFile:	
-						Filemd5 = data[0]
-						nPart = int((int(data[1])/int(data[2]))+1)
-						self.dbReader.execute("SELECT DISTINCT COUNT(*) FROM Parts WHERE Filemd5=? AND IPP2P!=? ",(Filemd5,self.myIPP2P,))
+					for data in resultFile:
+						filemd5 = data[0]
+						nPart = int(int(data[1])/int(data[2]) +1)
+						print("NPARTI --> "+str(nPart))
+						self.dbReader.execute("SELECT DISTINCT COUNT(*) FROM Parts WHERE Filemd5=? AND IPP2P!=? ",(filemd5,self.myIPP2P,))
 						resultCount = self.dbReader.fetchone()
 						partiScaricate = int(resultCount[0])
-						if int(partiScaricate) == int(nPart):
+						print("Parti scaricate --> "+str(partiScaricate))
+						if partiScaricate == int(nPart):
 							#è possibile effetturare il logout per questo file
-							print(color.green+"Tutte le parti di - "+Filemd5+" -("+nPart+")- sono state scaricate" +color.end)
+							print(color.green+"Tutte le parti di - "+filemd5+" -("+nPart+")- sono state scaricate" +color.end)
 						else:
-							print(color.fail+"File: - "+Filemd5+" - non completamente scaricato - ("+str(nPart-partiScaricate)+")"+color.end)
+							print(color.fail+"File: "+filemd5+" non completamente scaricato. Rimangono "+str(nPart-partiScaricate)+" parti"+color.end)
 							PartiNonScaricate = PartiNonScaricate + int(nPart-partiScaricate)
+							print("PARTI NON SCARICATE --> "+str(PartiNonScaricate))
+				#print("PARTI NON SCARICATE --> "+str(PartiNonScaricate))
 				if PartiNonScaricate > 0:
 					msg = "NLOG"+str(PartiNonScaricate).ljust(10)
 				else:
@@ -265,12 +136,12 @@ class serverBitTorrent(object):
 						self.dbReader.execute("DELETE FROM Parts WHERE IPP2P=?", (IP_outer,))
 						self.dbReader.execute("DELETE FROM File WHERE SessionID=?", (SessionID,))
 						self.dbReader.execute("DELETE FROM user WHERE SessionID=?", (SessionID,))
+						msg = "ALOG" + str(PartiScaricate).ljust(10)
 					except OSError as e: 
 						print(e)						
 						print(color.fail+"Errore nell'eliminazione dell'utente e dei suoi file"+color.end)
-					finally:		
-						msg = "ALOG" + str(PartiScaricate).ljust(10)
-				print("Invio --> "+msg)
+						msg = "NLOG" + str(PartiScaricate).ljust(10)
+				print(color.send + "Invio --> " + msg + color.end)
 				connection.sendall(msg.encode())
 				connection.close()					
 							
@@ -287,15 +158,18 @@ class serverBitTorrent(object):
 					ricerca = ricerca.strip()
 					self.dbReader.execute("SELECT COUNT(Filemd5) FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
 					resultCount = self.dbReader.fetchone()
-					i = 0
+					#i = 0
 					msg="ALOO" + str(resultCount[0]).ljust(3)
 					if int(resultCount[0]) > 0:
 						self.dbReader.execute("SELECT filemd5, filename, Lenfile, Lenpart FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
 						resultFile = self.dbReader.fetchall()
 						for files in resultFile:
+							print("lenfile "+str(files[2])+"lenpart "+str(files[3]))
 							msg = msg + files[0].ljust(32) + files[1].ljust(100) + str(files[2]).ljust(10) + str(files[3]).ljust(6)
+				print("Invio --> "+msg)
 				connection.sendall(msg.encode())
 				connection.close()
+				
 				
 			elif command == "FCHU":
 				sessionID = connection.recv(16).decode()
@@ -335,17 +209,10 @@ class serverBitTorrent(object):
 							for ids in resultID:
 								partList = partList + (2**(nByte*8 - int(ids[0])))
 							#creo il messaggio
-							
 							msg = parts[0] + parts[1]
 							connection.sendall(msg.encode())
-							#print("MSG --> ", msg)
-							#print(bin(partList)[2:10])
-							#print(partList)
-							
 							connection.sendall((partList).to_bytes(nByte,byteorder='big'))
 							
-							#connessione valida solo per numeri minori di 255
-							#connection.sendall(bytes([partList]))
 				connection.close()
 				print("Invio completato.")
 				
@@ -356,22 +223,56 @@ class serverBitTorrent(object):
 					lenPart = int(connection.recv(6).decode())
 					filename = connection.recv(100).decode()
 					filemd5 = connection.recv(32).decode()
-					self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID) VALUES (?, ?, ?)",(filemd5, filename, sessionID))
-					print(color.green+"Inserito nuovo file dal peer -> "+color.green+sessionID+color.end)
+					self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID, Lenfile, Lenpart) VALUES (?, ?, ?, ?, ?)",(filemd5, filename, sessionID, lenFile, lenPart))
+					print(color.green+"Inserito nuovo file dal peer -> "+color.green+color.recv+sessionID+color.end)
 					numPart = int((lenFile / lenPart) + 1)
 					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
 					data = self.dbReader.fetchone()
 					i = 1
 					while i <= numPart:
 						self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, str(i)))
-						i += 1	
-					print(color.green+"# Parti salvate -> "+str(i)+color.end)
+						i += 1
+					i -= 1
+					print("Numero parti salvate -> "+str(i))
 					msg = "AADR"+str(numPart).ljust(8)
 					print("Invio --> "+color.send+msg+color.end)
 					connection.sendall(msg.encode())
 					connection.close()
 				except:
 					print(color.fail+"Errore invio "+color.recv+"AADR"+color.end)
+					connection.close()
+					
+			elif command == "RPAD":
+				print("\n\nRicevuto: "+color.recv+command+color.end)
+				try:
+					sessionID = connection.recv(16).decode()
+					filemd5 = connection.recv(32).decode()
+					
+					idParts = connection.recv(8).decode().strip()
+					print("\n\nRicevuto: "+color.recv+sessionID+" "+filemd5+" "+idParts+" "+color.end)
+					
+					#cerco ip e port
+					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
+					data = self.dbReader.fetchone()
+
+					#verifico se ho la parte
+					self.dbReader.execute("SELECT * FROM parts WHERE IPP2P=? AND Filemd5=? AND idParts=?", (data[0],filemd5,idParts))					
+					result = self.dbReader.fetchone()
+					if result is None:
+						#aggiungo la parte
+						self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, idParts))
+						print(color.green+"Aggiunta parte "+idParts+ color.green+" da "+sessionID+color.end)
+					else:
+						print(color.fail+"Parte "+idParts+ color.fail+" da "+sessionID+color.end+"già presente")
+					self.dbReader.execute("SELECT COUNT(IdParts) FROM parts WHERE IPP2P=? AND Filemd5=?", (data[0], filemd5))
+					numPart = self.dbReader.fetchone()[0]
+					print("NUMPART ->",numPart)
+					msg = "APAD"+str(numPart).ljust(8)
+					print("Invio --> "+color.send+msg+color.end)
+					connection.sendall(msg.encode())
+					connection.close()
+				except:
+					print(color.fail+"Errore invio "+color.recv+"APAD"+color.end)
 					connection.close()
 		except:
 			connection.close()

@@ -788,7 +788,6 @@ class Kazaa(object):
 					msg = "ARET" + str(num).zfill(6)
 					
 					print ('Trasferimento iniziato di ', resultFile[0], ' [BYTES ', filesize, ']')
-					print(5)
 					#funzione progressBar
 					connection.send(msg.encode())
 					i = 0
