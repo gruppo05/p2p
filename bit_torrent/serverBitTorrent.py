@@ -224,22 +224,34 @@ class serverBitTorrent(object):
 					lenPart = int(connection.recv(6).decode())
 					filename = connection.recv(100).decode()
 					filemd5 = connection.recv(32).decode()
-					self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID, Lenfile, Lenpart) VALUES (?, ?, ?, ?, ?)",(filemd5, filename, sessionID, lenFile, lenPart))
-					print(color.green+"Inserito nuovo file dal peer -> "+color.green+color.recv+sessionID+color.end)
-					numPart = int((lenFile / lenPart) + 1)
-					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
-					data = self.dbReader.fetchone()
-					i = 1
-					while i <= numPart:
-						self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, str(i)))
-						i += 1
-					msg = "AADR"+str(numPart).ljust(8)
-					print("Invio --> "+color.send+msg+color.end)
-					connection.sendall(msg.encode())
-					connection.close()
+					
+					self.dbReader.execute("SELECT Filemd5 FROM File WHERE Filemd5=?", (filemd5,))
+					result = self.dbReader.fetchone()
+					if result is None:
+						self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID, Lenfile, Lenpart) VALUES (?, ?, ?, ?, ?)",(filemd5, filename, sessionID, lenFile, lenPart))
+						print(color.green+"Inserito nuovo file dal peer -> "+color.green+color.recv+sessionID+color.end)
+						numPart = int((lenFile / lenPart) + 1)
+						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
+						data = self.dbReader.fetchone()
+						i = 1
+						while i <= numPart:
+							self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, str(i)))
+							i += 1
+						msg = "AADR"+str(numPart).ljust(8)
+						print("Invio --> "+color.send+msg+color.end)
+						connection.sendall(msg.encode())
+						connection.close()
+					else:
+						print(color.fail+"File già presente"+color.end)
+						numPart = int((lenFile / lenPart) + 1)
+						msg = "AADR"+str(numPart).ljust(8)
+						print("Invio --> "+color.send+msg+color.end)
+						connection.sendall(msg.encode())
+						connection.close()
 				except:
 					print(color.fail+"Errore invio "+color.recv+"AADR"+color.end)
 					connection.close()
+					
 					
 			elif command == "RPAD":
 				try:

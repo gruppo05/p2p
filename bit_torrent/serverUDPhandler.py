@@ -104,6 +104,21 @@ def encryptMD5(filename):
 	filemd5IP = hasher.hexdigest()
 	return(filemd5)	
 
+def calcID(self, partList, lenBytes):
+	if partList == 1:
+		return lenBytes, (partList-1)
+	else:
+		idParts = lenBytes
+		lenParts = 1
+		while lenParts <= partList:
+			idParts = idParts - 1
+			lenParts = lenParts * 2
+		idParts = idParts + 1
+		lenParts = lenParts/2	
+		partList = partList - lenParts
+		return idParts, partList
+		
+		
 class serverUDPhandler(object):
 	def __init__(self):
 		self.ServerIP = ""
@@ -156,20 +171,6 @@ class serverUDPhandler(object):
 				threading.Thread(target = self.recvDownload, args = (connection,client_address)).start()
 			except:
 				return False
-				
-	def calcID(self, partList, lenBytes):
-		if partList == 1:
-			return lenBytes, (partList-1)
-		else:
-			idParts = lenBytes
-			lenParts = 1
-			while lenParts <= partList:
-				idParts = idParts - 1
-				lenParts = lenParts * 2
-			idParts = idParts + 1
-			lenParts = lenParts/2	
-			partList = partList - lenParts
-			return idParts, partList
 		
 	def gettingParts(self, sessionID, filemd5):
 		print("Aggiornamento parti in corso..")
