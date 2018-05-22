@@ -34,8 +34,7 @@ def printMenu():
 	print("« 2 » RICERCA FILE")
 	print("« 3 » SCARICA FILE")
 	print("« 4 » STAMPA PARTI RICHIESTE AL SERVER")
-	print("« 5 » LOGOUT")
-	print(color.fail+"« 0 » CHIUDI IL CLIENT"+color.end)
+	print(color.fail+"« 0 » LOGOUT E CHIUDI"+color.end)
 	
 def setIp(n):
 	if n < 10:
@@ -97,12 +96,7 @@ class clientBitTorrent(object):
 			except:
 				continue
 			
-			if cmd is "0":
-				print(color.recv+"CHIUSURA CLIENT"+color.end)
-				#self.sockUDPServer.sendto(("LOGO").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
-				stopServer(self)
-
-			elif cmd is "1":
+			if cmd is "1":
 				print(color.recv+"AGGIUNGI FILE"+color.end)
 				filename = input("Inserisci nome del file da condividere: ")
 				try:
@@ -182,18 +176,21 @@ class clientBitTorrent(object):
 				print(color.recv+"STMC"+color.end)
 				self.sockUDPServer.sendto(("STMC").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 			
-			elif cmd is "5":
+			elif cmd is "0":
 				print(color.recv + "LOGOUT" + color.end)
 				self.sockUDPServer.sendto(("LOGO").encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				answer = self.sockUDPClient.recvfrom(4)[0].decode()
 				parti = self.sockUDPClient.recvfrom(10)[0].decode()
+				print("Ricevuto <-- "+color.send+str(answer)+str(parti)+color.end)
 				if answer == "NLOG":
-					print(color.fail + "NON possibile effettuare il logout" + color.end)
-					print(color.fail + "parti ancora da scaricare: " + color.recv + str(parti) + color.end)
+					print(color.fail + "IMPOSSIBILE EFFETTUARE IL LOGOUT" + color.end)
+					print(color.fail + "Parti ancora in condivisione: " + color.recv + str(parti) + color.end)
 				if answer == "ALOG":
 					#print(color.green + "LOGOUT" + color.end)
-					print(color.green + "parti scaricate completamente: " + str(parti) + color.end)
+					print(color.green + "Tutte le parti sono già in condivisione da altri."+color.end)
+					print(color.recv+"CHIUSURA CLIENT"+color.end)
 					stopServer(self)
+
 			
 if __name__ == "__main__":
     client = clientBitTorrent()
