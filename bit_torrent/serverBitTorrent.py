@@ -100,6 +100,8 @@ class serverBitTorrent(object):
 				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + SessionID + color.end)
 				self.dbReader.execute("SELECT Filemd5, Lenfile, Lenpart FROM File WHERE SessionID=?",(SessionID,))
 				resultFile = self.dbReader.fetchall()
+				self.dbReader.execute("SELECT IPP2P FROM User WHERE SessionID LIKE ?", (SessionID,))
+				ip = self.dbReader.fetchone()
 				if resultFile is None:
 					print(color.green+ "Nessun File presente con SessionID "+ SessionID +color.end)
 				else:
@@ -107,13 +109,15 @@ class serverBitTorrent(object):
 						filemd5 = data[0]
 						nPart = int(int(data[1])/int(data[2]) +1)
 						print("NPARTI --> "+str(nPart))
-						self.dbReader.execute("SELECT DISTINCT COUNT(*) FROM Parts WHERE Filemd5=? AND IPP2P!=? ",(filemd5,self.myIPP2P,))
+						print(ip)
+						self.dbReader.execute("SELECT DISTINCT COUNT(*) FROM Parts WHERE Filemd5=? AND IPP2P LIKE ? ",(filemd5,ip,))
 						resultCount = self.dbReader.fetchone()
+						print(resultCount[0])
 						partiScaricate = int(resultCount[0])
 						print("Parti scaricate --> "+str(partiScaricate))
 						if partiScaricate == int(nPart):
 							#è possibile effetturare il logout per questo file
-							print(color.green+"Tutte le parti di - "+filemd5+" -("+nPart+")- sono state scaricate" +color.end)
+							print(color.green+"Tutte le parti di - "+Str(filemd5)+" -("+str(nPart)+")- sono state scaricate" +color.end)
 						else:
 							print(color.fail+"File: "+filemd5+" non completamente scaricato. Rimangono "+str(nPart-partiScaricate)+" parti"+color.end)
 							PartiNonScaricate = PartiNonScaricate + int(nPart-partiScaricate)
@@ -224,22 +228,34 @@ class serverBitTorrent(object):
 					lenPart = int(connection.recv(6).decode())
 					filename = connection.recv(100).decode()
 					filemd5 = connection.recv(32).decode()
-					self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID, Lenfile, Lenpart) VALUES (?, ?, ?, ?, ?)",(filemd5, filename, sessionID, lenFile, lenPart))
-					print(color.green+"Inserito nuovo file dal peer -> "+color.green+color.recv+sessionID+color.end)
-					numPart = int((lenFile / lenPart) + 1)
-					self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
-					data = self.dbReader.fetchone()
-					i = 1
-					while i <= numPart:
-						self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, str(i)))
-						i += 1
-					msg = "AADR"+str(numPart).ljust(8)
-					print("Invio --> "+color.send+msg+color.end)
-					connection.sendall(msg.encode())
-					connection.close()
+					
+					self.dbReader.execute("SELECT Filemd5 FROM File WHERE Filemd5=?", (filemd5,))
+					result = self.dbReader.fetchone()
+					if result is None:
+						self.dbReader.execute("INSERT INTO file (Filemd5, Filename, SessionID, Lenfile, Lenpart) VALUES (?, ?, ?, ?, ?)",(filemd5, filename, sessionID, lenFile, lenPart))
+						print(color.green+"Inserito nuovo file dal peer -> "+color.green+color.recv+sessionID+color.end)
+						numPart = int((lenFile / lenPart) + 1)
+						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
+						data = self.dbReader.fetchone()
+						i = 1
+						while i <= numPart:
+							self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, str(i)))
+							i += 1
+						msg = "AADR"+str(numPart).ljust(8)
+						print("Invio --> "+color.send+msg+color.end)
+						connection.sendall(msg.encode())
+						connection.close()
+					else:
+						print(color.fail+"File già presente"+color.end)
+						numPart = int((lenFile / lenPart) + 1)
+						msg = "AADR"+str(numPart).ljust(8)
+						print("Invio --> "+color.send+msg+color.end)
+						connection.sendall(msg.encode())
+						connection.close()
 				except:
 					print(color.fail+"Errore invio "+color.recv+"AADR"+color.end)
 					connection.close()
+					
 					
 			elif command == "RPAD":
 				try:

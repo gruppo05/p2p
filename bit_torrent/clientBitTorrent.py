@@ -141,7 +141,7 @@ class clientBitTorrent(object):
 			
 			elif cmd is "3":
 				print("DOWNLOAD")
-				ricerca = input("Quale file vuoi scaricare?")
+				ricerca = input("Inserisci numero del file da scaricare: ")
 				msg = "FDWN"
 				self.sockUDPServer.sendto(msg.encode(), (self.UDP_IP, self.UDP_PORT_SERVER))
 				msg = ricerca.ljust(20)
