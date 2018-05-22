@@ -169,7 +169,7 @@ class serverUDPhandler(object):
 			return idParts, partList
 		
 	def gettingParts(self, sessionID, filemd5):
-		print("Scaricamento parti in corso..")
+		print("Aggiornamento parti in corso..")
 		msg = "FCHU" + sessionID.ljust(16) + filemd5.ljust(32)
 		peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 		self.dbReader.execute("SELECT Lenfile, Lenpart FROM File WHERE Filemd5 LIKE ?", ("%"+filemd5+"%",))
@@ -187,18 +187,12 @@ class serverUDPhandler(object):
 			hitpeer = int(hitpeer.decode())
 			if hitpeer > 0 :
 				i = 0
-				#print("hitpeer: " + str(hitpeer))
 				while i < hitpeer:
-					print("Scaricamento: "+str(i+1)+"° FCHU")
 					ipp2p = peer_socket.recv(55).decode()
 					pp2p = peer_socket.recv(5).decode()
-					#print("ip: " + str(ipp2p) + " p: "+str(pp2p))
-					#partList = peer_socket.recv(lenBit)
 					partList = int.from_bytes(peer_socket.recv(lenBytes), 'big')
-					#print(partList)
 					while partList > 0:
 						idParts, partList = self.calcID(partList, (lenBytes*8))
-						#print("Sto inserendo la parte " + str(idParts)+" che appartiene al peer " + str(ipp2p))
 						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, idParts))
 					i = i + 1
 		peer_socket.close()
