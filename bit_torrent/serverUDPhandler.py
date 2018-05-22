@@ -189,11 +189,10 @@ class serverUDPhandler(object):
 				i = 0
 				#print("hitpeer: " + str(hitpeer))
 				while i < hitpeer:
-					print("Scaricamento: "+str(i+1)+"/"+str(hitpeer))
+					print("Scaricamento: "+str(i+1)+"° FCHU")
 					ipp2p = peer_socket.recv(55).decode()
 					pp2p = peer_socket.recv(5).decode()
 					#print("ip: " + str(ipp2p) + " p: "+str(pp2p))
-					time.sleep(5)
 					#partList = peer_socket.recv(lenBit)
 					partList = int.from_bytes(peer_socket.recv(lenBytes), 'big')
 					#print(partList)
@@ -346,12 +345,13 @@ class serverUDPhandler(object):
 						i = i + 1
 				self.sockUDPClient.sendto((str(nIdMd5)).ljust(3).encode(), (self.UDP_IP, self.UDP_PORT_CLIENT))
 				peer_socket.close()
-				print(color.green + "Ricerca completata. Trovati " +str(i-1) + " file." + color.end)
+				print(color.green + "Ricerca completata. Trovati " +str(i) + " file." + color.end)
 				#dopo aver fatto la ricerca, chiedo dove si trovano le parti
 				self.dbReader.execute("SELECT Filemd5 FROM File WHERE Filename LIKE ?", ("%"+ricerca+"%",))
 				resultFile = self.dbReader.fetchall()
 				for files in resultFile:
 					self.gettingParts(self.mySessionID, files[0])
+				print(color.green + "Ricerca parti completata." + color.end)
 			
 			elif command == "FDWN":
 				data, noused = self.sockUDPServer.recvfrom(20)
