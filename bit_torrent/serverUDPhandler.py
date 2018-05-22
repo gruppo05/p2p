@@ -44,21 +44,6 @@ def splitIp(ip):
 	splitted = ip.split(".")
 	ip = str(int(splitted[0]))+"."+str(int(splitted[1]))+"."+str(int(splitted[2]))+"."+str(int(splitted[3]))
 	return ip
-
-	
-def encryptMD5(self, filename):
-	#calcolo hash file
-	BLOCKSIZE = 128
-	hasher = hashlib.md5()
-	with open(filename, 'rb') as f:
-		buf = f.read(BLOCKSIZE)
-		while len(buf) > 0:
-			hasher.update(buf)
-			buf = f.read(BLOCKSIZE)
-		f.close()
-	hasher.update(self.myIPP2P.encode())
-	filemd5 = hasher.hexdigest()
-	return(filemd5)
 	
 def setConnection(ip, port, msg):
 	try:
@@ -103,7 +88,7 @@ def encryptMD5(filename):
 	filemd5 = hasher.hexdigest()
 	hasher.update((var.setting.myIPP2P).encode())
 	filemd5IP = hasher.hexdigest()
-	return(filemd5)	
+	return filemd5IP	
 
 def calcID(partList, lenBytes):
 	if partList == 1:
@@ -410,12 +395,12 @@ class serverUDPhandler(object):
 					
 				while count <= numPart:
 					#recupero tutti le parti necessarie ...  <--------------- ordinate per minori risultati
-
 					self.dbReader.execute("SELECT COUNT(IdParts) as Seed, IdParts, IPP2P, PP2P, Filemd5 FROM Parts WHERE IPP2P!=? AND Filemd5=? AND IdParts NOT IN (SELECT IdParts FROM Parts WHERE IPP2P=?) GROUP BY IdParts ORDER BY Seed ASC", (self.myIPP2P, Filemd5, self.myIPP2P))
 					resultParts = self.dbReader.fetchone()
 					
 					#se non ho già quella parte la chiedo
 					if resultParts is not None:
+						print("PARTE", resultParts[1], "trovati", resultParts[0])
 						#inserisco la parte nel db con Downloaded--> 0, se la ricevo aggiorno il db e metto 1
 						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", (self.myIPP2P,self.PORT,Filemd5,resultParts[1], 0))
 						msg = "RETP" + str(Filemd5).ljust(32)+str(resultParts[1]).ljust(8)
@@ -624,7 +609,7 @@ class serverUDPhandler(object):
 				else: 
 					print("Parte non trovata!")
 			except:
-				print(color.fail+"Errore nell'upload. Il file potrebbe non essere stato scaricato con successo!"+color.end)
+				print(color.fail+"Errore nell'upload parte"+idParts+". Il file potrebbe non essere stato scaricato con successo!"+color.end)
 					
 if __name__ == "__main__":
     serverUDP = serverUDPhandler()
