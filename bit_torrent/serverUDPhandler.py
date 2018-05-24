@@ -20,7 +20,7 @@ def clearAndSetDB(self):
 	
 	self.dbReader.execute("CREATE TABLE User (IPP2P text, PP2P text, SessionID text)")
 	self.dbReader.execute("CREATE TABLE File (Filemd5 text, Filename text, SessionID text, Lenfile text, Lenpart text)")
-	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text, Downloaded text)")
+	self.dbReader.execute("CREATE TABLE Parts (IPP2P text, PP2P text, Filemd5 text, IdParts text)")
 	#0 --> Parte non ancora scaricata
 	#1 --> Parte scaricata con successo		
 
@@ -120,11 +120,14 @@ class serverUDPhandler(object):
 		self.UDP_END = ""
 		self.timeDebug = var.setting.timeDebug
 		self.BUFF = 1024
-		self.lenPart = 4096
+		self.lenPart = 262144
 		
 		#thread lock
-		self.lock = threading.Lock()
+		self.lockA = threading.Lock()
+		self.lockB = threading.Lock()
 		self.nThread  = 0
+		
+		self.globalTime = 0
 		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -394,45 +397,41 @@ class serverUDPhandler(object):
 				else:
 					count = int(data[0]) +1
 				
-				while count <= numPart:
-					if self.nThread < 10:
-						#recupero tutti le parti necessarie ...  <--------------- ordinate per minori risultati
-						self.dbReader.execute("SELECT COUNT(IdParts) as Seed, IdParts, IPP2P, PP2P, Filemd5 FROM Parts WHERE IPP2P!=? AND Filemd5=? AND IdParts NOT IN (SELECT IdParts FROM Parts WHERE IPP2P=?) GROUP BY IdParts ORDER BY Seed, IdParts ASC", (self.myIPP2P, Filemd5, self.myIPP2P))
-						resultParts = self.dbReader.fetchone()
-						idParts = resultParts[1]
-						ip = resultParts[2]
-						port = resultParts[3]
+				
+				self.dbReader.execute("SELECT COUNT(IdParts) as Seed, IdParts, IPP2P, PP2P, Filemd5 FROM Parts WHERE IPP2P!=? AND Filemd5=? AND IdParts NOT IN (SELECT IdParts FROM Parts WHERE IPP2P=?) GROUP BY IdParts ORDER BY Seed, IdParts ASC", (self.myIPP2P, Filemd5, self.myIPP2P))
+				data = self.dbReader.fetchall()
+				self.globalTime = time.time()
+				for resultParts in data:
+					while True:
+						if self.nThread < 50:
+							idParts = resultParts[1]
+							ip = resultParts[2]
+							port = resultParts[3]
 					
-						#se non ho già quella parte la chiedo
-						if resultParts is not None:
-							if resultParts[0] > 1:
-								#se ho più risultati seleziono randomicamente IP 
-								rnd = randint(1, int(resultParts[0])) - 1 
-								self.dbReader.execute("SELECT IPP2P, PP2P FROM Parts WHERE IdParts=? LIMIT 1 OFFSET ?", (resultParts[0], rnd))
-								resultParts = self.dbReader.fetchone()
-								#aggiorno ip e port con quello casuale
-								ip = resultParts[0]
-								port = resultParts[1]
+							#se non ho già quella parte la chiedo
+							if resultParts is not None:
+								if resultParts[0] > 1:
+									#se ho più risultati seleziono randomicamente IP 
+									rnd = randint(1, int(resultParts[0])) - 1 
+									self.dbReader.execute("SELECT IPP2P, PP2P FROM Parts WHERE IdParts=? LIMIT 1 OFFSET ?", (resultParts[0], rnd))
+									resultParts = self.dbReader.fetchone()
+									#aggiorno ip e port con quello casuale
+									ip = resultParts[0]
+									port = resultParts[1]
 							
-							#inserisco la parte nel db con Downloaded--> 0, se la ricevo aggiorno il db e metto 1
-							self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", (self.myIPP2P,self.PORT,Filemd5,idParts, 0))
-							msg = "RETP" + str(Filemd5).ljust(32)+str(idParts).ljust(8)
-							try:
-								threading.Thread(target = self.download, args = (ip, int(port), msg)).start()
-								self.nThread += 1
-							except:
-								print("Errore nell'esecuzione del thread")
-						else:
-							print("Ho già quel file")
-						count = count +1
-						'''
-						n = 0;
-						while n < 20:
-							time.sleep(0.1)
-							n = n+1
-						'''
-					else:
-						time.sleep(0.1)
+								#inserisco la parte nel db con Downloaded--> 0, se la ricevo aggiorno il db e metto 1
+
+								msg = "RETP" + str(Filemd5).ljust(32)+str(idParts).ljust(8)
+								try:
+									threading.Thread(target = self.download, args = (ip, int(port), msg)).start()
+									self.nThread += 1
+								except:
+									print("Errore nell'esecuzione del thread")
+								finally:
+									break
+							else:
+								print("Ho già quel file")
+							break
 					
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
@@ -529,9 +528,8 @@ class serverUDPhandler(object):
 				
 				try:
 					#accesso in muta esclusione per aggiornamento server
-					self.lock.acquire(True)
-					self.dbReader.execute("UPDATE Parts SET Downloaded=? where IPP2P=? AND IdParts=?",(1,self.myIPP2P,idParts))
-				
+					self.lockA.acquire(True)
+					self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (self.myIPP2P,self.PORT,filemd5,idParts))
 					#la mando al server				
 					msg = "RPAD"+str(self.mySessionID).ljust(16)+filemd5.ljust(32)+idParts.ljust(8)
 				
@@ -544,16 +542,16 @@ class serverUDPhandler(object):
 				except:
 					print(color.fail+"Errore nella comunicazione con il server"+color.end)
 				finally:
-					self.lock.release()
+					self.lockA.release()
 					
 				#Recupero le informazioni del file con un mutex
 				try:
-					self.lock.acquire(True)
+					self.lockB.acquire(True)
 					self.dbReader.execute("SELECT Lenfile, Lenpart, Filename FROM File WHERE Filemd5=?", (filemd5,))
 					infoFile = self.dbReader.fetchone()
 					numPart = int(int(infoFile[0]) / int(infoFile[1])) + 1
 					#Conto quante parti ho
-					self.dbReader.execute("SELECT COUNT(Filemd5) FROM Parts WHERE Filemd5=? AND IPP2P=? AND Downloaded=?", (filemd5, self.myIPP2P, 1))
+					self.dbReader.execute("SELECT COUNT(Filemd5) FROM Parts WHERE Filemd5=? AND IPP2P=?", (filemd5, self.myIPP2P))
 					result = self.dbReader.fetchone()
 					#se ho tutte le parti compatto la foto 
 					if result[0] == numPart:
@@ -580,16 +578,18 @@ class serverUDPhandler(object):
 						fileToCompact.write(data)
 						sys.stdout.flush()
 						fileToCompact.close()
-						print("\n********************** Fine download **********************\n")
+						timer = time.time()
+						finalTime = timer - self.globalTime
+						print("\n********************** Fine download in "+str(finalTime)+" **********************\n")
+						
 				except:
 					print("Errore mutex")
 				finally:
-					self.lock.release()					
+					self.lockB.release()					
 				
 			except OSError:
 				print("Errore nella procedure di download parte --> ",idParts )
 				#se non funziona tolgo i file tra quelli a disposizione
-				self.dbReader.execute("DELETE FROM Parts WHERE IPP2P=? AND IdParts=?", (self.myIPP2P,idParts))
 
 	
 	def upload(self, connection, client_address):
