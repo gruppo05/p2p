@@ -88,7 +88,7 @@ def encryptMD5(filename):
 	filemd5 = hasher.hexdigest()
 	hasher.update((var.setting.myIPP2P).encode())
 	filemd5IP = hasher.hexdigest()
-	return filemd5IP	
+	return filemd5IP
 
 def calcID(partList, lenBytes):
 	if partList == 1:
@@ -120,10 +120,11 @@ class serverUDPhandler(object):
 		self.UDP_END = ""
 		self.timeDebug = var.setting.timeDebug
 		self.BUFF = 1024
-		self.lenPart = 262144
+		self.lenPart = 4096
 		
 		#thread lock
 		self.lock = threading.Lock()
+		self.nThread  = 0
 		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -392,43 +393,47 @@ class serverUDPhandler(object):
 					count = 1
 				else:
 					count = int(data[0]) +1
-					
+				
 				while count <= numPart:
-					#recupero tutti le parti necessarie ...  <--------------- ordinate per minori risultati
-					self.dbReader.execute("SELECT COUNT(IdParts) as Seed, IdParts, IPP2P, PP2P, Filemd5 FROM Parts WHERE IPP2P!=? AND Filemd5=? AND IdParts NOT IN (SELECT IdParts FROM Parts WHERE IPP2P=?) GROUP BY IdParts ORDER BY Seed, IdParts ASC", (self.myIPP2P, Filemd5, self.myIPP2P))
-					resultParts = self.dbReader.fetchone()
-					idParts = resultParts[1]
-					ip = resultParts[2]
-					port = resultParts[3]
+					if self.nThread < 10:
+						#recupero tutti le parti necessarie ...  <--------------- ordinate per minori risultati
+						self.dbReader.execute("SELECT COUNT(IdParts) as Seed, IdParts, IPP2P, PP2P, Filemd5 FROM Parts WHERE IPP2P!=? AND Filemd5=? AND IdParts NOT IN (SELECT IdParts FROM Parts WHERE IPP2P=?) GROUP BY IdParts ORDER BY Seed, IdParts ASC", (self.myIPP2P, Filemd5, self.myIPP2P))
+						resultParts = self.dbReader.fetchone()
+						idParts = resultParts[1]
+						ip = resultParts[2]
+						port = resultParts[3]
 					
-					#se non ho già quella parte la chiedo
-					if resultParts is not None:
-						if resultParts[0] > 1:
-							#se ho più risultati seleziono randomicamente IP 
-							rnd = randint(1, int(resultParts[0])) - 1 
-							self.dbReader.execute("SELECT IPP2P, PP2P FROM Parts WHERE IdParts=? LIMIT 1 OFFSET ?", (resultParts[0], rnd))
-							resultParts = self.dbReader.fetchone()
-							#aggiorno ip e port con quello casuale
-							ip = resultParts[0]
-							port = resultParts[1]
+						#se non ho già quella parte la chiedo
+						if resultParts is not None:
+							if resultParts[0] > 1:
+								#se ho più risultati seleziono randomicamente IP 
+								rnd = randint(1, int(resultParts[0])) - 1 
+								self.dbReader.execute("SELECT IPP2P, PP2P FROM Parts WHERE IdParts=? LIMIT 1 OFFSET ?", (resultParts[0], rnd))
+								resultParts = self.dbReader.fetchone()
+								#aggiorno ip e port con quello casuale
+								ip = resultParts[0]
+								port = resultParts[1]
 							
-						#inserisco la parte nel db con Downloaded--> 0, se la ricevo aggiorno il db e metto 1
-						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", (self.myIPP2P,self.PORT,Filemd5,idParts, 0))
-						msg = "RETP" + str(Filemd5).ljust(32)+str(idParts).ljust(8)
-						try:
-							threading.Thread(target = self.download, args = (ip, int(port), msg)).start()
-						except:
-							print("Errore nell'esecuzione del thread")
+							#inserisco la parte nel db con Downloaded--> 0, se la ricevo aggiorno il db e metto 1
+							self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts, Downloaded) values (?,?, ?, ?, ?)", (self.myIPP2P,self.PORT,Filemd5,idParts, 0))
+							msg = "RETP" + str(Filemd5).ljust(32)+str(idParts).ljust(8)
+							try:
+								threading.Thread(target = self.download, args = (ip, int(port), msg)).start()
+								self.nThread += 1
+							except:
+								print("Errore nell'esecuzione del thread")
+						else:
+							print("Ho già quel file")
+						count = count +1
+						'''
+						n = 0;
+						while n < 20:
+							time.sleep(0.1)
+							n = n+1
+						'''
 					else:
-						print("Ho già quel file")
-					count = count +1
-
-					'''n = 0;
-					while n < 5:
-						time.sleep(self.timeDebug)
-						n = n+1
-					'''
-
+						time.sleep(0.1)
+					
 			elif command == "STOP":
 				print(color.fail+"Server fermato"+color.end)
 				self.sockUDPServer.close()
@@ -482,37 +487,46 @@ class serverUDPhandler(object):
 		if command == "AREP":
 			print("Ricevuto "+color.recv+"AREP"+color.end)
 			try:
-				#dal messaggio inviato estraggo l'identificativo
-				dirName = var.setting.userPath+"/"+filemd5+"/"
-				if not os.path.exists(dirName):
-					os.makedirs(dirName)
+				try:
+					#dal messaggio inviato estraggo l'identificativo
+					dirName = var.setting.userPath+"/"+filemd5+"/"
+					if not os.path.exists(dirName):
+						os.makedirs(dirName)
 					
-				fd = open(dirName + "" + idParts, 'wb')
-				numChunk = peer_socket.recv(6).decode()
-				numChunk = int(numChunk)
-				i = 0
-				print("Inizio download parte --> ",idParts)
-				bar_length = 60
-				time1 = time.time()
-				while i < numChunk:
-					lun = peer_socket.recv(5).decode()
-					while len(lun) < 5:
-						lun = lun + peer_socket.recv(1).decode()
-					lun = int(lun)
-					data = peer_socket.recv(lun)
-					while len(data) < lun:
-						data += peer_socket.recv(1)
-					fd.write(data)
-					i = i + 1
+					fd = open(dirName + "" + idParts, 'wb')
+					numChunk = peer_socket.recv(6).decode()
+					numChunk = int(numChunk)
+					i = 0
+					print("Inizio download parte --> ",idParts)
+					bar_length = 60
+					time1 = time.time()
+					while i < numChunk:
+						lun = peer_socket.recv(5).decode()
+						while len(lun) < 5:
+							lun = lun + peer_socket.recv(1).decode()
+						lun = int(lun)
+						data = peer_socket.recv(lun)
+						while len(data) < lun:
+							data += peer_socket.recv(1)
+						fd.write(data)
+						i = i + 1
 
-				time2 = time.time()
-				sys.stdout.flush()
-				fd.close()
-				print("\n")
-				totTime = time2 - time1
-				print(color.green + "Scaricato <-- parte " + idParts + color.end+" (time: "+str(int(totTime))+"s)")			
+					time2 = time.time()
+					sys.stdout.flush()
+					fd.close()
+					print("\n")
+					totTime = time2 - time1
+					print(color.green + "Scaricato <-- parte " + idParts + color.end+" (time: "+str(int(totTime))+"s)")			
 				
-				peer_socket.close()	
+					peer_socket.close()	
+					#libero il thread
+				except:
+					print("Errore durante la fase di scaricamento")
+				finally:
+					#libero il thread
+					print("Decremento socket")
+					self.nThread -=1
+				
 				try:
 					#accesso in muta esclusione per aggiornamento server
 					self.lock.acquire(True)
