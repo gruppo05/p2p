@@ -165,8 +165,7 @@ class serverUDPhandler(object):
 			if partList[i] == "1":
 				self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, idParts))
 	def gettingParts(self, sessionID, filemd5):
-		print("Aggiornamento parti in corso..")
-		self.dbReader.execute("DELETE FROM PARTS WHERE Filemd5 LIKE ?",(filemd5,))
+		self.dbReader.execute("DELETE FROM Parts WHERE Filemd5=?",(filemd5,))
 		msg = "FCHU" + sessionID.ljust(16) + filemd5.ljust(32)
 		peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 		self.dbReader.execute("SELECT Lenfile, Lenpart FROM File WHERE Filemd5 LIKE ?", ("%"+filemd5+"%",))
@@ -180,6 +179,7 @@ class serverUDPhandler(object):
 		data, addr = peer_socket.recvfrom(4)
 		command = data.decode()
 		if command == "AFCH":
+			
 			hitpeer, useless = peer_socket.recvfrom(3)
 			hitpeer = int(hitpeer.decode())
 			if hitpeer > 0 :
@@ -188,18 +188,13 @@ class serverUDPhandler(object):
 					ipp2p = peer_socket.recv(55).decode()
 					pp2p = peer_socket.recv(5).decode()
 					partList = int.from_bytes(peer_socket.recv(lenBytes), 'big')
-					#partList = peer_socket.recv(lenBytes).decode()
 					partList = bin(partList)[2:]
-					'''
-					while partList > 0:
-						idParts, partList = calcID(partList, ipp2p, pp2p, filemd5)
-						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, idParts))
-						'''
 					j=0
-					while j < len(partList):
+					while j < len(partList)-1:
 						if partList[j] == "1":
-							j=j+1
+							
 							self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, j))
+							j=j+1
 						else:
 							j = j+1
 					i = i + 1
@@ -246,9 +241,9 @@ class serverUDPhandler(object):
 				dirName = var.setting.userPath+"/"+filemd5+"/"
 				if not os.path.exists(dirName):
 					os.makedirs(dirName)
-				i = 1
+				i = 0
 				gap = 0
-				while i <= numParts:
+				while i <= numParts-1:
 					try:
 						#fd = open(dirName+""+str(i), os.O_CREAT)
 						fd = open(dirName+""+str(i), 'wb')
@@ -382,7 +377,6 @@ class serverUDPhandler(object):
 				self.dbReader.execute("SELECT Filemd5,Lenfile, Lenpart  FROM File WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
 				resultFile = self.dbReader.fetchone()
 				Filemd5 = resultFile[0]
-				print(Filemd5)
 				
 				numPart = int(int(resultFile[1]) / int(resultFile[2]) + 1)
 				self.dbReader.execute("SELECT COUNT(Filemd5) FROM Parts WHERE Filemd5=? AND IPP2P=? GROUP BY Filemd5", (Filemd5, self.myIPP2P))
@@ -551,9 +545,9 @@ class serverUDPhandler(object):
 					#se ho tutte le parti compatto la foto 
 					if result[0] == numPart:
 						dirName = var.setting.userPath+""+filemd5+"/"
-						i = 1
+						i = 0
 						data = "".encode()
-						while i <= numPart:
+						while i <= numPart-1:
 							try:
 								fd = open(dirName+""+str(i), 'rb')
 							except OSError as e:

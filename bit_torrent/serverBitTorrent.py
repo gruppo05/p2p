@@ -160,7 +160,7 @@ class serverBitTorrent(object):
 						print(len(resultFile))
 						for files in resultFile:
 							msg = msg + files[0].ljust(32) + files[1].ljust(100) + str(files[2]).ljust(10) + str(files[3]).ljust(6)
-				print("Invio --> "+msg)
+				print(color.send + "Invio --> " + msg + color.end)
 				connection.sendall(msg.encode())
 				connection.close()
 				
@@ -176,7 +176,7 @@ class serverBitTorrent(object):
 					connection.sendall(msg.encode())
 				else:
 					print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + resultUser[0] + color.end)
-					self.dbReader.execute("SELECT DISTINCT IPP2P, PP2P FROM Parts WHERE Filemd5 LIKE ?", (filemd5,))
+					self.dbReader.execute("SELECT DISTINCT IPP2P, PP2P FROM Parts WHERE Filemd5=?", (filemd5,))
 					resultParts = self.dbReader.fetchall()
 					#print("Ho trovato "+str(len(resultParts))+" ip diversi che hanno almeno una parte")
 					if resultParts is None:
@@ -184,8 +184,8 @@ class serverBitTorrent(object):
 						print("Parti non presenti. File non in condivisione.")
 						connection.sendall(msg.encode())
 					else:
-						print("Invio parti in corso...")
 						msg = "AFCH" + str(len(resultParts)).ljust(3)
+						print(color.send + "Invio --> " + msg + color.end)
 						connection.sendall(msg.encode())
 						for parts in resultParts:
 							self.dbReader.execute("SELECT IdParts FROM Parts WHERE IPP2P LIKE ? AND Filemd5 LIKE ?", (parts[0],filemd5))
@@ -200,7 +200,7 @@ class serverBitTorrent(object):
 							if (nParts%8)!=0:
 								nByte = nByte + 1
 							for ids in resultID:							
-								partList = partList + (2**(nByte*8 - int(ids[0])))
+								partList = partList + (2**(nByte*7 - int(ids[0])))
 							#creo il messaggio
 							msg = parts[0] + parts[1]
 							connection.sendall(msg.encode())
@@ -229,8 +229,8 @@ class serverBitTorrent(object):
 						numPart = int((lenFile / lenPart) + 1)
 						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
 						data = self.dbReader.fetchone()
-						i = 1
-						while i <= numPart:
+						i = 0
+						while i <= numPart-1:
 							self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, str(i)))
 							i += 1
 						msg = "AADR"+str(numPart).ljust(8)
