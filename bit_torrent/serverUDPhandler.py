@@ -352,12 +352,11 @@ class serverUDPhandler(object):
 				
 				#fix per offset
 				cmd = int(cmd)-1
-				
+
 				#Recupero il file
 				self.dbReader.execute("SELECT Filemd5,Lenfile, Lenpart  FROM File WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
 				resultFile = self.dbReader.fetchone()
 				Filemd5 = resultFile[0]
-				
 				numPart = int(int(resultFile[1]) / int(resultFile[2]) + 1)
 				self.dbReader.execute("SELECT COUNT(Filemd5) FROM Parts WHERE Filemd5=? AND IPP2P=? GROUP BY Filemd5", (Filemd5, self.myIPP2P))
 				data = self.dbReader.fetchone()
@@ -367,7 +366,6 @@ class serverUDPhandler(object):
 					count = 1
 				else:
 					count = int(data[0]) +1
-				
 				
 				self.dbReader.execute("SELECT COUNT(IdParts) as Seed, IdParts, IPP2P, PP2P, Filemd5 FROM Parts WHERE IPP2P!=? AND Filemd5=? AND IdParts NOT IN (SELECT IdParts FROM Parts WHERE IPP2P=?) GROUP BY IdParts ORDER BY Seed, IdParts ASC", (self.myIPP2P, Filemd5, self.myIPP2P))
 				data = self.dbReader.fetchall()
@@ -386,8 +384,10 @@ class serverUDPhandler(object):
 									try:
 										self.lock.acquire(True)
 										self.dbReader.execute("SELECT IPP2P, PP2P FROM Parts WHERE IdParts=? LIMIT 1 OFFSET ?", (resultParts[0], rnd))
+									except:
+										print("Erroreeee")
 									finally:
-										self.lock.release()					
+										self.lock.release()		
 									resultParts = self.dbReader.fetchone()
 									#aggiorno ip e port con quello casuale
 									ip = resultParts[0]
@@ -555,6 +555,7 @@ class serverUDPhandler(object):
 						sys.stdout.flush()
 						fileToCompact.close()
 						print(color.greenB+"********************** Fine **********************\n"+color.end)
+						self.dbReader.execute("DELETE FROM Parts WHERE IPP2P=? AND Filemd5=?", (self.myIPP2P, filemd5))
 						
 				except:
 					print(color.fail+"Download non riuscito. Scarica le parti mancanti"+color.end)

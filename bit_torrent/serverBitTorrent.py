@@ -268,7 +268,7 @@ class serverBitTorrent(object):
 					result = self.dbReader.fetchone()
 					if result is None:
 						#aggiungo la parte
-						self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, idParts))
+						self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, str(int(idParts))))
 						print(color.green+"Aggiunta parte "+idParts+ color.green+" da "+sessionID+color.end)
 					else:
 						print(color.fail+"Parte "+idParts+ color.fail+" da "+sessionID+color.end+"già presente")
