@@ -36,6 +36,10 @@ class serverBitTorrent(object):
 		self.myIPP2P = var.setting.myIPP2P
 		self.timeDebug = var.setting.timeDebug
 		self.UDP_END = ""
+		
+		#accesso mutex
+		self.lock = threading.Lock()
+		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
@@ -144,7 +148,6 @@ class serverBitTorrent(object):
 				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + sessionID + color.end)
 				self.dbReader.execute("SELECT SessionID FROM User WHERE SessionID = ?", (sessionID,))
 				resultUser = self.dbReader.fetchone()
-				print("ok")
 				if resultUser is None:
 					msg = "ALOO000"
 					print("Utente non registrato.")
@@ -157,7 +160,6 @@ class serverBitTorrent(object):
 					if int(resultCount[0]) > 0:
 						self.dbReader.execute("SELECT filemd5, filename, Lenfile, Lenpart FROM File WHERE Filename LIKE ? AND SessionID <> ?", ("%"+ricerca+"%", sessionID))
 						resultFile = self.dbReader.fetchall()
-						print(len(resultFile))
 						for files in resultFile:
 							msg = msg + files[0].ljust(32) + files[1].ljust(100) + str(files[2]).ljust(10) + str(files[3]).ljust(6)
 				print(color.send + "Invio --> " + msg + color.end)
@@ -178,7 +180,6 @@ class serverBitTorrent(object):
 					print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + resultUser[0] + color.end)
 					self.dbReader.execute("SELECT DISTINCT IPP2P, PP2P FROM Parts WHERE Filemd5=?", (filemd5,))
 					resultParts = self.dbReader.fetchall()
-					#print("Ho trovato "+str(len(resultParts))+" ip diversi che hanno almeno una parte")
 					if resultParts is None:
 						msg = "AFCH000"
 						print("Parti non presenti. File non in condivisione.")
@@ -251,6 +252,8 @@ class serverBitTorrent(object):
 					
 			elif command == "RPAD":
 				try:
+					#mutex
+					self.lock.acquire(True)
 					sessionID = connection.recv(16).decode()
 					filemd5 = connection.recv(32).decode()
 					idParts = connection.recv(8).decode().strip()
@@ -278,6 +281,8 @@ class serverBitTorrent(object):
 				except:
 					print(color.fail+"Errore invio "+color.recv+"APAD"+color.end)
 					connection.close()
+				finally:
+					self.lock.release()
 		except:
 			connection.close()
 			return False

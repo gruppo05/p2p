@@ -516,9 +516,8 @@ class serverUDPhandler(object):
 				
 				try:
 					#accesso in muta esclusione per aggiornamento server
-					self.lock.acquire(True)
 					self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (self.myIPP2P,self.PORT,filemd5,idParts))
-					#la mando al server				
+					#la mando al server
 					msg = "RPAD"+str(self.mySessionID).ljust(16)+filemd5.ljust(32)+idParts.ljust(8)
 				
 					#aspetto la risposta
@@ -529,12 +528,10 @@ class serverUDPhandler(object):
 						print("Ricevuto <-- "+color.send+"APAD"+str(nPart)+color.end)	
 				except:
 					print(color.fail+"Errore nella comunicazione con il server"+color.end)
-				finally:
-					self.lock.release()
+
 					
 				#Recupero le informazioni del file con un mutex
 				try:
-					self.lock.acquire(True)
 					self.dbReader.execute("SELECT Lenfile, Lenpart, Filename FROM File WHERE Filemd5=?", (filemd5,))
 					infoFile = self.dbReader.fetchone()
 					numPart = int(int(infoFile[0]) / int(infoFile[1])) + 1
@@ -569,9 +566,8 @@ class serverUDPhandler(object):
 						print("\n********************** Fine download **********************\n")
 						
 				except:
-					print("Errore mutex")
-				finally:
-					self.lock.release()					
+					print(color.fail+"Download non riuscito. Scarica le parti mancanti!"+color.end)
+
 				
 			except OSError:
 				print("Errore nella procedure di download parte --> ",idParts )
@@ -586,21 +582,21 @@ class serverUDPhandler(object):
 		
 				#inviare un file che ho
 				filemd5 = connection.recv(32).decode()
-				idParts = connection.recv(8).decode().strip()
+				idParts = int(connection.recv(8).decode().strip())
 				dirName = var.setting.userPath+""+filemd5+"/"
 				try:
-					fd = os.open(dirName+""+idParts, os.O_RDONLY)
+					fd = os.open(dirName+""+str(idParts), os.O_RDONLY)
 				except OSError as e:
 					print(e)
 				
 				if fd is not -1:
-					partsize = int(os.path.getsize(dirName+""+idParts))
+					partsize = int(os.path.getsize(dirName+""+str(idParts)))
 					num = int(partsize / self.BUFF)
 					if (partsize % self.BUFF)!= 0:
 						num = num + 1
 					msg = "AREP" + str(num).zfill(6)
 		
-					print ('Trasferimento iniziato di ', idParts, ' [BYTES ', partsize, ']')
+					print ('Trasferimento iniziato di ', str(idParts), ' [BYTES ', partsize, ']')
 					#funzione progressBar
 					connection.send(msg.encode())
 					i = 0
@@ -615,12 +611,12 @@ class serverUDPhandler(object):
 						i += 1
 		
 					os.close(fd)
-					print(color.green+"Fine UPLOAD parte "+idParts+color.end)					
+					print(color.green+"Fine UPLOAD parte "+str(idParts)+color.end)					
 					connection.close()
 				else: 
 					print("Parte non trovata!")
 			except:
-				print(color.fail+"Errore nell'upload parte"+idParts+". Il file potrebbe non essere stato scaricato con successo!"+color.end)
+				print(color.fail+"Errore nell'upload parte"+str(idParts)+". Il file potrebbe non essere stato scaricato con successo!"+color.end)
 					
 if __name__ == "__main__":
     serverUDP = serverUDPhandler()
