@@ -516,8 +516,9 @@ class serverUDPhandler(object):
 				
 				try:
 					#accesso in muta esclusione per aggiornamento server
+					self.lock.acquire(True)
 					self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (self.myIPP2P,self.PORT,filemd5,idParts))
-					#la mando al server
+					#la mando al server				
 					msg = "RPAD"+str(self.mySessionID).ljust(16)+filemd5.ljust(32)+idParts.ljust(8)
 				
 					#aspetto la risposta
@@ -528,10 +529,12 @@ class serverUDPhandler(object):
 						print("Ricevuto <-- "+color.send+"APAD"+str(nPart)+color.end)	
 				except:
 					print(color.fail+"Errore nella comunicazione con il server"+color.end)
-
+				finally:
+					self.lock.release()
 					
 				#Recupero le informazioni del file con un mutex
 				try:
+					self.lock.acquire(True)
 					self.dbReader.execute("SELECT Lenfile, Lenpart, Filename FROM File WHERE Filemd5=?", (filemd5,))
 					infoFile = self.dbReader.fetchone()
 					numPart = int(int(infoFile[0]) / int(infoFile[1])) + 1
@@ -560,14 +563,16 @@ class serverUDPhandler(object):
 							fileToCompact = open(downloadDir+""+infoFile[2], 'wb')
 						except OSError as e:
 							print(e)
+						
 						fileToCompact.write(data)
 						sys.stdout.flush()
 						fileToCompact.close()
 						print("\n********************** Fine download **********************\n")
 						
 				except:
-					print(color.fail+"Download non riuscito. Scarica le parti mancanti!"+color.end)
-
+					print(color.fail+"Download non riuscito. Scarica le parti mancanti"+color.end)
+				finally:
+					self.lock.release()					
 				
 			except OSError:
 				print("Errore nella procedure di download parte --> ",idParts )
