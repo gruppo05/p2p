@@ -194,9 +194,8 @@ class serverUDPhandler(object):
 						if partList[j] == "1":
 							
 							self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, j))
-							j=j+1
-						else:
-							j = j+1
+						j=j+1
+						
 					i = i + 1
 		peer_socket.close()
 		
@@ -547,7 +546,7 @@ class serverUDPhandler(object):
 						dirName = var.setting.userPath+""+filemd5+"/"
 						i = 0
 						data = "".encode()
-						while i <= numPart-1:
+						while i <= numPart-1 :
 							try:
 								fd = open(dirName+""+str(i), 'rb')
 							except OSError as e:

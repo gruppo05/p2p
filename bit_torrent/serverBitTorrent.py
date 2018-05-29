@@ -200,7 +200,7 @@ class serverBitTorrent(object):
 							if (nParts%8)!=0:
 								nByte = nByte + 1
 							for ids in resultID:							
-								partList = partList + (2**(nByte*7 - int(ids[0])))
+								partList = partList + (2**(nByte*8-1 - int(ids[0])))
 							#creo il messaggio
 							msg = parts[0] + parts[1]
 							connection.sendall(msg.encode())
