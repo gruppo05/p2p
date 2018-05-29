@@ -12,6 +12,7 @@ class color:
 	end = '\033[0m'
 	BOLD = '\033[1m'
 	UNDERLINE = '\033[4m'
+	greenB = '\033[1m'+'\033[32m'
 
 def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS User")
@@ -543,6 +544,7 @@ class serverUDPhandler(object):
 					result = self.dbReader.fetchone()
 					#se ho tutte le parti compatto la foto 
 					if result[0] == numPart:
+						print(color.recv+"\nFile scaricato. Unione delle parti in corso..."+color.end)
 						dirName = var.setting.userPath+""+filemd5+"/"
 						i = 0
 						data = "".encode()
@@ -556,6 +558,7 @@ class serverUDPhandler(object):
 							sys.stdout.flush()
 							fd.close()
 							i += 1
+
 						try:
 							downloadDir = var.setting.userPath+"/download/"
 							if not os.path.exists(downloadDir):
@@ -567,7 +570,7 @@ class serverUDPhandler(object):
 						fileToCompact.write(data)
 						sys.stdout.flush()
 						fileToCompact.close()
-						print("\n********************** Fine download **********************\n")
+						print(color.greenB+"********************** Fine **********************\n"+color.end)
 						
 				except:
 					print(color.fail+"Download non riuscito. Scarica le parti mancanti"+color.end)
@@ -621,7 +624,7 @@ class serverUDPhandler(object):
 				else: 
 					print("Parte non trovata!")
 			except:
-				print(color.fail+"Errore nell'upload parte"+str(idParts)+". Il file potrebbe non essere stato scaricato con successo!"+color.end)
+				print(color.fail+"Errore nell'upload parte "+str(idParts)+". Il file potrebbe non essere stato scaricato con successo!"+color.end)
 					
 if __name__ == "__main__":
     serverUDP = serverUDPhandler()
