@@ -123,11 +123,8 @@ class serverUDPhandler(object):
 		self.lenPart = 262144
 		
 		#thread lock
-		self.lockA = threading.Lock()
-		self.lockB = threading.Lock()
+		self.lock = threading.Lock()
 		self.nThread  = 0
-		
-		self.globalTime = 0
 		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
@@ -400,7 +397,6 @@ class serverUDPhandler(object):
 				
 				self.dbReader.execute("SELECT COUNT(IdParts) as Seed, IdParts, IPP2P, PP2P, Filemd5 FROM Parts WHERE IPP2P!=? AND Filemd5=? AND IdParts NOT IN (SELECT IdParts FROM Parts WHERE IPP2P=?) GROUP BY IdParts ORDER BY Seed, IdParts ASC", (self.myIPP2P, Filemd5, self.myIPP2P))
 				data = self.dbReader.fetchall()
-				self.globalTime = time.time()
 				for resultParts in data:
 					while True:
 						if self.nThread < 50:
@@ -528,7 +524,7 @@ class serverUDPhandler(object):
 				
 				try:
 					#accesso in muta esclusione per aggiornamento server
-					self.lockA.acquire(True)
+					self.lock.acquire(True)
 					self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (self.myIPP2P,self.PORT,filemd5,idParts))
 					#la mando al server				
 					msg = "RPAD"+str(self.mySessionID).ljust(16)+filemd5.ljust(32)+idParts.ljust(8)
@@ -542,11 +538,11 @@ class serverUDPhandler(object):
 				except:
 					print(color.fail+"Errore nella comunicazione con il server"+color.end)
 				finally:
-					self.lockA.release()
+					self.lock.release()
 					
 				#Recupero le informazioni del file con un mutex
 				try:
-					self.lockB.acquire(True)
+					self.lock.acquire(True)
 					self.dbReader.execute("SELECT Lenfile, Lenpart, Filename FROM File WHERE Filemd5=?", (filemd5,))
 					infoFile = self.dbReader.fetchone()
 					numPart = int(int(infoFile[0]) / int(infoFile[1])) + 1
@@ -578,14 +574,12 @@ class serverUDPhandler(object):
 						fileToCompact.write(data)
 						sys.stdout.flush()
 						fileToCompact.close()
-						timer = time.time()
-						finalTime = timer - self.globalTime
-						print("\n********************** Fine download in "+str(finalTime)+" **********************\n")
+						print("\n********************** Fine download **********************\n")
 						
 				except:
 					print("Errore mutex")
 				finally:
-					self.lockB.release()					
+					self.lock.release()					
 				
 			except OSError:
 				print("Errore nella procedure di download parte --> ",idParts )
