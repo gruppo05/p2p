@@ -570,6 +570,7 @@ class serverUDPhandler(object):
 		command = connection.recv(4).decode()
 		if command == "RETP":
 			try:
+				self.lock.acquire(True)
 				print("Ricevuto "+color.recv+"RETP"+color.end)
 		
 				#inviare un file che ho
@@ -609,7 +610,9 @@ class serverUDPhandler(object):
 					print("Parte non trovata!")
 			except:
 				print(color.fail+"Errore nell'upload parte "+str(idParts)+". Il file potrebbe non essere stato scaricato con successo!"+color.end)
-					
+			finally:
+				self.lock.release()
+									
 if __name__ == "__main__":
     serverUDP = serverUDPhandler()
 serverUDP.server()
