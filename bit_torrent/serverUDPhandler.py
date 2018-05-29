@@ -90,20 +90,6 @@ def encryptMD5(filename):
 	hasher.update((var.setting.myIPP2P).encode())
 	filemd5IP = hasher.hexdigest()
 	return filemd5IP
-
-def calcID(partList, lenBytes):
-	if partList == 1:
-		return lenBytes, (partList-1)
-	else:
-		idParts = lenBytes
-		lenParts = 1
-		while lenParts <= partList:
-			idParts = idParts - 1
-			lenParts = lenParts * 2
-		idParts = idParts + 1
-		lenParts = lenParts/2	
-		partList = partList - lenParts
-		return idParts, partList
 		
 		
 class serverUDPhandler(object):
@@ -159,12 +145,7 @@ class serverUDPhandler(object):
 				threading.Thread(target = self.upload, args = (connection,client_address)).start()
 			except:
 				return False
-		
-	def calcID (partList):
-		i=0
-		while i < len(partList):
-			if partList[i] == "1":
-				self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, idParts))
+					
 	def gettingParts(self, sessionID, filemd5):
 		self.dbReader.execute("DELETE FROM Parts WHERE Filemd5=?",(filemd5,))
 		msg = "FCHU" + sessionID.ljust(16) + filemd5.ljust(32)
@@ -193,7 +174,6 @@ class serverUDPhandler(object):
 					j=0
 					while j < len(partList)-1:
 						if partList[j] == "1":
-							
 							self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, j))
 						j=j+1
 						
@@ -403,7 +383,11 @@ class serverUDPhandler(object):
 								if resultParts[0] > 1:
 									#se ho più risultati seleziono randomicamente IP 
 									rnd = randint(1, int(resultParts[0])) - 1 
-									self.dbReader.execute("SELECT IPP2P, PP2P FROM Parts WHERE IdParts=? LIMIT 1 OFFSET ?", (resultParts[0], rnd))
+									try:
+										self.lock.acquire(True)
+										self.dbReader.execute("SELECT IPP2P, PP2P FROM Parts WHERE IdParts=? LIMIT 1 OFFSET ?", (resultParts[0], rnd))
+									finally:
+										self.lock.release()					
 									resultParts = self.dbReader.fetchone()
 									#aggiorno ip e port con quello casuale
 									ip = resultParts[0]
