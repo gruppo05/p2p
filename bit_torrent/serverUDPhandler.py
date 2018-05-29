@@ -519,7 +519,6 @@ class serverUDPhandler(object):
 					print("Errore durante la fase di scaricamento")
 				finally:
 					#libero il thread
-					print("Decremento socket")
 					self.nThread -=1
 				
 				try:
