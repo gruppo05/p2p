@@ -199,14 +199,15 @@ class serverBitTorrent(object):
 							nByte = int(int(nParts)/8)
 							if (nParts%8)!=0:
 								nByte = nByte + 1
-							for ids in resultID:							
-								partList = partList + (2**(nByte*8 - int(ids[0])))
+							for ids in resultID:	
+								#prima era così: partList = partList + (2**(nByte*8 - int(ids[0])))				
+								partList = partList + (2**(nByte*8 - int(ids[0]) - 1))
 							#creo il messaggio
 							msg = parts[0] + parts[1]
 							connection.sendall(msg.encode())
 							try:
-								ripperoni = (partList).to_bytes(nByte, byteorder='big')
-								connection.sendall(ripperoni)
+								part = (partList).to_bytes(nByte, byteorder='big')
+								connection.sendall(part)
 							except:
 								print(color.fail+"Errore sulla partlist"+color.end)
 							

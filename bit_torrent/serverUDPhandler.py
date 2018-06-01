@@ -198,8 +198,8 @@ class serverUDPhandler(object):
 					j=0
 					while j < len(partList):
 						if partList[j] == "1":
-							j=j+1
 							self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, j))
+							j=j+1
 						else:
 							j = j+1
 					i = i + 1
