@@ -36,6 +36,10 @@ class serverBitTorrent(object):
 		self.myIPP2P = var.setting.myIPP2P
 		self.timeDebug = var.setting.timeDebug
 		self.UDP_END = ""
+		
+		#accesso mutex
+		self.lock = threading.Lock()
+		
 		# Creo DB
 		conn = sqlite3.connect(':memory:', check_same_thread=False)
 		self.dbReader = conn.cursor()
@@ -144,7 +148,6 @@ class serverBitTorrent(object):
 				print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + sessionID + color.end)
 				self.dbReader.execute("SELECT SessionID FROM User WHERE SessionID = ?", (sessionID,))
 				resultUser = self.dbReader.fetchone()
-				print("ok")
 				if resultUser is None:
 					msg = "ALOO000"
 					print("Utente non registrato.")
@@ -157,10 +160,9 @@ class serverBitTorrent(object):
 					if int(resultCount[0]) > 0:
 						self.dbReader.execute("SELECT filemd5, filename, Lenfile, Lenpart FROM File WHERE Filename LIKE ? AND SessionID <> ?", ("%"+ricerca+"%", sessionID))
 						resultFile = self.dbReader.fetchall()
-						print(len(resultFile))
 						for files in resultFile:
 							msg = msg + files[0].ljust(32) + files[1].ljust(100) + str(files[2]).ljust(10) + str(files[3]).ljust(6)
-				print("Invio --> "+msg)
+				print(color.send + "Invio --> " + msg + color.end)
 				connection.sendall(msg.encode())
 				connection.close()
 				
@@ -176,16 +178,15 @@ class serverBitTorrent(object):
 					connection.sendall(msg.encode())
 				else:
 					print("Ricevuto " + color.recv + command + color.end + " da " + color.recv + resultUser[0] + color.end)
-					self.dbReader.execute("SELECT DISTINCT IPP2P, PP2P FROM Parts WHERE Filemd5 LIKE ?", (filemd5,))
+					self.dbReader.execute("SELECT DISTINCT IPP2P, PP2P FROM Parts WHERE Filemd5=?", (filemd5,))
 					resultParts = self.dbReader.fetchall()
-					#print("Ho trovato "+str(len(resultParts))+" ip diversi che hanno almeno una parte")
 					if resultParts is None:
 						msg = "AFCH000"
 						print("Parti non presenti. File non in condivisione.")
 						connection.sendall(msg.encode())
 					else:
-						print("Invio parti in corso...")
 						msg = "AFCH" + str(len(resultParts)).ljust(3)
+						print(color.send + "Invio --> " + msg + color.end)
 						connection.sendall(msg.encode())
 						for parts in resultParts:
 							self.dbReader.execute("SELECT IdParts FROM Parts WHERE IPP2P LIKE ? AND Filemd5 LIKE ?", (parts[0],filemd5))
@@ -199,9 +200,8 @@ class serverBitTorrent(object):
 							nByte = int(int(nParts)/8)
 							if (nParts%8)!=0:
 								nByte = nByte + 1
-							for ids in resultID:	
-								#prima era così: partList = partList + (2**(nByte*8 - int(ids[0])))				
-								partList = partList + (2**(nByte*8 - int(ids[0]) - 1))
+							for ids in resultID:							
+								partList = partList + (2**(nByte*8-1 - int(ids[0])))
 							#creo il messaggio
 							msg = parts[0] + parts[1]
 							connection.sendall(msg.encode())
@@ -230,8 +230,8 @@ class serverBitTorrent(object):
 						numPart = int((lenFile / lenPart) + 1)
 						self.dbReader.execute("SELECT IPP2P, PP2P FROM user WHERE SessionID=?", (sessionID,))
 						data = self.dbReader.fetchone()
-						i = 1
-						while i <= numPart:
+						i = 0
+						while i <= numPart-1:
 							self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, str(i)))
 							i += 1
 						msg = "AADR"+str(numPart).ljust(8)
@@ -252,6 +252,8 @@ class serverBitTorrent(object):
 					
 			elif command == "RPAD":
 				try:
+					#mutex
+					self.lock.acquire(True)
 					sessionID = connection.recv(16).decode()
 					filemd5 = connection.recv(32).decode()
 					idParts = connection.recv(8).decode().strip()
@@ -266,7 +268,7 @@ class serverBitTorrent(object):
 					result = self.dbReader.fetchone()
 					if result is None:
 						#aggiungo la parte
-						self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, idParts))
+						self.dbReader.execute("INSERT INTO parts (IPP2P, PP2P, Filemd5, IdParts) VALUES (?, ?, ?, ?)",(data[0], data[1], filemd5, str(int(idParts))))
 						print(color.green+"Aggiunta parte "+idParts+ color.green+" da "+sessionID+color.end)
 					else:
 						print(color.fail+"Parte "+idParts+ color.fail+" da "+sessionID+color.end+"già presente")
@@ -279,6 +281,8 @@ class serverBitTorrent(object):
 				except:
 					print(color.fail+"Errore invio "+color.recv+"APAD"+color.end)
 					connection.close()
+				finally:
+					self.lock.release()
 		except:
 			connection.close()
 			return False

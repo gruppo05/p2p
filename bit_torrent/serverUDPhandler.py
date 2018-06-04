@@ -12,6 +12,7 @@ class color:
 	end = '\033[0m'
 	BOLD = '\033[1m'
 	UNDERLINE = '\033[4m'
+	greenB = '\033[1m'+'\033[32m'
 
 def clearAndSetDB(self):
 	self.dbReader.execute("DROP TABLE IF EXISTS User")
@@ -67,14 +68,6 @@ def setConnection(ip, port, msg):
 		print(color.fail+"Errore connessione 'not close'"+color.end)
 	return peer_socket
 	
-def timerChunk():
-	sec = 0
-	while True:
-		time.sleep(var.setting.timeDebug)
-		sec = sec + var.setting.timeDebug
-		if int(sec) == 10:
-			sec = 0
-
 def encryptMD5(filename):
 	#calcolo hash file
 	BLOCKSIZE = 128
@@ -89,20 +82,6 @@ def encryptMD5(filename):
 	hasher.update((var.setting.myIPP2P).encode())
 	filemd5IP = hasher.hexdigest()
 	return filemd5IP
-
-def calcID(partList, lenBytes):
-	if partList == 1:
-		return lenBytes, (partList-1)
-	else:
-		idParts = lenBytes
-		lenParts = 1
-		while lenParts <= partList:
-			idParts = idParts - 1
-			lenParts = lenParts * 2
-		idParts = idParts + 1
-		lenParts = lenParts/2	
-		partList = partList - lenParts
-		return idParts, partList
 		
 		
 class serverUDPhandler(object):
@@ -145,12 +124,12 @@ class serverUDPhandler(object):
 		self.sockUDPServer.bind((self.UDP_IP, UDP_PORT_SERVER))
 		
 		# socket upd ipv4 client in uscita
-		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)	
+		self.sockUDPClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		
 	def server(self):
 		#crea thread interno per far comunicare client e server
 		threading.Thread(target = self.serverUDP, args = '').start()
-		
+		threading.Thread(target = self.timerChunk, args = '').start()
 		print(color.green+"In attesa di connessione esterna..."+color.end)
 		while True:
 			try:
@@ -158,15 +137,9 @@ class serverUDPhandler(object):
 				threading.Thread(target = self.upload, args = (connection,client_address)).start()
 			except:
 				return False
-		
-	def calcID (partList):
-		i=0
-		while i < len(partList):
-			if partList[i] == "1":
-				self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, idParts))
+					
 	def gettingParts(self, sessionID, filemd5):
-		print("Aggiornamento parti in corso..")
-		self.dbReader.execute("DELETE FROM PARTS WHERE Filemd5 LIKE ?",(filemd5,))
+		self.dbReader.execute("DELETE FROM Parts WHERE Filemd5=?",(filemd5,))
 		msg = "FCHU" + sessionID.ljust(16) + filemd5.ljust(32)
 		peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 		self.dbReader.execute("SELECT Lenfile, Lenpart FROM File WHERE Filemd5 LIKE ?", ("%"+filemd5+"%",))
@@ -180,6 +153,7 @@ class serverUDPhandler(object):
 		data, addr = peer_socket.recvfrom(4)
 		command = data.decode()
 		if command == "AFCH":
+			
 			hitpeer, useless = peer_socket.recvfrom(3)
 			hitpeer = int(hitpeer.decode())
 			if hitpeer > 0 :
@@ -188,23 +162,39 @@ class serverUDPhandler(object):
 					ipp2p = peer_socket.recv(55).decode()
 					pp2p = peer_socket.recv(5).decode()
 					partList = int.from_bytes(peer_socket.recv(lenBytes), 'big')
-					#partList = peer_socket.recv(lenBytes).decode()
 					partList = bin(partList)[2:]
-					'''
-					while partList > 0:
-						idParts, partList = calcID(partList, ipp2p, pp2p, filemd5)
-						self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, idParts))
-						'''
 					j=0
-					while j < len(partList):
+					while j < len(partList)-1:
 						if partList[j] == "1":
 							self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, j))
-							j=j+1
-						else:
-							j = j+1
+						j=j+1
 					i = i + 1
 		peer_socket.close()
 		
+	def timerChunk(self):
+		sec = 0
+		print("Thread creato per la FCHU")
+		while True:
+			time.sleep(var.setting.timeDebug)
+			sec = sec + 0.1
+			if int(sec) == 2:
+				try:
+					self.lock.acquire(True)
+					#self.dbReader.execute("INSERT INTO File (Filemd5, Filename) values (?, ?)", ("prova", "prova.txt"))
+					self.dbReader.execute("SELECT DISTINCT Filemd5 FROM File")
+					filemd5 = self.dbReader.fetchall()
+				except:
+					print("Problemi sulla timerChunk")
+				finally:
+					self.lock.release()
+				if len(filemd5) > 0:
+					print("Invio FCHU")
+					for files in filemd5:
+						self.gettingParts(self.mySessionID, files[0])
+				else:
+					print("Non bisogna fare la fchu")
+				sec = 0
+				
 	def serverUDP(self):
 		print(color.green+"In attesa di comandi interni..."+color.end)
 		while True:
@@ -223,7 +213,7 @@ class serverUDPhandler(object):
 				self.ServerPORT = port
 				print(color.green+"Server settato con successo"+color.end)
 				#gestione cronometro
-				threading.Thread(target = timerChunk, args = '').start()
+				#threading.Thread(target = timerChunk, args = '').start()
 			
 			elif command == "ADDR":
 				filename = self.sockUDPServer.recvfrom(100)[0].decode()
@@ -246,9 +236,9 @@ class serverUDPhandler(object):
 				dirName = var.setting.userPath+"/"+filemd5+"/"
 				if not os.path.exists(dirName):
 					os.makedirs(dirName)
-				i = 1
+				i = 0
 				gap = 0
-				while i <= numParts:
+				while i <= numParts-1:
 					try:
 						#fd = open(dirName+""+str(i), os.O_CREAT)
 						fd = open(dirName+""+str(i), 'wb')
@@ -377,13 +367,11 @@ class serverUDPhandler(object):
 				
 				#fix per offset
 				cmd = int(cmd)-1
-				
+
 				#Recupero il file
 				self.dbReader.execute("SELECT Filemd5,Lenfile, Lenpart  FROM File WHERE Filename LIKE ? LIMIT 1 OFFSET ?", ("%"+filename+"%",cmd ))
 				resultFile = self.dbReader.fetchone()
 				Filemd5 = resultFile[0]
-				print(Filemd5)
-				
 				numPart = int(int(resultFile[1]) / int(resultFile[2]) + 1)
 				self.dbReader.execute("SELECT COUNT(Filemd5) FROM Parts WHERE Filemd5=? AND IPP2P=? GROUP BY Filemd5", (Filemd5, self.myIPP2P))
 				data = self.dbReader.fetchone()
@@ -393,7 +381,6 @@ class serverUDPhandler(object):
 					count = 1
 				else:
 					count = int(data[0]) +1
-				
 				
 				self.dbReader.execute("SELECT COUNT(IdParts) as Seed, IdParts, IPP2P, PP2P, Filemd5 FROM Parts WHERE IPP2P!=? AND Filemd5=? AND IdParts NOT IN (SELECT IdParts FROM Parts WHERE IPP2P=?) GROUP BY IdParts ORDER BY Seed, IdParts ASC", (self.myIPP2P, Filemd5, self.myIPP2P))
 				data = self.dbReader.fetchall()
@@ -409,7 +396,13 @@ class serverUDPhandler(object):
 								if resultParts[0] > 1:
 									#se ho più risultati seleziono randomicamente IP 
 									rnd = randint(1, int(resultParts[0])) - 1 
-									self.dbReader.execute("SELECT IPP2P, PP2P FROM Parts WHERE IdParts=? LIMIT 1 OFFSET ?", (resultParts[0], rnd))
+									try:
+										self.lock.acquire(True)
+										self.dbReader.execute("SELECT IPP2P, PP2P FROM Parts WHERE IdParts=? LIMIT 1 OFFSET ?", (resultParts[0], rnd))
+									except:
+										print("Erroreeee")
+									finally:
+										self.lock.release()		
 									resultParts = self.dbReader.fetchone()
 									#aggiorno ip e port con quello casuale
 									ip = resultParts[0]
@@ -550,10 +543,11 @@ class serverUDPhandler(object):
 					result = self.dbReader.fetchone()
 					#se ho tutte le parti compatto la foto 
 					if result[0] == numPart:
+						print(color.recv+"\nFile scaricato. Unione delle parti in corso..."+color.end)
 						dirName = var.setting.userPath+""+filemd5+"/"
-						i = 1
+						i = 0
 						data = "".encode()
-						while i <= numPart:
+						while i <= numPart-1 :
 							try:
 								fd = open(dirName+""+str(i), 'rb')
 							except OSError as e:
@@ -563,6 +557,7 @@ class serverUDPhandler(object):
 							sys.stdout.flush()
 							fd.close()
 							i += 1
+
 						try:
 							downloadDir = var.setting.userPath+"/download/"
 							if not os.path.exists(downloadDir):
@@ -570,13 +565,15 @@ class serverUDPhandler(object):
 							fileToCompact = open(downloadDir+""+infoFile[2], 'wb')
 						except OSError as e:
 							print(e)
+						
 						fileToCompact.write(data)
 						sys.stdout.flush()
 						fileToCompact.close()
-						print("\n********************** Fine download **********************\n")
+						print(color.greenB+"********************** Fine **********************\n"+color.end)
+						self.dbReader.execute("DELETE FROM Parts WHERE IPP2P=? AND Filemd5=?", (self.myIPP2P, filemd5))
 						
 				except:
-					print("Errore mutex")
+					print(color.fail+"Download non riuscito. Scarica le parti mancanti"+color.end)
 				finally:
 					self.lock.release()					
 				
@@ -589,25 +586,26 @@ class serverUDPhandler(object):
 		command = connection.recv(4).decode()
 		if command == "RETP":
 			try:
+				self.lock.acquire(True)
 				print("Ricevuto "+color.recv+"RETP"+color.end)
 		
 				#inviare un file che ho
 				filemd5 = connection.recv(32).decode()
-				idParts = connection.recv(8).decode().strip()
+				idParts = int(connection.recv(8).decode().strip())
 				dirName = var.setting.userPath+""+filemd5+"/"
 				try:
-					fd = os.open(dirName+""+idParts, os.O_RDONLY)
+					fd = os.open(dirName+""+str(idParts), os.O_RDONLY)
 				except OSError as e:
 					print(e)
 				
 				if fd is not -1:
-					partsize = int(os.path.getsize(dirName+""+idParts))
+					partsize = int(os.path.getsize(dirName+""+str(idParts)))
 					num = int(partsize / self.BUFF)
 					if (partsize % self.BUFF)!= 0:
 						num = num + 1
 					msg = "AREP" + str(num).zfill(6)
 		
-					print ('Trasferimento iniziato di ', idParts, ' [BYTES ', partsize, ']')
+					print ('Trasferimento iniziato di ', str(idParts), ' [BYTES ', partsize, ']')
 					#funzione progressBar
 					connection.send(msg.encode())
 					i = 0
@@ -622,13 +620,15 @@ class serverUDPhandler(object):
 						i += 1
 		
 					os.close(fd)
-					print(color.green+"Fine UPLOAD parte "+idParts+color.end)					
+					print(color.green+"Fine UPLOAD parte "+str(idParts)+color.end)					
 					connection.close()
 				else: 
 					print("Parte non trovata!")
 			except:
-				print(color.fail+"Errore nell'upload parte"+idParts+". Il file potrebbe non essere stato scaricato con successo!"+color.end)
-					
+				print(color.fail+"Errore nell'upload parte "+str(idParts)+". Il file potrebbe non essere stato scaricato con successo!"+color.end)
+			finally:
+				self.lock.release()
+									
 if __name__ == "__main__":
     serverUDP = serverUDPhandler()
 serverUDP.server()
