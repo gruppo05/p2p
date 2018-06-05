@@ -177,16 +177,16 @@ class serverUDPhandler(object):
 		while True:
 			time.sleep(var.setting.timeDebug)
 			sec = sec + 0.1
-			if int(sec) == 2:
-				try:
-					self.lock.acquire(True)
-					#self.dbReader.execute("INSERT INTO File (Filemd5, Filename) values (?, ?)", ("prova", "prova.txt"))
-					self.dbReader.execute("SELECT DISTINCT Filemd5 FROM File")
-					filemd5 = self.dbReader.fetchall()
-				except:
-					print("Problemi sulla timerChunk")
-				finally:
-					self.lock.release()
+			if int(sec) == 10:
+				#try:
+					#self.lock.acquire(True)
+				#self.dbReader.execute("INSERT INTO File (Filemd5, Filename) values (?, ?)", ("prova", "prova.txt"))
+				self.dbReader.execute("SELECT DISTINCT Filemd5 FROM File")
+				filemd5 = self.dbReader.fetchall()
+				#except:
+				#	print("Problemi sulla timerChunk")
+				#finally:
+					 #self.lock.release()
 				if len(filemd5) > 0:
 					print("Invio FCHU")
 					for files in filemd5:
