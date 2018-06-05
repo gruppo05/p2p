@@ -97,7 +97,6 @@ class serverUDPhandler(object):
 		UDP_PORT_SERVER = 49999
 		self.UDP_PORT_CLIENT = 50000
 		self.UDP_END = ""
-		self.timeDebug = var.setting.timeDebug
 		self.BUFF = 1024
 		self.lenPart = 262144
 		
@@ -166,29 +165,22 @@ class serverUDPhandler(object):
 					j=0
 					while j < len(partList)-1:
 						if partList[j] == "1":
-							self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, j))
+							if ipp2p != self.myIPP2P:
+								self.dbReader.execute("INSERT INTO Parts (IPP2P, PP2P, Filemd5, IdParts) values (?, ?, ?, ?)", (ipp2p, pp2p, filemd5, j))
 						j=j+1
 					i = i + 1
 		peer_socket.close()
 		
 	def timerChunk(self):
 		sec = 0
-		print("Thread creato per la FCHU")
 		while True:
-			time.sleep(var.setting.timeDebug)
+			time.sleep(0.1)
 			sec = sec + 0.1
 			if int(sec) == 60:
-				#try:
-					#self.lock.acquire(True)
-				#self.dbReader.execute("INSERT INTO File (Filemd5, Filename) values (?, ?)", ("prova", "prova.txt"))
 				self.dbReader.execute("SELECT DISTINCT Filemd5 FROM File")
 				filemd5 = self.dbReader.fetchall()
-				#except:
-				#	print("Problemi sulla timerChunk")
-				#finally:
-					 #self.lock.release()
 				if len(filemd5) > 0:
-					print("Invio FCHU")
+					print(color.send + "Invio --> " + "FCHU temporizzato" + color.end)
 					for files in filemd5:
 						self.gettingParts(self.mySessionID, files[0])
 				sec = 0
@@ -317,7 +309,6 @@ class serverUDPhandler(object):
 				ricerca = self.sockUDPServer.recvfrom(20)[0].decode().strip()
 				sessionID = self.mySessionID 
 				msg = "LOOK" + sessionID.ljust(16) + ricerca.ljust(20)
-				print("Invio messaggio -> " + msg + " a " + self.ServerIP + " alla porta " + self.ServerPORT)
 				peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 				command = peer_socket.recv(4).decode()
 				nIdMd5 = peer_socket.recv(3).decode().strip()
@@ -380,7 +371,7 @@ class serverUDPhandler(object):
 				else:
 					count = int(data[0]) +1
 				
-				self.dbReader.execute("SELECT COUNT(IdParts) as Seed, IdParts, IPP2P, PP2P, Filemd5 FROM Parts WHERE IPP2P!=? AND Filemd5=? AND IdParts NOT IN (SELECT IdParts FROM Parts WHERE IPP2P=?) GROUP BY IdParts ORDER BY Seed, IdParts ASC", (self.myIPP2P, Filemd5, self.myIPP2P))
+				self.dbReader.execute("SELECT COUNT(IdParts) as Seed, IdParts, IPP2P, PP2P, Filemd5 FROM Parts WHERE IPP2P!=? AND Filemd5=? AND IdParts NOT IN (SELECT IdParts FROM Parts WHERE IPP2P=? AND Filemd5=?) GROUP BY IdParts ORDER BY Seed, IdParts ASC", (self.myIPP2P, Filemd5, self.myIPP2P, Filemd5))
 				data = self.dbReader.fetchall()
 				for resultParts in data:
 					while True:

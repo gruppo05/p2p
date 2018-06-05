@@ -34,7 +34,6 @@ class serverBitTorrent(object):
 		IP = ""
 		self.PORT = 3000
 		self.myIPP2P = var.setting.myIPP2P
-		self.timeDebug = var.setting.timeDebug
 		self.UDP_END = ""
 		
 		#accesso mutex
