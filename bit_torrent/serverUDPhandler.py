@@ -177,7 +177,7 @@ class serverUDPhandler(object):
 		while True:
 			time.sleep(var.setting.timeDebug)
 			sec = sec + 0.1
-			if int(sec) == 10:
+			if int(sec) == 60:
 				#try:
 					#self.lock.acquire(True)
 				#self.dbReader.execute("INSERT INTO File (Filemd5, Filename) values (?, ?)", ("prova", "prova.txt"))
@@ -191,8 +191,6 @@ class serverUDPhandler(object):
 					print("Invio FCHU")
 					for files in filemd5:
 						self.gettingParts(self.mySessionID, files[0])
-				else:
-					print("Non bisogna fare la fchu")
 				sec = 0
 				
 	def serverUDP(self):
