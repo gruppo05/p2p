@@ -178,20 +178,19 @@ class serverUDPhandler(object):
 			time.sleep(var.setting.timeDebug)
 			sec = sec + 0.1
 			if int(sec) == 60:
-				#try:
+				try:
 					#self.lock.acquire(True)
-				#self.dbReader.execute("INSERT INTO File (Filemd5, Filename) values (?, ?)", ("prova", "prova.txt"))
-				self.dbReader.execute("SELECT DISTINCT Filemd5 FROM File")
-				filemd5 = self.dbReader.fetchall()
-				#except:
-				#	print("Problemi sulla timerChunk")
-				#finally:
+					self.dbReader.execute("SELECT DISTINCT Filemd5 FROM File")
+					filemd5 = self.dbReader.fetchall()
+					if len(filemd5) > 0:
+						print("Invio FCHU")
+						for files in filemd5:
+							self.gettingParts(self.mySessionID, files[0])
+				except:
+					print("Problemi sulla timerChunk")
+				finally:
 					 #self.lock.release()
-				if len(filemd5) > 0:
-					print("Invio FCHU")
-					for files in filemd5:
-						self.gettingParts(self.mySessionID, files[0])
-				sec = 0
+					 sec = 0
 				
 	def serverUDP(self):
 		print(color.green+"In attesa di comandi interni..."+color.end)
