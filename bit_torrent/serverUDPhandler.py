@@ -138,7 +138,7 @@ class serverUDPhandler(object):
 				return False
 					
 	def gettingParts(self, sessionID, filemd5):
-		self.dbReader.execute("DELETE FROM Parts WHERE Filemd5=?",(filemd5,))
+		self.dbReader.execute("DELETE FROM Parts WHERE Filemd5=? AND IPP2P!=?",(filemd5,self.myIPP2P))
 		msg = "FCHU" + sessionID.ljust(16) + filemd5.ljust(32)
 		peer_socket = setConnection(self.ServerIP, int(self.ServerPORT), msg)
 		self.dbReader.execute("SELECT Lenfile, Lenpart FROM File WHERE Filemd5 LIKE ?", ("%"+filemd5+"%",))
